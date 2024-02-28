@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools", "wheel", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "spcm"
+authors = [
+  { name='Spectrum Instrumentation GmbH', email='info@spec.de' },
+]
+description = "Package for Spectrum Instrumentation GmbH cards"
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware",
+]
+dependencies = [
+  "numpy >= 1.25.2",
+]
+
+[project.urls]
+"Homepage" = "https://spectrum-instrumentation.com/"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["spcm"] 
+namespaces = false
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "src/spcm/_version.py"
+tag_prefix = "v"

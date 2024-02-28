@@ -1,0 +1,6 @@
+spcm
+numpy
+psutil
+cupy-cuda12x
+matplotlib
+PyQt5

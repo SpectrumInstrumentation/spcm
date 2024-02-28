@@ -1,0 +1,6 @@
+numpy
+pdoc
+sphinx
+sphinx-mermaid
+myst-parser
+sphinxcontrib-mermaid
