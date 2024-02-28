@@ -40,8 +40,7 @@ $ pip install spcm
 Note that: this will automatically install all the dependencies (e.g. NumPy).
 
 # Documentation
-[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](...)
-[![Documentation Status - Latest](https://readthedocs.org/projects/spcm/badge/?version=latest)](https://qutip.readthedocs.io/en/latest/?badge=latest)
+[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://spectruminstrumentation.github.io/spcm/spcm.html)
 
 The API documentation for the latest [stable release](https://spectruminstrumentation.github.io/spcm/spcm.html) is available for reading on GitHub pages.
 
