@@ -17,7 +17,7 @@ A high-level, object-oriented Python package for interfacing with Spectrum Instr
 
 # Supported devices
 
-See the [SUPPORTED_DEVICE.md](src/spcm/SUPPORTED_DEVICES.md) file for a list of supported devices.
+See the [SUPPORTED_DEVICES.md](https://github.com/SpectrumInstrumentation/spcm/blob/master/src/spcm/SUPPORTED_DEVICES.md) file for a list of supported devices.
 
 # Requirements
 [![Python](https://img.shields.io/pypi/pyversions/spcm.svg)](https://badge.fury.io/py/spcm)
@@ -31,7 +31,7 @@ Please have a look in the manual of your product for more information about inst
 
 Start by installing Python 3.9 or higher. We recommend using the latest version. You can download Python from [https://www.python.org/](https://www.python.org/).
 
-You would probably also like to install and use a virtual environment, although it's not strictly necessary. See the examples [README.md](src/examples/README.md) for a more detailed explanation on how to use `spcm` in a virtual environment.
+You would probably also like to install and use a virtual environment, although it's not strictly necessary. See the examples [README.md](https://github.com/SpectrumInstrumentation/spcm/blob/master/src/examples/README.md) for a more detailed explanation on how to use `spcm` in a virtual environment.
 
 To install the latest release using `pip`:
 ```bash

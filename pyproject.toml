@@ -32,7 +32,11 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://spectrum-instrumentation.com/"
+Homepage = "https://spectrum-instrumentation.com/"
+API = "https://spectruminstrumentation.github.io/spcm/spcm.html"
+Repository = "https://github.com/SpectrumInstrumentation/spcm"
+Examples = "https://github.com/SpectrumInstrumentation/spcm/tree/master/src/examples"
+"Knowledge Base" = "https://spectrum-instrumentation.com/support/knowledgebase/index.php"
 
 [tool.setuptools.packages.find]
 where = ["src"]
