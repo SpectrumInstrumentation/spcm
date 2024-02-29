@@ -21,7 +21,7 @@ jobs:
       run: |
         wget http://spectrum-instrumentation.com/dl/repo-key.asc
         gpg --dearmor -o repo-key.gpg repo-key.asc
-        cp repo-key.gpg /etc/apt/spectrum-instrumentation.gpg
+        sudo cp repo-key.gpg /etc/apt/spectrum-instrumentation.gpg
         echo "deb [signed-by=/etc/apt/spectrum-instrumentation.gpg] http://spectrum-instrumentation.com/dl/ ./" > spectrum-instrumentation.list
         sudo cp spectrum-instrumentation.list /etc/apt/sources.list.d/spectrum-instrumentation.list
         sudo apt update
