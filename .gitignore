@@ -27,8 +27,8 @@ var/
 *.egg
 
 # pdoc
-docs.pdoc/
-docs
+#docs.pdoc/
+#docs
 # Sphinx
 docs.sphinx/build/
 docs.sphinx/source/generated/

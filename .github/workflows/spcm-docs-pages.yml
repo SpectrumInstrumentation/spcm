@@ -19,6 +19,15 @@ jobs:
         python-version: "3.10"
     - name: Install dependencies
       run: |
+        wget http://spectrum-instrumentation.com/dl/repo-key.asc
+        gpg --dearmor -o repo-key.gpg repo-key.asc
+        sudo cp repo-key.gpg /etc/apt/spectrum-instrumentation.gpg
+        echo "deb [signed-by=/etc/apt/spectrum-instrumentation.gpg] http://spectrum-instrumentation.com/dl/ ./" > spectrum-instrumentation.list
+        sudo cp spectrum-instrumentation.list /etc/apt/sources.list.d/spectrum-instrumentation.list
+        sudo apt update
+        sudo apt install -y libspcm-linux
+        rm -f repo-key.asc repo-key.gpg spectrum-instrumentation.list
+
         python -m pip install --upgrade pip
         python -m pip install .[doc]
         python -m pip install -r requirements.txt
