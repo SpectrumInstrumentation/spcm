@@ -1,7 +1,6 @@
 import os
 import platform
 import sys
-from pathlib import Path
 from ctypes import *
 
 # load registers for easier access
@@ -9,13 +8,6 @@ from .regs import *
 
 # load registers for easier access
 from .spcerr import *
-
-SPCM_DIR_PCTOCARD = 0
-SPCM_DIR_CARDTOPC = 1
-
-SPCM_BUF_DATA      = 1000 # main data buffer for acquired or generated samples
-SPCM_BUF_ABA       = 2000 # buffer for ABA data, holds the A-DATA (slow samples)
-SPCM_BUF_TIMESTAMP = 3000 # buffer for timestamps
 
 # determine bit width of os
 oPlatform = platform.architecture()
@@ -51,8 +43,6 @@ dptr64 = POINTER (double)
 
 # Windows
 if os.name == 'nt':
-    # sys.stdout.write("Python Version: {0} on Windows\n\n".format (platform.python_version()))
-
     # define card handle type
     if (bIs64Bit):
         # for unknown reasons c_void_p gets messed up on Win7/64bit, but this works:
@@ -63,10 +53,7 @@ if os.name == 'nt':
     # Load DLL into memory.
     # use windll because all driver access functions use _stdcall calling convention under windows
     if (bIs64Bit == 1):
-        # dir_path = os.path.dirname(os.path.realpath(__file__))
-        dir_path = Path("C:\\Users\\benno.rem\\devel\\prj_m2_drv\\m2i_drv\\x64\\Debug")
-        spcmDll = windll.LoadLibrary ("{}\\spcm_win64.dll".format(dir_path))
-        # spcmDll = windll.LoadLibrary ("spcm_win64.dll")
+        spcmDll = windll.LoadLibrary ("spcm_win64.dll")
     else:
         spcmDll = windll.LoadLibrary ("spcm_win32.dll")
 
