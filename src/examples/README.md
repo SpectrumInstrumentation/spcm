@@ -44,7 +44,7 @@ you're all setup to run the examples!
 In the virtual environement, execute the following command to run one of the examples:
 
 ```bash
-$ python acquisition/1_acq_single.py
+$ python 1_acquisition/1_acq_single.py
 ```
 
 This will, for example, (on a digitizer) run the example that records a signal and calculates the maximum and minimum and plot the signal with [matplotlib](https://matplotlib.org/).
