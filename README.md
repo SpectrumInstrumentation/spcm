@@ -13,7 +13,7 @@
 
 A high-level, object-oriented Python package for interfacing with Spectrum Instrumentation GmbH devices.
 
-`spcm` can handle individual cards (`Card`), StarHubs (`Sync`) and groups of cards (`CardStack`).
+`spcm` can handle individual cards (`Card`), StarHubs (`Sync`), groups of cards (`CardStack`) and Netboxes (`Netbox`).
 
 # Supported devices
 

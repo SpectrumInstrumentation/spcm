@@ -40,9 +40,6 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
             spcm.SpcmException(text="This is an example for D/A cards.\nCard: {0} sn {1:05d} not supported by this example\n".format(card_name, sn))
         print("Found: {0} sn {1:05d}".format(card_name, sn))
 
-        # get the number of channel on the card
-        max_channels = card.num_channels()
-
         # set up the mode
         card.card_mode(spcm.SPC_REP_STD_CONTINUOUS)
 
