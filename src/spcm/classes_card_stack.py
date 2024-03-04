@@ -140,13 +140,13 @@ class CardStack(ExitStack):
             for card in self.cards:
                 card.cmd(M2CMD_CARD_FORCETRIGGER, *args)
 
-    def sync_enable(self, enable : bool | int = True) -> int:
+    def sync_enable(self, enable : int = True) -> int:
         """
         Enable synchronization on all cards
 
         Parameters
         ----------
-        enable : bool | int
+        enable : int or bool
             a boolean or integer mask to enable or disable the synchronization of different channels
         
         Returns

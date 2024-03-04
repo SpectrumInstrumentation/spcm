@@ -16,13 +16,13 @@ class Sync(Device):
     SpcmTimeout
     """
 
-    def enable(self, enable : bool | int = None) -> int:
+    def enable(self, enable : int = None) -> int:
         """
         Enable or disable the Starthub (see register 'SPC_SYNC_ENABLEMASK' in chapter `Star-Hub` in the manual)
 
         Parameters
         ----------
-        enable : bool
+        enable : int or bool
             enable or disable the Starthub
         """
 

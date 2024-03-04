@@ -360,7 +360,7 @@ class PulseGenerators(CardFunctionality):
     generators : list[PulseGenerator]
     num_generators = 4
 
-    def __init__(self, card : Card, enable : int | bool = 0, *args, **kwargs) -> None:
+    def __init__(self, card : Card, enable : int = 0, *args, **kwargs) -> None:
         """
         The constructor of the PulseGenerators class
 
@@ -368,6 +368,8 @@ class PulseGenerators(CardFunctionality):
         ----------
         card : Card
             the card object that is used by the functionality
+        enable : int or bool
+            Enable or disable (all) the different pulse generators, by default all are turned off
         
         Raises
         ------
@@ -467,13 +469,13 @@ class PulseGenerators(CardFunctionality):
         self.card.write_setup()
 
     # The pulse generator can be enabled or disabled
-    def enable(self, enable : int | bool = None) -> int:
+    def enable(self, enable : int = None) -> int:
         """
         Enable or disable (all) the pulse generators (see register 'SPC_XIO_PULSEGEN_ENABLE' in chapter `Pulse Generator` in the manual)
 
         Parameters
         ----------
-        enable : int | bool
+        enable : int or bool
             Enable or disable (all) the different pulse generators, by default all are turned off
         
         Returns
