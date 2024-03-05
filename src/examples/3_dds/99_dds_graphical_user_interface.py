@@ -22,8 +22,6 @@ from PyQt5 import uic
 def exec_click():
     global ui, dds, channels
 
-    carrier_range = range(dds.num_cores())
-
     enable = False
     freq_time_div = ui.frequencyTimeDivider.value()
     amp_time_div = ui.amplitudeTimeDivider.value()
@@ -59,29 +57,29 @@ def exec_click():
         dds.freq_ramp_stepsize(freq_time_div)
         dds.amp_ramp_stepsize(amp_time_div)
 
-    for carrier in carrier_range:
-        enable = ui.findChild(QCheckBox, "enable_{}".format(carrier)).isChecked()
-        freq_MHz = ui.findChild(QDoubleSpinBox, "frequency_{}".format(carrier)).value()
-        amp = float(ui.findChild(QDoubleSpinBox, "amplitude_{}".format(carrier)).value())
-        phas_deg = float(ui.findChild(QDoubleSpinBox, "phase_{}".format(carrier)).value())
-        freq_slope_MHz_s = float(ui.findChild(QDoubleSpinBox, "frequencySlope_{}".format(carrier)).value())
-        amp_slope_1_s = float(ui.findChild(QDoubleSpinBox, "amplitudeSlope_{}".format(carrier)).value())
+    for core in dds:
+        enable = ui.findChild(QCheckBox, "enable_{}".format(core.index)).isChecked()
+        freq_MHz = ui.findChild(QDoubleSpinBox, "frequency_{}".format(core.index)).value()
+        amp = float(ui.findChild(QDoubleSpinBox, "amplitude_{}".format(core.index)).value())
+        phas_deg = float(ui.findChild(QDoubleSpinBox, "phase_{}".format(core.index)).value())
+        freq_slope_MHz_s = float(ui.findChild(QDoubleSpinBox, "frequencySlope_{}".format(core.index)).value())
+        amp_slope_1_s = float(ui.findChild(QDoubleSpinBox, "amplitudeSlope_{}".format(core.index)).value())
 
         if enable:
-            print("Frequency {}: {} MHz".format(carrier, freq_MHz))
-            print("Amplitude {}: {}".format(carrier, amp))
-            print("Phase {}: {} deg".format(carrier, phas_deg))
-            print("Frequency slope {}: {} MHz/s".format(carrier, freq_slope_MHz_s))
-            print("Amplitude slope {}: {} 1/s".format(carrier, amp_slope_1_s))
+            print("Frequency {}: {} MHz".format(core.index, freq_MHz))
+            print("Amplitude {}: {}".format(core.index, amp))
+            print("Phase {}: {} deg".format(core.index, phas_deg))
+            print("Frequency slope {}: {} MHz/s".format(core.index, freq_slope_MHz_s))
+            print("Amplitude slope {}: {} 1/s".format(core.index, amp_slope_1_s))
         
-        if enable and dds:
-            dds.amp(carrier, amp)
-            dds.freq(carrier, freq_MHz * pow(10, 6))
-            dds.phase(carrier, phas_deg)
-            dds.frequency_slope(carrier, freq_slope_MHz_s * pow(10,6))
-            dds.amplitude_slope(carrier, amp_slope_1_s)
+        if enable:
+            core.amp(amp)
+            core.freq(freq_MHz * pow(10, 6))
+            core.phase(phas_deg)
+            core.frequency_slope(freq_slope_MHz_s * pow(10,6))
+            core.amplitude_slope(amp_slope_1_s)
         else:
-            dds.amp(carrier, 0)
+            core.amp(0)
 
     if dds:
         dds.exec_now()

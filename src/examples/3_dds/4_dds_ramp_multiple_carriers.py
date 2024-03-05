@@ -34,7 +34,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.reset()
 
     # Start the DDS test
-    num_freq = dds.num_cores()
+    num_cores = len(dds)
     # 20 Carriers from 5 to 15 MHz
     first_init_freq_Hz  = 5.0e6 #   5   MHz
     delta_init_freq_Hz  = 5.0e5 # 500   kHz
@@ -45,23 +45,23 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # STEP 0 - Initialize frequencies
     dds.trg_timer(2.0)
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
-    for i in range(num_freq):
-        dds.amp(i, 0.45 / num_freq)
-        dds.freq(i, first_init_freq_Hz + i * delta_init_freq_Hz)
+    for core in dds:
+        core.amp(0.45 / num_cores)
+        core.freq(first_init_freq_Hz + int(core) * delta_init_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
 
     # STEP 1 - Start the ramp
     period_s = 5.0 # seconds
     dds.trg_timer(period_s) # after 2.0 s stop the ramp
-    for i in range(num_freq):
-        dds.frequency_slope(i, (first_final_freq_Hz - first_init_freq_Hz + i * (delta_final_freq_Hz  - delta_init_freq_Hz)) / period_s) # Hz/s
+    for core in dds:
+        core.frequency_slope((first_final_freq_Hz - first_init_freq_Hz + int(core) * (delta_final_freq_Hz  - delta_init_freq_Hz)) / period_s) # Hz/s
     dds.exec_at_trg()
     
     # STEP 2 - Stop the ramp
-    for i in range(num_freq):
-        dds.frequency_slope(i, 0) # Hz/s
-        dds.freq(i, first_final_freq_Hz + i * delta_final_freq_Hz)
+    for core in dds:
+        core.frequency_slope(0) # Hz/s
+        core.freq(first_final_freq_Hz + int(core) * delta_final_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
 

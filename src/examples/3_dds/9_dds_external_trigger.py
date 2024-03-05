@@ -38,19 +38,20 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     
     # Setup DDS
     dds = spcm.DDS(card)
+    core0 = dds[0]
     dds.reset()
 
     # Start the DDS test
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_CARD)
 
     # Create one carrier and keep it off
-    dds.amp(0, 0.4)
-    dds.freq(0, 5e6) # 5 MHz
+    core0.amp(0.4)
+    core0.freq(5e6) # 5 MHz
     dds.exec_at_trg()
 
     # each trigger event will change the generated frequency by 1 MHz
     for i in range(1, 11):
-        dds.freq(0, 5e6 + i*1e6)
+        core0.freq(5e6 + i*1e6)
         dds.exec_at_trg()    # turn off as soon as possible again
     dds.write_to_card()
 

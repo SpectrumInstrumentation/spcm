@@ -50,8 +50,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # STEP 0 - Initialize frequencies
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     dds.trg_timer(1.0)
-    dds.amp(0, 0.1)
-    dds.freq(0, carrier_freq_Hz)
+    core0 = dds[0]
+    core0.amp(0.1)
+    core0.freq(carrier_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
     
@@ -62,7 +63,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     counter = 0
     for counter in range(fill_max // 2 - 4):
         freq_Hz = freq_list[counter % num_samples]
-        dds.freq(0, freq_Hz)
+        core0.freq(freq_Hz)
         dds.exec_at_trg()
     dds.write_to_card()
     
@@ -82,7 +83,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
         print("Adding a block of commands to buffer")
         for i in range(fill_number // 2):
             freq_Hz = freq_list[counter % num_samples]
-            dds.freq(0, freq_Hz)
+            core0.freq(freq_Hz)
             dds.exec_at_trg()
             counter += 1
             counter %= num_samples

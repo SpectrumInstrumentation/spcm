@@ -7,6 +7,185 @@ from .classes_functionality import CardFunctionality
 
 import ctypes
 
+class DDSCore:
+    """
+    a class for controlling a single DDS core
+    """
+
+    dds : "DDS"
+    index : int
+
+    def __init__(self, core_index, dds, *args, **kwargs) -> None:
+        self.dds = dds
+        self.index = core_index
+    
+    def __int__(self) -> int:
+        """
+        get the index of the core
+
+        Returns
+        -------
+        int
+            the index of the core
+        """
+        return self.index
+    __index__ = __int__
+
+    def __add__(self, other) -> int:
+        """
+        add the index of the core to another index
+
+        Parameters
+        ----------
+        other : int
+            the other index
+
+        Returns
+        -------
+        int
+            the sum of the two indices
+        """
+        return self.index + other
+
+    # DDS "static" parameters
+    def amp(self, amplitude : float) -> None:
+        """
+        set the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
+        
+        Parameters
+        ----------
+        amplitude : float
+            the value between 0 and 1 corresponding to the amplitude
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_AMP + self.index, float(amplitude))
+    # aliases
+    amplitude = amp
+
+    def get_amp(self) -> float:
+        """
+        gets the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
+
+        Returns
+        -------
+        float
+            the value between 0 and 1 corresponding to the amplitude
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_AMP + self.index)
+    # aliases
+    get_amplitude = get_amp
+
+    def freq(self, frequency : float) -> None:
+        """
+        set the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
+        
+        Parameters
+        ----------
+        frequency : float
+            the value of the frequency in Hz
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_FREQ + self.index, float(frequency))
+    # aliases
+    frequency = freq
+
+    def get_freq(self) -> float:
+        """
+        gets the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
+        
+        Returns
+        -------
+        float
+            the value of the frequency in Hz the specific core
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_FREQ + self.index)
+    # aliases
+    get_frequency = get_freq
+
+    def phase(self, phase : float) -> None:
+        """
+        set the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
+        
+        Parameters
+        ----------
+        phase : float
+            the value between 0 and 360 degrees of the phase
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_PHASE + self.index, float(phase))
+
+    def get_phase(self) -> float:
+        """
+        gets the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
+        
+        Returns
+        -------
+        float
+            the value between 0 and 360 degrees of the phase
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_PHASE + self.index)
+
+    # DDS dynamic parameters
+    def freq_slope(self, slope : float) -> None:
+        """
+        set the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
+        
+        Parameters
+        ----------
+        slope : float
+            the rate of frequency change in Hz/s
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index, float(slope))
+    # aliases
+    frequency_slope = freq_slope
+
+    def get_freq_slope(self) -> float:
+        """
+        get the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
+        
+        Returns
+        -------
+        float
+            the rate of frequency change in Hz/s
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index)
+    # aliases
+    get_frequency_slope = get_freq_slope
+
+    def amp_slope(self, slope : float) -> None:
+        """
+        set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
+        
+        Parameters
+        ----------
+        slope : float
+            the rate of amplitude change in 1/s
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_AMP_SLOPE + self.index, float(slope))
+    # aliases
+    amplitude_slope = amp_slope
+
+    def get_amp_slope(self) -> float:
+        """
+        set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
+        
+        Returns
+        -------
+        float
+            the rate of amplitude change in 1/s
+        """
+
+        self.dds.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + self.index)
+    # aliases
+    amplitude_slope = amp_slope
+
+
 class DDS(CardFunctionality):
     """a higher-level abstraction of the SpcmCardFunctionality class to implement DDS functionality
 
@@ -54,13 +233,84 @@ class DDS(CardFunctionality):
  
     """
 
+    cores : list[DDSCore] = []
+
     _dtm : int = 0
     _register_list : ctypes._Pointer
     _rl_size : int = MEBI(2)
     _rl_current : int = 0
 
+    _current_core : int = -1
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        print(self.card.sn())
+        self.load_cores()
+    
+    def load_cores(self):
+        """
+        load the cores of the DDS functionality
+        """
+
+        self.cores = []
+        num_cores = self.num_cores()
+        for core in range(num_cores):
+            self.cores.append(DDSCore(core, self))
+        
+    def __len__(self) -> int:
+        """
+        get the number of cores
+
+        Returns
+        -------
+        int
+            the number of cores
+        """
+        return len(self.cores)
+    
+    def __iter__(self):
+        """
+        make the class iterable
+
+        Returns
+        -------
+        self
+        """
+        return self
+    
+    def __next__(self):
+        """
+        get the next core
+
+        Returns
+        -------
+        DDSCore
+            the next core
+        """
+
+        self._current_core += 1
+        if self._current_core < len(self.cores):
+            return self.cores[self._current_core]
+        else:
+            self._current_core = -1
+            raise StopIteration
+    
+    def __getitem__(self, index : int) -> DDSCore:
+        """
+        get a specific core
+
+        Parameters
+        ----------
+        index : int
+            the index of the core
+
+        Returns
+        -------
+        DDSCore
+            the specific core
+        """
+
+        return self.cores[index]
 
     def set_i(self, reg : int, value : int) -> None:
         """
@@ -445,19 +695,29 @@ class DDS(CardFunctionality):
         return self.card.get_i(SPC_DDS_AMP_RAMP_STEPSIZE)
 
     # DDS "static" parameters
-    def amp(self, core_index : int, amplitude : float) -> None:
+    # def amp(self, core_index : int, amplitude : float) -> None:
+    def amp(self, *args) -> None:
         """
         set the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
         
         Parameters
         ----------
-        core_index : int
+        core_index : int (optional)
             the index of the core to be changed
         amplitude : float
             the value between 0 and 1 corresponding to the amplitude
         """
 
-        self.set_d(SPC_DDS_CORE0_AMP + core_index, float(amplitude))
+        if len(args) == 1:
+            amplitude = args[0]
+            for core in self.cores:
+                core.amp(amplitude)
+        elif len(args) == 2:
+            core_index, amplitude = args
+            self.cores[core_index].amp(amplitude)
+        else:
+            raise TypeError("amp() takes 1 or 2 positional arguments ({} given)".format(len(args) + 1))
+        # self.set_d(SPC_DDS_CORE0_AMP + core_index, float(amplitude))
     # aliases
     amplitude = amp
 
@@ -476,7 +736,8 @@ class DDS(CardFunctionality):
             the value between 0 and 1 corresponding to the amplitude
         """
 
-        return self.card.get_d(SPC_DDS_CORE0_AMP + core_index)
+        return self.cores[core_index].get_amp()
+        # return self.card.get_d(SPC_DDS_CORE0_AMP + core_index)
     # aliases
     get_amplitude = get_amp
 
@@ -516,19 +777,29 @@ class DDS(CardFunctionality):
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_STEP)
 
-    def freq(self, core_index : int, frequency : float) -> None:
+    # def freq(self, core_index : int, frequency : float) -> None:
+    def freq(self, *args) -> None:
         """
         set the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
         
         Parameters
         ----------
-        core_index : int
+        core_index : int (optional)
             the index of the core to be changed
         frequency : float
             the value of the frequency in Hz
         """
 
-        self.set_d(SPC_DDS_CORE0_FREQ + core_index, float(frequency))
+        if len(args) == 1:
+            frequency = args[0]
+            for core in self.cores:
+                core.freq(frequency)
+        elif len(args) == 2:
+            core_index, frequency = args
+            self.cores[core_index].freq(frequency)
+        else:
+            raise TypeError("freq() takes 1 or 2 positional arguments ({} given)".format(len(args) + 1))
+        # self.set_d(SPC_DDS_CORE0_FREQ + core_index, float(frequency))
     # aliases
     frequency = freq
 
@@ -547,7 +818,7 @@ class DDS(CardFunctionality):
             the value of the frequency in Hz the specific core
         """
 
-        return self.card.get_d(SPC_DDS_CORE0_FREQ + core_index)
+        return self.cores[core_index].get_freq()
     # aliases
     get_frequency = get_freq
 
@@ -587,18 +858,29 @@ class DDS(CardFunctionality):
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_STEP)
 
-    def phase(self, core_index : int, phase : float) -> None:
+    # def phase(self, core_index : int, phase : float) -> None:
+    def phase(self, *args) -> None:
         """
         set the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
         
         Parameters
         ----------
-        core_index : int
+        core_index : int (optional)
             the index of the core to be changed
         phase : float
             the value between 0 and 360 degrees of the phase
         """
 
+        if len(args) == 1:
+            phase = args[0]
+            for core in self.cores:
+                core.phase(phase)
+        elif len(args) == 2:
+            core_index, phase = args
+            self.cores[core_index].phase(phase)
+        else:
+            raise TypeError("phase() takes 1 or 2 positional arguments ({} given)".format(len(args) + 1))
+        # self.set_d(SPC_DDS_CORE0_PHASE + core_index, float(phase))
         self.set_d(SPC_DDS_CORE0_PHASE + core_index, float(phase))
 
     def get_phase(self, core_index : int) -> float:
@@ -679,19 +961,29 @@ class DDS(CardFunctionality):
         return self.card.get_i(SPC_DDS_X_MANUAL_OUTPUT)
 
     # DDS dynamic parameters
-    def freq_slope(self, core_index : int, slope : float) -> None:
+    # def freq_slope(self, core_index : int, slope : float) -> None:
+    def freq_slope(self, *args) -> None:
         """
         set the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
         
         Parameters
         ----------
-        core_index : int
+        core_index : int (optional)
             the index of the core to be changed
         slope : float
             the rate of frequency change in Hz/s
         """
 
-        self.set_d(SPC_DDS_CORE0_FREQ_SLOPE + core_index, float(slope))
+        if len(args) == 1:
+            slope = args[0]
+            for core in self.cores:
+                core.freq_slope(slope)
+        elif len(args) == 2:
+            core_index, slope = args
+            self.cores[core_index].freq_slope(slope)
+        else:
+            raise TypeError("freq_slope() takes 1 or 2 positional arguments ({} given)".format(len(args) + 1))
+        # self.set_d(SPC_DDS_CORE0_FREQ_SLOPE + core_index, float(slope))
     # aliases
     frequency_slope = freq_slope
 
@@ -750,19 +1042,29 @@ class DDS(CardFunctionality):
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_SLOPE_STEP)
 
-    def amp_slope(self, core_index : int, slope : float) -> None:
+    # def amp_slope(self, core_index : int, slope : float) -> None:
+    def amp_slope(self, *args) -> None:
         """
         set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
         
         Parameters
         ----------
-        core_index : int
+        core_index : int (optional)
             the index of the core to be changed
         slope : float
             the rate of amplitude change in 1/s
         """
 
-        self.set_d(SPC_DDS_CORE0_AMP_SLOPE + core_index, float(slope))
+        if len(args) == 1:
+            slope = args[0]
+            for core in self.cores:
+                core.amp_slope(slope)
+        elif len(args) == 2:
+            core_index, slope = args
+            self.cores[core_index].amp_slope(slope)
+        else:
+            raise TypeError("amp_slope() takes 1 or 2 positional arguments ({} given)".format(len(args) + 1))
+        # self.set_d(SPC_DDS_CORE0_AMP_SLOPE + core_index, float(slope))
     # aliases
     amplitude_slope = amp_slope
 

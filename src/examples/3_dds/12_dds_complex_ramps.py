@@ -62,7 +62,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.reset()
 
     # Start the DDS test
-    num_freq = dds.num_cores()
+    num_cores = len(dds)
     # 20 Carriers from 90 to 110 MHz
     first_init_freq_Hz  = 90e6
     delta_init_freq_Hz  =  1e6
@@ -78,9 +78,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # STEP 0 - Initialize frequencies
     dds.trg_timer(2.0)
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
-    for i in range(num_freq):
-        dds.amp(i, 0.45 / num_freq)
-        dds.freq(i, first_init_freq_Hz + i * delta_init_freq_Hz)
+    for core in dds:
+        core.amp(0.45 / num_cores)
+        core.freq(first_init_freq_Hz + int(core) * delta_init_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
 
@@ -89,13 +89,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.trg_timer(period_s) # after 5.0 s stop the ramp
     # Define the parameters
     parameters = []
-    slopes = np.zeros((num_freq, num_segments))
+    slopes = np.zeros((num_cores, num_segments))
     # Show the results
     plt.figure(figsize=(7,7))
-    for i in range(num_freq):
+    for core in dds:
         parameters = {
-            "startFreq_Hz": first_init_freq_Hz + i * delta_init_freq_Hz, 
-            "endFreq_Hz": first_final_freq_Hz + i * delta_final_freq_Hz, 
+            "startFreq_Hz": first_init_freq_Hz + core.index * delta_init_freq_Hz, 
+            "endFreq_Hz": first_final_freq_Hz + core.index * delta_final_freq_Hz, 
             "time_s": total_time_s, 
             "ramp_type": ramp_type
             }
@@ -106,12 +106,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
 
         t_s = t * parameters["time_s"]
         points = np.array([t_s, y]).T
-        slopes[i, :] = calculate_slope(points)
+        slopes[core, :] = calculate_slope(points)
 
 
         plt.plot(*points.T, 'ok')
         t_fine_s = np.linspace(t_s[0], t_s[1], 2, endpoint=True)
-        for j, sl in enumerate(slopes[i]):
+        for j, sl in enumerate(slopes[core]):
             plt.plot(t_s[j] + t_fine_s, y[j] + sl*(t_fine_s), '--')
         
     # plt.legend()
@@ -122,14 +122,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
 
     # Do the slopes
     for j in range(num_segments):
-        for i in range(num_freq):
-            dds.frequency_slope(i, slopes[i][j]) # Hz/s
+        for core in dds:
+            core.frequency_slope(slopes[core][j]) # Hz/s
         dds.exec_at_trg()
 
     # STEP 2 - Stop the ramp
-    for i in range(num_freq):
-        dds.frequency_slope(i, 0) # Hz/s
-        dds.freq(i, first_final_freq_Hz + i * delta_final_freq_Hz)
+    for core in dds:
+        core.frequency_slope(0) # Hz/s
+        core.freq(first_final_freq_Hz + core.index * delta_final_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
 

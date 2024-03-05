@@ -53,21 +53,21 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     period_s = 1.0 # seconds
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     dds.trg_timer(period_s)
-    dds.amp(0, 0.1)
-    dds.freq(0, freq_list[0])
+    dds[0].amp(0.1)
+    dds[0].freq(freq_list[0])
     dds.exec_at_trg()
     dds.write_to_card()
     
     # STEP 1a - Pre-fill Buffer
     period_s = 1e-3 # 1 ms
     dds.trg_timer(period_s)
-    lFillMax = dds.queue_cmd_max()
-    lFillNumber = int(lFillMax / 4)
+    fill_maximum = dds.queue_cmd_max()
+    fill_number = int(fill_maximum / 4)
     print("Pre-fill buffer")
     column = 0
-    for i in range(lFillNumber):
+    for i in range(fill_number):
         freq_Hz = freq_list[column % num_freq]
-        dds.freq(0, freq_Hz)
+        dds[0].freq(freq_Hz)
         dds.exec_at_trg()
         column += 1
     dds.write_to_card()
@@ -77,15 +77,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
 
     # STEP 1b - Streaming data points
     fill_count = dds.queue_cmd_count()
-    fill_check = lFillMax - lFillNumber
+    fill_check = fill_maximum - fill_number
     while True: # infinitely long streaming
         while True:
             fill_count = dds.queue_cmd_count()
             if fill_count < fill_check: break
         print("Adding a block of commands to buffer")
-        for i in range(lFillNumber):
+        for i in range(fill_number):
             freq_Hz = freq_list[column % num_freq]
-            dds.freq(0, freq_Hz)
+            dds[0].freq(freq_Hz)
             dds.exec_at_trg()
             column += 1
             column %= num_freq

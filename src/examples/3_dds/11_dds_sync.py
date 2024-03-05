@@ -26,23 +26,21 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     channels.enable(True)
     channels.amp(1000) # 1000 mV
 
+    multi_dds = []
     for card in stack.cards:
 
         # setup card for DDS
         card.card_mode(spcm.SPC_REP_STD_DDS)
-
-        # Setup clock engine
-        clock = spcm.Clock(card)
-        clock.mode(spcm.SPC_CM_INTPLL)
         card.write_setup()
         
         # Setup DDS
         dds = spcm.DDS(card)
+        multi_dds.append(dds)
         dds.reset()
 
         # Start the test
         dds.amp(0, 0.4)
-        dds.freq(0, 10.0e3)
+        dds.freq(0, 1.0e6)
         dds.trg_src(spcm.SPCM_DDS_TRG_SRC_NONE)
         dds.exec_at_trg()
         dds.write_to_card()

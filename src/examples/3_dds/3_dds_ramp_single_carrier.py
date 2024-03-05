@@ -43,25 +43,25 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.amp_ramp_stepsize(1000)
 
     # Create one carrier and keep on for 2 seconds
-    dds.amp(0, 0.4)
-    dds.freq(0, 5e6) # 5 MHz
+    dds[0].amp(0.4)
+    dds[0].freq(5e6) # 5 MHz
     dds.exec_at_trg()
 
     # Ramp the frequency of the carrier
-    dds.frequency_slope(0, 10e6 / period_s) # 5 MHz/s
+    dds[0].frequency_slope(10e6 / period_s) # 5 MHz/s
     dds.exec_at_trg()
 
     # Stop frequency ramp
-    dds.frequency_slope(0, 0)
-    dds.freq(0, 15e6) # 15 MHz
+    dds[0].frequency_slope(0)
+    dds[0].freq(15e6) # 15 MHz
     dds.exec_at_trg()
 
     # Ramp the amplitude of the carrier
-    dds.amplitude_slope(0, -0.39 / period_s) # 1/s
+    dds[0].amplitude_slope(-0.39 / period_s) # 1/s
     dds.exec_at_trg()
 
     # Stop amplitude ramp
-    dds.amplitude_slope(0, 0)
+    dds[0].amplitude_slope(0)
     dds.amp(0, 0.01)
     dds.exec_at_trg()
 

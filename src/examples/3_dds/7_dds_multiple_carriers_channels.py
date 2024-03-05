@@ -52,15 +52,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
                              spcm.SPCM_DDS_CORE22) # Fixed core 22
 
     # Start the test
-    num_freq     = dds.num_cores()
+    num_freq     = len(dds)
     # 20 Carriers from 5 to 15 MHz
     start_freq_Hz = 5e6 #   5 MHz
     delta_freq_Hz = 5e5 # 500 kHz
-    for lCore in range(num_freq):
+    for core in dds:
         amp = 0.4/num_freq
-        dds.amp(lCore, amp)
-        dds.freq(lCore, start_freq_Hz + lCore * delta_freq_Hz)
-        print("Core {0} - Frequency: {1} Hz - Amplitude: {2}".format(lCore, dds.get_freq(lCore), dds.get_amp(lCore)))
+        core.amp(amp)
+        core.freq(start_freq_Hz + int(core) * delta_freq_Hz)
+        print("Core {} - Frequency: {} Hz - Amplitude: {}".format(int(core), core.get_freq(), core.get_amp()))
     dds.exec_at_trg()
     dds.write_to_card()
 

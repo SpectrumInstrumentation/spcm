@@ -37,14 +37,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Start the test
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     dds.trg_timer(3.0)
-    dds.amp(0, 0.4)
-    dds.freq(0, 5e6)  # 5 MHz
+    dds[0].amp(0.4)
+    dds[0].freq(5e6)  # 5 MHz
     dds.exec_at_trg()
     
-    dds.freq(0, 10e6) # 10 MHz
+    dds[0].freq(10e6) # 10 MHz
     dds.exec_at_trg()
     
-    dds.freq(0, 15e6) # 15 MHz
+    dds[0].freq(15e6) # 15 MHz
     dds.exec_at_trg()
     
     dds.write_to_card()

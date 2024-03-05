@@ -34,10 +34,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.reset()
 
     # Start the test
-    num_freq = dds.num_cores()
-    for carrier in range(num_freq):
-        dds.amp(carrier, 0.4/num_freq)
-        dds.freq(carrier, 5e6 + carrier * 5e5)
+    num_cores = len(dds)
+    for core in dds:
+        core.amp(0.4/num_cores)
+        core.freq(5e6 + int(core) * 5e5)
     dds.exec_at_trg()
     dds.write_to_card()
 

@@ -34,11 +34,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.reset()
 
     # Start the test
-    dds.amp(0, 0.4)
-    dds.freq(0, 10e6) # 10 MHz
+    dds[0].amp(0.4)
+    dds[0].freq(10e6) # 10 MHz
     # Read back the exact frequency
-    freq_Hz = dds.get_freq(0)
-    amp = dds.get_amp(0)
+    freq_Hz = dds[0].get_freq()
+    amp = dds[0].get_amp()
     print(f"Generated signal frequency: {freq_Hz} Hz and amplitude: {amp}")
     
     dds.exec_at_trg()

@@ -37,6 +37,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     
     # Setup DDS
     dds = spcm.DDS(card)
+    core0 = dds[0]
     dds.reset()
 
     # Start the DDS test
@@ -49,13 +50,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.exec_at_trg()
 
     # Create one carrier and keep it off
-    dds.amp(0, 0.4)
-    dds.freq(0, 10) # 10 Hz
+    core0.amp(0.4)
+    core0.freq(10) # 10 Hz
     dds.x_manual_output(spcm.SPCM_DDS_X0)
     dds.exec_at_trg()
 
     # set all manually controlled XIO lines to LOW
-    dds.amp(0, 0.0)
+    core0.amp(0.0)
     dds.x_manual_output(0x0)
     dds.exec_at_trg()
 
