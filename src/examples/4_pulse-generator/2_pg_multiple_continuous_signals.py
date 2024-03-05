@@ -27,8 +27,7 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
 
     clock = spcm.Clock(card)
-    max_sample_rate = clock.max_sample_rate()
-    sample_rate = clock.sample_rate(max_sample_rate)
+    sample_rate = clock.sample_rate(max = True)
 
     multi_ios = spcm.MultiPurposeIOs(card)
     for io in multi_ios:

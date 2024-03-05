@@ -43,8 +43,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
     clock.output(0)                           # no clock output
-    max_samplerate = clock.max_sample_rate()
-    sample_rate = clock.sample_rate(max_samplerate)
+    sample_rate = clock.sample_rate(max = True) # set to maximum sample rate
     print("Used samplerate: {0} MS/s\n".format(sample_rate // 1000000))
 
     # setup a data transfer buffer

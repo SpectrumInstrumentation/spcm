@@ -56,7 +56,7 @@ class Clock(CardFunctionality):
         
         return self.card.get_i(SPC_MIINST_MAXADCLOCK)
 
-    def sample_rate(self, sample_rate : int = 0) -> int:
+    def sample_rate(self, sample_rate : int = 0, max : bool = False) -> int:
         """
         Sets or gets the current sample rate of the handled card (see register `SPC_SAMPLERATE` in the manual)
 
@@ -64,7 +64,8 @@ class Clock(CardFunctionality):
         ----------
         sample_rate : int = 0
             if the parameter sample_rate is given with the function call, then the card's sample rate is set to that value
-            if the parameter sample_rate is not give, the method returns the actual sample rate
+        max : bool = False
+            if max is True, the method sets the maximum sample rate of the card
     
         Returns
         -------
@@ -72,6 +73,8 @@ class Clock(CardFunctionality):
             the current sample rate in Samples/s
         """
         
+        if max:
+            sample_rate = self.max_sample_rate()
         if sample_rate:
             self.card.set_i(SPC_SAMPLERATE, int(sample_rate))
         return self.card.get_i(SPC_SAMPLERATE)

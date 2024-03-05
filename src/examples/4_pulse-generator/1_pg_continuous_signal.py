@@ -28,8 +28,7 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
 
     # Setup the clock
     clock = spcm.Clock(card)
-    max_sample_rate = clock.max_sample_rate()
-    sample_rate = clock.sample_rate(max_sample_rate)
+    sample_rate = clock.sample_rate(max = True)
 
     # enable pulse generator output on XIO lines
     multi_ios = spcm.MultiPurposeIOs(card)
