@@ -234,6 +234,25 @@ class Device():
         base = custom_mode & SPCM_CUSTOMMOD_BASE_MASK
         custom_dict = {"starhub": starhub, "module": module, "base": base}
         return custom_dict
+    
+    def log_level(self, log_level : int = None) -> int:
+        """
+        Set the logging level of the driver
+    
+        Parameters
+        ----------
+        log_level : int
+            The logging level that is set for the driver
+        
+        Returns
+        -------
+        int
+            The logging level of the driver
+        """
+
+        if log_level is not None:
+            self.set_i(SPC_LOGDLLCALLS, log_level)
+        return self.get_i(SPC_LOGDLLCALLS)
 
     def cmd(self, *args) -> None:
         """
