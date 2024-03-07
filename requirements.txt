@@ -1,8 +1,4 @@
-numpy
+.
 build
 twine
 pdoc
-sphinx
-sphinx-mermaid
-myst-parser
-sphinxcontrib-mermaid

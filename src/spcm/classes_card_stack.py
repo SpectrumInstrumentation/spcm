@@ -132,8 +132,10 @@ class CardStack(ExitStack):
             a list of arguments that will be passed with the force trigger command for the cards
         """
         
-        if self.sync:
-            # TODO: the force trigger needs to be correctly implemented in the driver
+        # TODO: the force trigger needs to be correctly implemented in the driver
+        if self.sync_card:
+            self.sync_card.cmd(M2CMD_CARD_FORCETRIGGER, *args)
+        elif self.sync:
             # self.sync.cmd(M2CMD_CARD_FORCETRIGGER, *args)
             self.cards[0].cmd(M2CMD_CARD_FORCETRIGGER, *args)
         else:

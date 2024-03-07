@@ -55,18 +55,18 @@ class Channel:
         return self.index
     __index__ = __int__
     
-    def __add__(self, other : int) -> int:
+    def __add__(self, other):
         """
         The Channel object again acts like an int and returns the index of the channel plus the other value
         
         Parameters
         ----------
-        other : int
+        other : int or float
             The value to be added to the index of the channel
         
         Returns
         -------
-        int
+        int or float
             The index of the channel plus the other value
         """
         return self.index + other
@@ -89,6 +89,7 @@ class Channel:
         if enable is not None:
             self.card.set_i(SPC_ENABLEOUT0 + (SPC_ENABLEOUT1 - SPC_ENABLEOUT0) * self.index, int(enable))
         return bool(self.card.get_i(SPC_ENABLEOUT0 + (SPC_ENABLEOUT1 - SPC_ENABLEOUT0) * self.index))
+    enable_out = enable
     
     def path(self, value : int = None) -> int:
         """
@@ -439,6 +440,7 @@ class Channels:
 
         for channel in self.channels:
             channel.enable(enable)
+    enable_out = enable
     
     def path(self, value : int) -> None:
         """

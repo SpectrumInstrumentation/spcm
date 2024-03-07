@@ -156,9 +156,7 @@ To use a specific functionality simply initiate an instance of one of the classe
 ```python
 import spcm
 
-card : spcm.Card
 with spcm.Card('/dev/spcm0') as card:
-    if not card: raise spcm.SpcmException(text="No card found!")
 
     clock = spcm.Clock(card)
     # (or)
@@ -181,16 +179,16 @@ To get the maximum sample rate of the active card and set the sample rate to the
 ```python
 clock = spcm.Clock(card)
 clock.mode(spcm.SPC_CM_INTPLL)
-llMaxSR = clock.max_sample_rate()
-llSampleRate = clock.sample_rate(llMaxSR)
-print("Current sample rate: {}S/s".format(llSampleRate))
+max_sample_rate = clock.max_sample_rate()
+sample_rate = clock.sample_rate(max_sample_rate)
+print("Current sample rate: {}S/s".format(sample_rate))
 ```
 
 ## Setting up the Trigger engine
 
 ### External trigger
 
-The Trigger engine can be configured for a multitude of different configurations (see the hardware manual for more information about the specific configurations for your device). Here we've given an example for an external trigger arriving at input port ext0, that is DC-coupled. The card is waiting for positiv edge that excedes 1,5 V:
+The Trigger engine can be configured for a multitude of different configurations (see the hardware manual for more information about the specific configurations for your device). Here we've given an example for an external trigger arriving at input port ext0, that is DC-coupled. The card is waiting for positiv edge that excedes 1.5 V:
 
 ```python
 trigger = spcm.Trigger(card)
@@ -206,8 +204,8 @@ See the hardware manual, for the multi-purpose I/O lines functionality that can 
 
 ## Setting up a data transfer buffer for recording (digitizer) or replay (AWG)
 
-### Recording
-To transfer data to or from the card, we have to setup a data transfer object. This object allocates an amount the memory of the card (`memory_size`) and a Direct Memory Access (DMA) buffer on the host pc (`allocate_buffer`). Half of the samples are taken before the trigger, that is configured by the trigger engine, and half of the samples are recorded afterwards. Then the transfer from the card to the host pc is started and the program waits until the DMA is filled.
+### Recording (Digitizing)
+To transfer data to or from the card, we have to setup a data transfer object. This object allocates an amount the memory of the card (`memory_size`) and a Direct Memory Access (DMA) buffer on the host pc (`allocate_buffer`). Half of the samples are taken before the trigger, as configured by the trigger engine, and half of the samples are recorded afterwards. Then the transfer from the card to the host pc is started and the program waits until the DMA is filled.
 
 ```python
 # define the data buffer
@@ -224,19 +222,19 @@ card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 # (your code handling the recorded data comes here)
 ```
 
-To access the recorded data, the data transfer object holds a NumPy array object `data_transfer.buffer` that is directly mapped to the DMA buffer. This buffer can be directly accessed by the different analysis methods in the NumPy package:
+To access the recorded data, the data transfer object holds a [NumPy](https://numpy.org/) array object `data_transfer.buffer` that is directly mapped to the DMA buffer. This buffer can be directly accessed by the different analysis methods available in the NumPy package:
 
 ```python
 import numpy as np
 
 # The extrema of the data
-alMin = np.min(data_transfer.buffer, axis=1)
-alMax = np.max(data_transfer.buffer, axis=1)
+minimum = np.min(data_transfer.buffer, axis=1)
+maximum = np.max(data_transfer.buffer, axis=1)
 ```
 
 This data can be further processed or plotted using, for example, [`matplotlib`](https://matplotlib.org/).
 
-### Replay
+### Replay (Generation)
 
 The setup of the DMA for replay is very similar. First card memory is allocated with `memory_size` and then a DMA buffer is allocated (`allocated_buffer`) and made accessible though the NumPy object `data_transfer.buffer`, which can then be written to using standard NumPy methods. Finally, data transfer from the host PC to the card is started and the programming is waiting until all the data is transferred:
 ```python
@@ -245,14 +243,14 @@ data_transfer.memory_size(num_samples)
 data_transfer.allocate_buffer(num_samples)
 data_transfer.loops(0) # loop continuously
 # simple linear ramp for analog output cards
-data_transfer.buffer[:] = np.arange(-num_samples//2, num_samples//2, dtype=np.int16)
+data_transfer.buffer[:] = np.arange(-num_samples//2, num_samples//2).astype(np.int16)
 
 data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 ```
 
 ## Multiple recording / replay
 
-In case of Multiple recording / replay, the memory is divided in equally sized segments, that are populated / replayed when a trigger is detected. Multiple triggers each trigger the next segment to be populated or replayed.
+In case of multiple recording / replay, the memory is divided in equally sized segments, that are populated / replayed when a trigger is detected. Multiple triggers each trigger the next segment to be populated or replayed.
 
 The following code snippet shows how to setup the buffer for 4 segments with each 128 Samples:
 
@@ -269,7 +267,7 @@ Again there are half the samples before and half the samples after the trigger.
 
 ## Timestamps
 
-See the example `6_acq_fifo_multi_ts_poll.py` in the examples folder `acquisition` for more information about the usage of TimeStamps. Moreover, detailed information about timestamps can be found in the corresponding chapter in the specific hardware manual.
+See the example `6_acq_fifo_multi_ts_poll.py` in the examples folder `1_acquisition` for more information about the usage of timestamps. Moreover, detailed information about timestamps can be found in the corresponding chapter in the specific hardware manual.
 
 To setup the timestamp buffer:
 
@@ -285,7 +283,7 @@ The user can then use polling to acquire time stamp data from the card.
 
 ### Pulse generator
 
-Please see the folder `pulse-generator` in the `examples` folder for several dedicated examples. In the following, there is a simple example for setting up a single pulse generator on x0.
+Please see the folder `4_pulse-generator` in the `examples` folder for several dedicated examples. In the following, there is a simple example for setting up a single pulse generator on x0.
 
 Create a pulse generators object and get the clock rate used by the pulse generator. Use that to calculate the period of a 1 MHz signal and the half of that period we'll have a high signal (hence 50% duty cycle). The pulse generator will start if the trigger condition is met without delay and loops infinitely many times. The triggering condition is set to the card software trigger. See more details in the pulse generator chapter in the specific hardware manual.
 
@@ -315,11 +313,11 @@ This will start the pulse generator to continuously output a 1 MHz signal.
 
 ### Sequence replay mode (AWG only)
 
-Please see the example `3_rep_sequence.py` in the folder `generation` of the examples to see an example dedicated to the Sequence replay mode.
+Please see the example `3_gen_sequence.py` in the folder `2_generation` of the examples to see an example dedicated to the Sequence replay mode.
 
 ### DDS (AWG only)
 
-Please see the examples in the dedicated examples folder `dds` for all the functionality provided by the DDS framework. Moreover, please also have a look at the corresponding hardware manual.
+Please see the examples in the dedicated examples folder `3_dds` for all the functionality provided by the DDS framework. Moreover, please also have a look at the corresponding hardware manual.
 
 ### Boxcar (Digitizer only)
 
@@ -328,3 +326,7 @@ See the corresponding chapter in the hardware manual for more information about 
 ### Block average (Digitizer only)
 
 See the corresponding chapter in the hardware manual for more information about block averaging and the registers used.
+
+# Acknowledgements
+
+We would like to thank [Christian Baker](https://github.com/crnbaker) for fruitful discussions and inspiration on how to setup the `spcm` package.

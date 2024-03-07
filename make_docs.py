@@ -8,6 +8,7 @@ if __name__ == '__main__':
     os.environ["PDOC_ALLOW_EXEC"] = "1"
 
     doc_path = Path("docs")
+    doc_path.mkdir(exist_ok=True)
 
     doc = pdoc.doc.Module(spcm)
 
