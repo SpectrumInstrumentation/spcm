@@ -182,11 +182,11 @@ try:
 
         # load spcm_dwDefTransfer_i64
         if (bIs64Bit):
-            spcm_dwDefTransfer_i64 = getattr(spcmDll, "spcm_dwDefTransfer_i64")
+            spcm_dwDefTransfer_i64_ = getattr(spcmDll, "spcm_dwDefTransfer_i64")
         else:
-            spcm_dwDefTransfer_i64 = getattr(spcmDll, "_spcm_dwDefTransfer_i64@36")
-        spcm_dwDefTransfer_i64.argtype = [drv_handle, uint32, uint32, uint32, c_void_p, uint64, uint64]
-        spcm_dwDefTransfer_i64.restype = uint32
+            spcm_dwDefTransfer_i64_ = getattr(spcmDll, "_spcm_dwDefTransfer_i64@36")
+        spcm_dwDefTransfer_i64_.argtype = [drv_handle, uint32, uint32, uint32, c_void_p, uint64, uint64]
+        spcm_dwDefTransfer_i64_.restype = uint32
 
         # load spcm_dwInvalidateBuf
         if (bIs64Bit):
@@ -295,9 +295,9 @@ try:
         spcm_dwSetParam_ptr.restype = uint32
 
         # load spcm_dwDefTransfer_i64
-        spcm_dwDefTransfer_i64 = getattr(spcmSo, "spcm_dwDefTransfer_i64")
-        spcm_dwDefTransfer_i64.argtype = [drv_handle, uint32, uint32, uint32, c_void_p, uint64, uint64]
-        spcm_dwDefTransfer_i64.restype = uint32
+        spcm_dwDefTransfer_i64_ = getattr(spcmSo, "spcm_dwDefTransfer_i64")
+        spcm_dwDefTransfer_i64_.argtype = [drv_handle, uint32, uint32, uint32, c_void_p, uint64, uint64]
+        spcm_dwDefTransfer_i64_.restype = uint32
 
         # load spcm_dwInvalidateBuf
         spcm_dwInvalidateBuf = getattr(spcmSo, "spcm_dwInvalidateBuf")
@@ -338,7 +338,19 @@ def spcm_dwSetParam_i64(hDrv, lReg, Val):
 
 def spcm_dwSetParam_d64(hDrv, lReg, Val):
     try:
-        llVal = double(Val.value)
+        dVal = double(Val.value)
     except AttributeError:
-        llVal = double(Val)
-    return spcm_dwSetParam_d64_ (hDrv, lReg, llVal)
+        dVal = double(Val)
+    return spcm_dwSetParam_d64_ (hDrv, lReg, dVal)
+
+
+def spcm_dwDefTransfer_i64(hDrv, dwBufferType, dwDirection, dwNotify, pvBuffer, offs, buf_len):
+    try:
+        qwOffs = uint64(offs.value)
+    except AttributeError:
+        qwOffs = uint64(offs)
+    try:
+        qwBufLen = uint64(buf_len.value)
+    except AttributeError:
+        qwBufLen = uint64(buf_len)
+    return spcm_dwDefTransfer_i64_ (hDrv, dwBufferType, dwDirection, dwNotify, pvBuffer, qwOffs, qwBufLen)
