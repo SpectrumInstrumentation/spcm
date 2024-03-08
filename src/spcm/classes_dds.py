@@ -244,7 +244,7 @@ class DDS(CardFunctionality):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        print(self.card.sn())
+        self.cores = []
         self.load_cores()
     
     def load_cores(self):

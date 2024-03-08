@@ -102,7 +102,8 @@ class MultiPurposeIOs(CardFunctionality):
         """
 
         super().__init__(card, *args, **kwargs)
-
+        
+        self.xio_lines = []
         self.num_xio_lines = self.get_num_xio_lines()
         self.load()
     

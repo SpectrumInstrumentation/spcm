@@ -179,8 +179,7 @@ To get the maximum sample rate of the active card and set the sample rate to the
 ```python
 clock = spcm.Clock(card)
 clock.mode(spcm.SPC_CM_INTPLL)
-max_sample_rate = clock.max_sample_rate()
-sample_rate = clock.sample_rate(max_sample_rate)
+sample_rate = clock.sample_rate(max=True) # (or) sample_rate = clock.sample_rate(20e6) # for a 20 MHz sample rate (see reference manual for allowed values)
 print("Current sample rate: {}S/s".format(sample_rate))
 ```
 

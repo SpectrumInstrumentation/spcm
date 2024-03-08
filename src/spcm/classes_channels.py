@@ -282,8 +282,8 @@ class Channels:
     """
     
     cards : list[Card] = []
-    channels : list[Channel]
-    num_channels : list[int]
+    channels : list[Channel] = []
+    num_channels : list[int] = []
 
     def __init__(self, card : Card = None, card_enable : int = None, stack : CardStack = None, stack_enable : list[int] = None) -> None:
         """
@@ -306,6 +306,9 @@ class Channels:
             No card or card stack provided
         """
 
+        self.cards = []
+        self.channels = []
+        self.num_channels = []
         if card is not None:
             self.cards.append(card)
             if card_enable is not None:

@@ -97,7 +97,7 @@ class Device():
                 raise SpcmException(error)
         return self
     
-    def __exit__(self, exception : SpcmException, error_value : str, trace : types.TracebackType) -> None:
+    def __exit__(self, exception : SpcmException = None, error_value : str = None, trace : types.TracebackType = None) -> None:
         """
         Handles the exiting of the with statement, when either no code is left or an exception is thrown before
 
@@ -122,6 +122,7 @@ class Device():
         self.stop(M2CMD_DATA_STOPDMA) # stop the card and the DMA transfer
         self._closed = True
         self.close(self._handle)
+        self._handle = None
         if exception and self._reraise:
             raise exception
     
@@ -428,6 +429,7 @@ class Device():
             The value that is written to the card.
         """
 
+        self._check_closed()
         self._check_error(spcm_dwSetParam_i64(self._handle, register, value))
     
     def set_d(self, register : int, value : float) -> None:
@@ -442,6 +444,7 @@ class Device():
             The value that is written to the card.
         """
 
+        self._check_closed()
         self._check_error(spcm_dwSetParam_d64(self._handle, register, value))
     
     def set_ptr(self, register : int, reference : c_void_p, size : int) -> None:
