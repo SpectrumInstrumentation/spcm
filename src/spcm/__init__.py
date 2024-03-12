@@ -4,6 +4,8 @@
 .. include:: ./SUPPORTED_DEVICES.md
 """
 
+__docformat__ = "numpy"
+
 # Import all registery entries and spectrum card errors into the module's name space
 from .constants import *
 

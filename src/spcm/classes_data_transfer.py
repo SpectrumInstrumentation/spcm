@@ -3,6 +3,9 @@
 import numpy as np
 import numpy.typing as npt
 
+import h5py
+from pathlib import Path
+
 from .constants import *
 
 from .pyspcm import c_void_p, spcm_dwDefTransfer_i64
@@ -47,6 +50,8 @@ class DataTransfer(CardFunctionality):
     num_channels : int = 0
     bytes_per_sample : int = 0
     bits_per_sample : int = 0
+
+    # private
     _notify_samples : int = 0
 
     @property
@@ -275,6 +280,93 @@ class DataTransfer(CardFunctionality):
             cmd |= arg
         self.card.cmd(cmd)
         self.card._print("... data transfer started")
+
+    def tofile(self, filename : str, **kwargs) -> None:
+        """
+        Export the buffer to a file. The file format is determined by the file extension
+        Supported file formats are: 
+        * .bin: raw binary file
+        * .csv: comma-separated values file
+        * .npy: numpy binary file
+        * .npz: compressed numpy binary file
+        * .txt: whitespace-delimited text file
+        * .h5: hdf5 file format
+
+        Parameters
+        ----------
+        filename : str
+            the name of the file that the buffer should be exported to
+        
+        Raises
+        ------
+        ImportError
+            if the file format is not supported
+        """
+
+        file_path = Path(filename)
+        if file_path.suffix == '.bin':
+            dtype = kwargs.get('dtype', self.numpy_type())
+            self.buffer.tofile(file_path, dtype=dtype)
+        elif file_path.suffix == '.csv':
+            delimiter = kwargs.get('delimiter', ',')
+            np.savetxt(file_path, self.buffer, delimiter=delimiter)
+        elif file_path.suffix == '.npy':
+            np.save(file_path, self.buffer)
+        elif file_path.suffix == '.npz':
+            np.savez_compressed(file_path, self.buffer)
+        elif file_path.suffix == '.txt':
+            np.savetxt(file_path, self.buffer, fmt='%d')
+        elif file_path.suffix == '.h5' or file_path.suffix == '.hdf5':
+            with h5py.File(file_path, 'w') as f:
+                f.create_dataset('data', data=self.buffer)
+        else:
+            raise ImportError("File format not supported")
+        
+    def fromfile(self, filename : str, **kwargs) -> None:
+        """
+        Import the buffer from a file. The file format is determined by the file extension
+        Supported file formats are: 
+        * .bin: raw binary file
+        * .csv: comma-separated values file
+        * .npy: numpy binary file
+        * .npz: compressed numpy binary file
+        * .txt: whitespace-delimited text file
+        * .h5: hdf5 file format
+
+        Parameters
+        ----------
+        filename : str
+            the name of the file that the buffer should be imported from
+        
+        Raises
+        ------
+        ImportError
+            if the file format is not supported
+        """
+
+        file_path = Path(filename)
+        if file_path.suffix == '.bin':
+            dtype = kwargs.get('dtype', self.numpy_type())
+            shape = kwargs.get('shape', (self.num_channels, self.buffer_size // self.num_channels))
+            buffer = np.fromfile(file_path, dtype=dtype)
+            self.buffer[:] = buffer.reshape(shape, order='C')
+        elif file_path.suffix == '.csv':
+            delimiter = kwargs.get('delimiter', ',')
+            self.buffer[:] = np.loadtxt(file_path, delimiter=delimiter)
+        elif file_path.suffix == '.npy':
+            self.buffer[:] = np.load(file_path)
+        elif file_path.suffix == '.npz':
+            data = np.load(file_path)
+            self.buffer[:] = data['arr_0']
+        elif file_path.suffix == '.txt':
+            self.buffer[:] = np.loadtxt(file_path)
+        elif file_path.suffix == '.h5' or file_path.suffix == '.hdf5':
+            with h5py.File(file_path, 'r') as f:
+                self.buffer[:] = f['data'][()]
+        else:
+            raise ImportError("File format not supported")
+
+
     
     def avail_card_len(self, lAvailSamples : int = 0) -> None:
         """
