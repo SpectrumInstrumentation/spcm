@@ -52,6 +52,7 @@ class DataTransfer(CardFunctionality):
     bits_per_sample : int = 0
 
     # private
+    _num_samples : int = 0
     _notify_samples : int = 0
 
     @property
@@ -88,11 +89,29 @@ class DataTransfer(CardFunctionality):
             dictionary of additional keyword arguments
         """
         
+        self.buffer_size = 0
+        self.num_channels = 0
+        self.bytes_per_sample = 0
+        self.bits_per_sample = 0
+        self._num_samples = 0
+        self._notify_samples = 0
+        
         super().__init__(card, *args, **kwargs)
         self.buffer_type = SPCM_BUF_DATA
         self._bytes_per_sample()
         self._bits_per_sample()
         self.num_channels = self.card.active_channels()
+
+    def _sample_rate(self) -> int:
+        """
+        Get the sample rate of the card
+
+        Returns
+        -------
+        int
+            the sample rate of the card
+        """
+        return self.card.get_i(SPC_SAMPLERATE)
 
     def memory_size(self, memory_size : int = None) -> int:
         """
@@ -200,12 +219,14 @@ class DataTransfer(CardFunctionality):
             use the number of samples an get the number of active channels and bytes per samples directly from the card
         """
         
+        self._num_samples = num_samples
+
         sample_type = self.numpy_type()
 
         if self.bits_per_sample > 1:
-            self.buffer_size = num_samples * self.bytes_per_sample * self.num_channels
+            self.buffer_size = self._num_samples * self.bytes_per_sample * self.num_channels
         else:
-            self.buffer_size = num_samples * self.num_channels // 8
+            self.buffer_size = self._num_samples * self.num_channels // 8
 
         dwMask = self._buffer_alignment - 1
 
@@ -237,6 +258,8 @@ class DataTransfer(CardFunctionality):
             the offset of the transfer
         transfer_length : int
             the length of the transfer
+        exception_num_samples : bool
+            if True, an exception is raised if the number of samples is not a multiple of the notify samples. The automatic buffer handling only works with the number of samples being a multiple of the notify samples.
 
         Raises
         ------
@@ -260,6 +283,9 @@ class DataTransfer(CardFunctionality):
             self._notify_samples = notify_samples
         if self._notify_samples: 
             notify_size = self._notify_samples * self.bytes_per_sample * self.num_channels
+        
+        if self._notify_samples != 0 and np.remainder(self._num_samples, self._notify_samples) and exception_num_samples:
+            raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
 
         if transfer_offset:
             transfer_offset_bytes = transfer_offset * self.bytes_per_sample * self.num_channels
@@ -366,8 +392,6 @@ class DataTransfer(CardFunctionality):
         else:
             raise ImportError("File format not supported")
 
-
-    
     def avail_card_len(self, lAvailSamples : int = 0) -> None:
         """
         Set the amount of data that has been read out of the data buffer (see register `SPC_DATA_AVAIL_CARD_LEN` in the manual)
