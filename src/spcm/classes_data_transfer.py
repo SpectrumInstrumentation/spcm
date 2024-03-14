@@ -495,7 +495,7 @@ class DataTransfer(CardFunctionality):
         if mode is not None:
             self.card.set_i(SPC_DATACONVERSION, mode)
         mode = self.card.get_i(SPC_DATACONVERSION)
-        self._8bit_mode = not (mode == SPCM_DC_NONE)
+        self._8bit_mode = (mode == SPCM_DC_12BIT_TO_8BIT or mode == SPCM_DC_14BIT_TO_8BIT or mode == SPCM_DC_16BIT_TO_8BIT)
         return self._8bit_mode
     
     def avail_data_conversion(self) -> int:
