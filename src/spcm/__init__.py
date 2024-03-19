@@ -26,18 +26,28 @@ from .classes_data_transfer import DataTransfer
 from .classes_multi import Multi
 from .classes_time_stamp import TimeStamp
 from .classes_sequence import Sequence
-from .classes_dds import DDS
+from .classes_dds import DDS, DDSCore
 from .classes_pulse_generators import PulseGenerator, PulseGenerators
 from .classes_block_average import BlockAverage
 from .classes_boxcar import Boxcar
 
 __all__ = [
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
-    "DataTransfer", "DDS", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", "BlockAverage", "Boxcar",
+    "DataTransfer", "DDS", "DDSCore", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", "BlockAverage", "Boxcar",
     "SpcmException", "SpcmTimeout", "SpcmError",
 ]
 
 # Versioning support using versioneer
 from . import _version
 __version__ = _version.get_versions()['version']
+
+# Writing spcm package version to log file
+try:
+    from .pyspcm import spcm_dwSetParam_ptr, create_string_buffer
+    version_str = bytes("Python package spcm v{}".format(__version__), "utf-8")
+    version_ptr = create_string_buffer(version_str)
+    dwErr = spcm_dwSetParam_ptr(None, SPC_WRITE_TO_LOG, version_ptr, len(version_str))
+except OSError as e:
+    print("Writing spcm version to log not yet supported")
+
 #print(__version__)
