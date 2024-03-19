@@ -57,26 +57,6 @@ class Trigger(CardFunctionality):
             self.card.set_i(SPC_TRIG_ORMASK, mask)
         return self.card.get_i(SPC_TRIG_ORMASK)
 
-    # Channel OR Mask0
-    def ch_or_mask0(self, mask : int = None) -> int:
-        """
-        Set the channel OR mask0 for the trigger input lines (see register 'SPC_TRIG_CH_ORMASK0' in chapter `Trigger` in the manual)
-        
-        Parameters
-        ----------
-        mask : int
-            The OR mask for the trigger input lines
-        
-        Returns
-        -------
-        int
-            The OR mask for the trigger input lines
-        """
-
-        if mask is not None:
-            self.card.set_i(SPC_TRIG_CH_ORMASK0, mask)
-        return self.card.get_i(SPC_TRIG_CH_ORMASK0)
-
     # AND Mask
     def and_mask(self, mask : int = None) -> int:
         """
@@ -96,6 +76,71 @@ class Trigger(CardFunctionality):
         if mask is not None:
             self.card.set_i(SPC_TRIG_ANDMASK, mask)
         return self.card.get_i(SPC_TRIG_ANDMASK)
+
+    # Channel triggering
+    def ch_mode(self, channel : int, mode : int = None) -> int:
+        """
+        Set the mode for the trigger input lines (see register 'SPC_TRIG_CH0_MODE' in chapter `Trigger` in the manual)
+        
+        Parameters
+        ----------
+        channel : int
+            The channel to set the mode for
+        mode : int
+            The mode for the trigger input lines
+        
+        Returns
+        -------
+        int
+            The mode for the trigger input lines
+        """
+
+        if mode is not None:
+            self.card.set_i(SPC_TRIG_CH0_MODE + channel, mode)
+        return self.card.get_i(SPC_TRIG_CH0_MODE + channel)
+
+    def ch_level(self, channel : int, level : int, trigger_level = None) -> int:
+        """
+        Set the level for the trigger input lines (see register 'SPC_TRIG_CH0_LEVEL0' in chapter `Trigger` in the manual)
+        
+        Parameters
+        ----------
+        channel : int
+            The channel to set the level for
+        level : int
+            The level 0 or level 1
+        trigger_level : int
+            The level for the trigger input lines
+        
+        Returns
+        -------
+        int
+            The level for the trigger input lines
+        """
+
+        if level is not None:
+            self.card.set_i(SPC_TRIG_CH0_LEVEL0 + channel + 100 * level, trigger_level)
+        return self.card.get_i(SPC_TRIG_CH0_LEVEL0 + channel + 100 * level)
+
+    # Channel OR Mask0
+    def ch_or_mask0(self, mask : int = None) -> int:
+        """
+        Set the channel OR mask0 for the trigger input lines (see register 'SPC_TRIG_CH_ORMASK0' in chapter `Trigger` in the manual)
+        
+        Parameters
+        ----------
+        mask : int
+            The OR mask for the trigger input lines
+        
+        Returns
+        -------
+        int
+            The OR mask for the trigger input lines
+        """
+
+        if mask is not None:
+            self.card.set_i(SPC_TRIG_CH_ORMASK0, mask)
+        return self.card.get_i(SPC_TRIG_CH_ORMASK0)
     
     # Channel AND Mask0
     def ch_and_mask0(self, mask : int = None) -> int:

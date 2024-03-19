@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import numpy.typing as npt
 
 from .constants import *
@@ -17,12 +18,16 @@ class Multi(DataTransfer):
     """
 
     # Private
-    _segment_size : int = 0
+    _segment_size : int
+    _num_segments : int
 
     def __init__(self, card, *args, **kwargs) -> None:
         super().__init__(card, *args, **kwargs)
+        self.pre_trigger = None
+        self._segment_size = 0
+        self._num_segments = 0
 
-    def segment_samples(self, segment_size : int) -> None:
+    def segment_samples(self, segment_size : int = None) -> None:
         """
         Sets the memory size in samples per channel. The memory size setting must be set before transferring 
         data to the card. (see register `SPC_MEMSIZE` in the manual)
@@ -32,27 +37,45 @@ class Multi(DataTransfer):
         segment_size : int
             the size of a single segment in memory in Bytes
         """
-        self.card.set_i(SPC_SEGMENTSIZE, segment_size)
+
+        if segment_size is not None:
+            self.card.set_i(SPC_SEGMENTSIZE, segment_size)
+        segment_size = self.card.get_i(SPC_SEGMENTSIZE)
         self._segment_size = segment_size
     
-    def allocate_buffer(self, segment_samples : int, num_segments : int) -> None:
+    def allocate_buffer(self, segment_samples : int, num_segments : int = None) -> None:
         """Memory allocation for the buffer that is used for communicating with the card
 
         Parameters
         ----------
-        num_samples_per_segment : int = None
+        segment_samples : int = None
             use the number of samples and get the number of active channels and bytes per samples directly from the card
         num_segments : int
             the number of segments that are used for the multiple recording mode
         """
         
         self.segment_samples(segment_samples)
-        super().allocate_buffer(segment_samples * num_segments)
+        if num_segments is None:
+            self._num_segments = self._memory_size // segment_samples
+        else:
+            self._num_segments = num_segments
+        super().allocate_buffer(segment_samples * self._num_segments)
         num_channels = self.card.active_channels()
-        if self.bits_per_sample > 1:
-            self.buffer = self.buffer.reshape((num_channels, num_segments, segment_samples), order='C')
+        if self.bits_per_sample > 1 and not self._12bit_mode:
+            self.buffer = self.buffer.reshape((self._num_segments, num_channels, segment_samples))
     
-    
+    def unpack_12bit_buffer(self) -> npt.NDArray[np.int_]:
+        """
+        Unpacks the 12-bit packed data to 16-bit data
+
+        Returns
+        -------
+        npt.NDArray[np.int_]
+            the unpacked data
+        """
+        buffer_12bit = super().unpack_12bit_buffer()
+        return buffer_12bit.reshape((self._num_segments, self.num_channels, self._segment_size), order='C')
+
     
     def __next__(self) -> npt.ArrayLike:
         """
@@ -97,6 +120,6 @@ class Multi(DataTransfer):
                 fill_size = self.fill_size_promille()
                 self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r')
 
-                return self.buffer[:, current_segment:final_segment, :]
+                return self.buffer[current_segment:final_segment, :, :]
 
     

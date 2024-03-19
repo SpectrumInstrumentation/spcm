@@ -28,52 +28,60 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     card.card_mode(spcm.SPC_REC_STD_MULTI) # multiple recording mode
     card.timeout(5000)
 
-    # setup trigger engine
-    trigger = spcm.Trigger(card)
-    trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
-
-    # setup clock engine
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(20e6)
-
     # setup channel 0
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     amplitude_mV = 1000
     channels.amp(amplitude_mV)
     max_sample_value = card.max_sample_value()
 
+    # setup trigger engine
+    trigger = spcm.Trigger(card)
+    # trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
+    trigger.or_mask(spcm.SPC_TMASK_NONE)
+    trigger.ch_or_mask0(spcm.SPC_TMASK0_CH0)
+    trigger.ch_mode(0, spcm.SPC_TM_POS)
+    trigger.ch_level(0, 0, 4)
+
+    # setup clock engine
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    sample_rate = clock.sample_rate(3200e6)
+
     # setup data transfer
-    num_samples = 1024
-    samples_per_segment = 256
-    num_segments = num_samples // samples_per_segment
+    num_samples = 4096
+    samples_per_segment = 2048
     multiple_recording = spcm.Multi(card)
-    multiple_recording.memory_size(samples_per_segment*num_segments)
-    multiple_recording.allocate_buffer(segment_samples=samples_per_segment, num_segments=num_segments)
+    multiple_recording.memory_size(num_samples)
+    multiple_recording.allocate_buffer(samples_per_segment)
     multiple_recording.post_trigger(samples_per_segment // 2)
     multiple_recording.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
+
 
     # wait until the transfer has finished
     try:
         card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 
+        data = multiple_recording.buffer
+
         # this is the point to do anything with the data
         # e.g. calculate minimum and maximum of the acquired data
-        minimum = np.min(multiple_recording.buffer, axis=2)
-        maximum = np.max(multiple_recording.buffer, axis=2)
-        for segment in range(num_segments):
+        minimum = np.min(data, axis=-1)
+        maximum = np.max(data, axis=-1)
+        for segment in range(data.shape[0]):
             # print min and max for all channels in all segments
             print("Segment {}".format(segment))
             for channel in channels:
                 print("\tChannel {}".format(channel.index))
-                print("\t\tMinimum: {:.3f} mV".format(minimum[channel.index, segment] / max_sample_value * amplitude_mV))
-                print("\t\tMaximum: {:.3f} mV".format(maximum[channel.index, segment] / max_sample_value * amplitude_mV))
+                print("\t\tMinimum: {:.3f} mV".format(minimum[segment, channel] / max_sample_value * amplitude_mV))
+                print("\t\tMaximum: {:.3f} mV".format(maximum[segment, channel] / max_sample_value * amplitude_mV))
+    
         plt.figure()
-        for channel in channels:
-            for segment in range(num_segments):
-                plt.plot(np.arange(samples_per_segment) / sample_rate, multiple_recording.buffer[channel.index, segment, :] / max_sample_value * amplitude_mV, '.', label="Ch {}, Seg {}".format(channel.index, segment))
+        for segment in range(data.shape[0]):
+            for channel in channels:
+                plt.plot(np.arange(samples_per_segment) / sample_rate, data[segment, channel.index, :] / max_sample_value * amplitude_mV, '.', label="Ch {}, Seg {}".format(channel.index, segment))
         plt.xlabel("Time [s]")
         plt.ylabel("Amplitude [mV]")
+        plt.ylim(-amplitude_mV*1.1, amplitude_mV*1.1)
         plt.legend()
         plt.show()
     except spcm.SpcmTimeout as timeout:

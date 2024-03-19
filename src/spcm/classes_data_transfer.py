@@ -74,6 +74,7 @@ class DataTransfer(CardFunctionality):
     _buffer_alignment : int = 4096
     _np_buffer : npt.NDArray[np.int_] # Internal object on which the getter setter logic is working
     _8bit_mode : bool = False
+    _12bit_mode : bool = False
 
     def __init__(self, card, *args, **kwargs) -> None:
         """
@@ -95,6 +96,12 @@ class DataTransfer(CardFunctionality):
         self.bits_per_sample = 0
         self._num_samples = 0
         self._notify_samples = 0
+        self._memory_size = 0
+        self._c_buffer = None
+        self._buffer_alignment = 4096
+        self._np_buffer = None
+        self._8bit_mode = False
+        self._12bit_mode = False
         
         super().__init__(card, *args, **kwargs)
         self.buffer_type = SPCM_BUF_DATA
@@ -165,8 +172,11 @@ class DataTransfer(CardFunctionality):
             number of bits per sample
         """
         if self._8bit_mode:
-            return 8
-        self.bits_per_sample = self.card.bits_per_sample()
+            self.bits_per_sample = 8
+        elif self._12bit_mode:
+            self.bits_per_sample = 12        
+        else:
+            self.bits_per_sample = self.card.bits_per_sample()
     
     def _bytes_per_sample(self) -> int:
         """
@@ -178,8 +188,11 @@ class DataTransfer(CardFunctionality):
             number of bytes per sample
         """
         if self._8bit_mode:
-            return 1
-        self.bytes_per_sample = self.card.bytes_per_sample()
+            self.bytes_per_sample = 1
+        elif self._12bit_mode:
+            self.bytes_per_sample = 1.5
+        else:
+            self.bytes_per_sample = self.card.bytes_per_sample()
     
     def pre_trigger(self, num_samples : int = None) -> int:
         """
@@ -224,21 +237,22 @@ class DataTransfer(CardFunctionality):
         sample_type = self.numpy_type()
 
         if self.bits_per_sample > 1:
-            self.buffer_size = self._num_samples * self.bytes_per_sample * self.num_channels
+            self.buffer_size = int(self._num_samples * self.bytes_per_sample * self.num_channels)
         else:
-            self.buffer_size = self._num_samples * self.num_channels // 8
+            self.buffer_size = int(self._num_samples * self.num_channels // 8)
 
         dwMask = self._buffer_alignment - 1
 
         item_size = sample_type(0).itemsize
         # allocate a buffer (numpy array) for DMA transfer: a little bigger one to have room for address alignment
-        databuffer_unaligned = np.empty(((self._buffer_alignment + self.buffer_size) // item_size, ), dtype = sample_type)   # half byte count at int16 sample (// = integer division)
+        databuffer_unaligned = np.empty(((self._buffer_alignment + self.buffer_size) // item_size, ), dtype = sample_type)   # byte count to sample (// = integer division)
         # two numpy-arrays may share the same memory: skip the begin up to the alignment boundary (ArrayVariable[SKIP_VALUE:])
         # Address of data-memory from numpy-array: ArrayVariable.__array_interface__['data'][0]
         start_pos_samples = ((self._buffer_alignment - (databuffer_unaligned.__array_interface__['data'][0] & dwMask)) // item_size)
-        self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address but int16 sample: therefore / 2
+        self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address to sample size
         if self.bits_per_sample > 1:
-            self.buffer = self.buffer.reshape((self.num_channels, num_samples), order='F')
+            if not self._12bit_mode:
+                self.buffer = self.buffer.reshape((self.num_channels, num_samples), order='F')
     
     def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=0, transfer_offset=0, transfer_length=None) -> None:
         """
@@ -306,6 +320,32 @@ class DataTransfer(CardFunctionality):
             cmd |= arg
         self.card.cmd(cmd)
         self.card._print("... data transfer started")
+    
+    def unpack_12bit_buffer(self) -> npt.NDArray[np.int_]:
+        """
+        Unpack the 12bit buffer to a 16bit buffer
+
+        Returns
+        -------
+        numpy array
+            the unpacked 16bit buffer
+        """
+
+        if not self._12bit_mode:
+            raise SpcmException("The card is not in 12bit packed mode")
+
+        fst_int8, mid_int8, lst_int8 = np.reshape(self.buffer, (self.buffer.shape[0] // 3, 3)).astype(np.int16).T
+        nibble_h = (mid_int8 >> 0) & 0x0F
+        nibble_m = (fst_int8 >> 4) & 0x0F
+        nibble_l = (fst_int8 >> 0) & 0x0F
+        fst_int12 = ((nibble_h << 12) >> 4) | (nibble_m << 4) | (nibble_l << 0)
+        nibble_h = (lst_int8 >> 4) & 0x0F
+        nibble_m = (lst_int8 >> 0) & 0x0F
+        nibble_l = (mid_int8 >> 4) & 0x0F
+        snd_int12 = ((nibble_h << 12) >> 4) | (nibble_m << 4) | (nibble_l << 0)
+        data_int12 = np.concatenate((fst_int12[:, None], snd_int12[:, None]), axis=1).reshape((-1,))
+        data_int12 = data_int12.reshape((self.num_channels, self._num_samples), order='F')
+        return data_int12
 
     def tofile(self, filename : str, **kwargs) -> None:
         """
@@ -463,8 +503,11 @@ class DataTransfer(CardFunctionality):
         numpy data type
             the type of data that is used by the card
         """
+
         if self._8bit_mode:
             return np.uint8
+        if self._12bit_mode:
+            return np.int8
         if self.bits_per_sample == 1:
             if self.num_channels <= 8:
                 return np.uint8
@@ -481,7 +524,7 @@ class DataTransfer(CardFunctionality):
             return np.int32
         return np.int64
 
-    # 8-bit mode
+    # Data conversion mode
     def data_conversion(self, mode : int = None) -> int:
         """
         Set the data conversion mode (see register `SPC_DATACONVERSION` in the manual)
@@ -496,7 +539,10 @@ class DataTransfer(CardFunctionality):
             self.card.set_i(SPC_DATACONVERSION, mode)
         mode = self.card.get_i(SPC_DATACONVERSION)
         self._8bit_mode = (mode == SPCM_DC_12BIT_TO_8BIT or mode == SPCM_DC_14BIT_TO_8BIT or mode == SPCM_DC_16BIT_TO_8BIT)
-        return self._8bit_mode
+        self._12bit_mode = (mode == SPCM_DC_12BIT_TO_12BITPACKED)
+        self._bits_per_sample()
+        self._bytes_per_sample()
+        return mode
     
     def avail_data_conversion(self) -> int:
         """
