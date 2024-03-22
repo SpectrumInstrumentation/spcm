@@ -22,12 +22,14 @@ See the [SUPPORTED_DEVICES.md](https://github.com/SpectrumInstrumentation/spcm/b
 # Requirements
 [![Python](https://img.shields.io/pypi/pyversions/spcm.svg)](https://badge.fury.io/py/spcm)
 [![Static Badge](https://img.shields.io/badge/NumPy-1.25-green)](https://numpy.org/)
+[![Static Badge](https://img.shields.io/badge/h5py-3.10-orange)](https://www.h5py.org/)
 
 `spcm` requires the Spectrum Instrumentation [driver](https://spectrum-instrumentation.com/support/downloads.php) which is available for Windows and Linux. 
 Please have a look in the manual of your product for more information about installing the driver on the different plattforms.
 
 # Installation and dependencies
 [![Pip Package](https://img.shields.io/pypi/v/spcm?logo=PyPI)](https://pypi.org/project/spcm)
+[![Publish to PyPI](https://github.com/SpectrumInstrumentation/spcm/actions/workflows/spcm-publish-to-pypi.yml/badge.svg)](https://github.com/SpectrumInstrumentation/spcm/actions/workflows/spcm-publish-to-pypi.yml)
 
 Start by installing Python 3.9 or higher. We recommend using the latest version. You can download Python from [https://www.python.org/](https://www.python.org/).
 
@@ -37,10 +39,12 @@ To install the latest release using `pip`:
 ```bash
 $ pip install spcm
 ```
-Note that: this will automatically install all the dependencies (e.g. NumPy).
+Note that: this will automatically install all the dependencies.
 
 # Documentation
 [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://spectruminstrumentation.github.io/spcm/spcm.html)
+[![Build dosc](https://github.com/SpectrumInstrumentation/spcm/actions/workflows/spcm-docs-pages.yml/badge.svg)](https://github.com/SpectrumInstrumentation/spcm/actions/workflows/spcm-docs-pages.yml)
+[![Publish docs](https://github.com/SpectrumInstrumentation/spcm/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/SpectrumInstrumentation/spcm/actions/workflows/pages/pages-build-deployment)
 
 The API documentation for the latest [stable release](https://spectruminstrumentation.github.io/spcm/spcm.html) is available for reading on GitHub pages.
 
