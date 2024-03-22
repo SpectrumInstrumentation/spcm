@@ -28,6 +28,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     card.card_mode(spcm.SPC_REC_FIFO_SINGLE)
     card.timeout(5000)
 
+    # setup channels 0 and 1
+    # channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
+    amplitude_mV = 1000
+    channels.amp(amplitude_mV)
+    channels.termination(1)
+    max_value = card.max_sample_value()
+
     # setup trigger engine
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
@@ -37,34 +45,29 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock.mode(spcm.SPC_CM_INTPLL)
     sample_rate = clock.sample_rate(spcm.MEGA(20))
 
-    # setup channels 0 and 1
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)
-    channels.termination(1)
-    max_value = card.max_sample_value()
-
     # define the data buffer
     num_samples = spcm.KIBI(512)
     notify_samples = spcm.KIBI(128)
     plot_samples = spcm.KIBI(1)
 
     data_transfer = spcm.DataTransfer(card)
-    data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
     data_transfer.pre_trigger(1024)
     data_transfer.notify_samples(notify_samples)
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
+    data_transfer.start_buffer_transfer()
 
     # start the card
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
+    card.start(spcm.M2CMD_DATA_STARTDMA | spcm.M2CMD_CARD_ENABLETRIGGER)
 
+    data_array = np.array([])
     try:
         print("Press Ctrl+C to stop the example...")
         # Get the first data block
-        data_array = next(data_transfer)
         for data_block in data_transfer:
-            data_array = np.append(data_array, data_block, axis=1)
+            if data_array.size == 0:
+                data_array = data_block
+            else:
+                data_array = np.append(data_array, data_block, axis=1)
     except KeyboardInterrupt as e:
         pass
 

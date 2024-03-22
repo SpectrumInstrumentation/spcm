@@ -62,7 +62,7 @@ class Multi(DataTransfer):
         super().allocate_buffer(segment_samples * self._num_segments)
         num_channels = self.card.active_channels()
         if self.bits_per_sample > 1 and not self._12bit_mode:
-            self.buffer = self.buffer.reshape((self._num_segments, num_channels, segment_samples))
+            self.buffer = self.buffer.reshape((self._num_segments, num_channels, segment_samples), order='F')
     
     def unpack_12bit_buffer(self) -> npt.NDArray[np.int_]:
         """
@@ -108,7 +108,7 @@ class Multi(DataTransfer):
 
                 current_segment = user_pos // self._segment_size
                 current_pos_in_segment = user_pos % self._segment_size
-                final_segment = (user_pos+user_len) // self._segment_size
+                final_segment = ((user_pos+user_len) // self._segment_size) + 1
                 final_pos_in_segment = (user_pos+user_len) % self._segment_size
 
                 print("NumSamples = {}, CurrentSegment = {}, CurrentPos = {},  FinalSegment = {}, FinalPos = {}, UserLen = {}".format(self._notify_samples, current_segment, current_pos_in_segment, final_segment, final_pos_in_segment, user_len))

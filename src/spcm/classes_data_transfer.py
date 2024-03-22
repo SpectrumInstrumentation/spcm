@@ -254,7 +254,7 @@ class DataTransfer(CardFunctionality):
             if not self._12bit_mode:
                 self.buffer = self.buffer.reshape((self.num_channels, num_samples), order='F')
     
-    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=0, transfer_offset=0, transfer_length=None) -> None:
+    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=0, transfer_offset=0, transfer_length=None, exception_num_samples=False) -> None:
         """
         Start the transfer of the data to or from the card  (see the API function `spcm_dwDefTransfer_i64` in the manual)
         
@@ -296,7 +296,7 @@ class DataTransfer(CardFunctionality):
         if notify_samples: 
             self._notify_samples = notify_samples
         if self._notify_samples: 
-            notify_size = self._notify_samples * self.bytes_per_sample * self.num_channels
+            notify_size = int(self._notify_samples * self.bytes_per_sample * self.num_channels)
         
         if self._notify_samples != 0 and np.remainder(self._num_samples, self._notify_samples) and exception_num_samples:
             raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
@@ -321,7 +321,7 @@ class DataTransfer(CardFunctionality):
         self.card.cmd(cmd)
         self.card._print("... data transfer started")
     
-    def unpack_12bit_buffer(self) -> npt.NDArray[np.int_]:
+    def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
         Unpack the 12bit buffer to a 16bit buffer
 
@@ -333,8 +333,11 @@ class DataTransfer(CardFunctionality):
 
         if not self._12bit_mode:
             raise SpcmException("The card is not in 12bit packed mode")
+        
+        if data is None:
+            data = self.buffer
 
-        fst_int8, mid_int8, lst_int8 = np.reshape(self.buffer, (self.buffer.shape[0] // 3, 3)).astype(np.int16).T
+        fst_int8, mid_int8, lst_int8 = np.reshape(data, (data.shape[0] // 3, 3)).astype(np.int16).T
         nibble_h = (mid_int8 >> 0) & 0x0F
         nibble_m = (fst_int8 >> 4) & 0x0F
         nibble_l = (fst_int8 >> 0) & 0x0F
@@ -490,7 +493,7 @@ class DataTransfer(CardFunctionality):
         """
         Wait for the DMA transfer to finish (see register `M2CMD_DATA_WAITDMA` in the manual)
         """
-
+        
         self.card.cmd(M2CMD_DATA_WAITDMA)
     wait = wait_dma
 
@@ -600,6 +603,7 @@ class DataTransfer(CardFunctionality):
         timeout_counter = 0
         while True:
             try:
+                # print(self.card.status())
                 self.wait_dma()
             except SpcmTimeout:
                 self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
