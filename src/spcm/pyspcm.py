@@ -323,11 +323,11 @@ try:
         raise Exception('Operating system not supported')
 
 except OSError as e:
-    raise Exception(text="The Spectrum Instrumentation device driver is not found. Please install the driver and try again.\nFor the newest drivers, see https://spectrum-instrumentation.com/support/downloads.php")
+    raise Exception("The Spectrum Instrumentation device driver is not found. Please install the driver and try again.\nFor the newest drivers, see https://spectrum-instrumentation.com/support/downloads.php")
 
 except AttributeError as e:
     minimum_driver_version = "7.0"
-    raise Exception(text="Driver version not supported. Minimum version required: {}.\n For the newest drivers, see https://spectrum-instrumentation.com/support/downloads.php".format(minimum_driver_version))
+    raise Exception("Driver version not supported. Minimum version required: {}.\n For the newest drivers, see https://spectrum-instrumentation.com/support/downloads.php".format(minimum_driver_version))
 
 def spcm_dwSetParam_i64(hDrv, lReg, Val):
     try:
