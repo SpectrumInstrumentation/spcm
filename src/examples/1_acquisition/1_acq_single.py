@@ -13,6 +13,10 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units # spcm uses the pint library for unit handling (units is a UnitRegistry object)
+units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
+units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -26,26 +30,37 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
-    card.timeout(5000)                     # timeout 5 s
+    card.timeout(5 * units.s)                     # timeout 5 s
 
     trigger = spcm.Trigger(card)
-    trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)       # trigger set to software
-    trigger.and_mask(0)
+    trigger.or_mask(spcm.SPC_TMASK_NONE)       # trigger set to none #software
+    trigger.and_mask(spcm.SPC_TMASK_NONE)      # no AND mask
+    # delay = trigger.delay(100 * units.us, return_unit=units.us)
+    # print(f"Trigger delay: {delay}")
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
     # we'll try to set the samplerate to 20 MHz
-    sample_rate = clock.sample_rate(spcm.MEGA(20))
+    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.Hz)
+    print(f"Sample rate: {sample_rate}")
     
     # setup the channels
     channels = spcm.Channels(card) # enable all channels
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)
+    amplitude_V = 200 * units.mV
+    channels.amp(amplitude_V)
+    channels[0].offset(-100 * units.percent)
     channels.termination(1)
-    max_sample_value = card.max_sample_value()
+    channels.coupling(spcm.COUPLING_DC)
+    # max_sample_value = card.max_sample_value()
+
+    # Channel triggering
+    trigger.ch_or_mask0(channels[0].ch_mask())
+    trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
+    ch_level = trigger.ch_level0(channels[0], 200 * units.mV, return_unit=units.mV)
+    print(f"Channel trigger level: {ch_level}")
 
     # define the data buffer
-    num_samples = spcm.KIBI(1)
+    num_samples = 1 * units.KiS # 1 KibiSample = 1024 samples
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
@@ -56,22 +71,19 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # start card
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 
-    # The extrema of the data
-    minimum = np.min(data_transfer.buffer, axis=1)
-    maximum = np.max(data_transfer.buffer, axis=1)
-
-    print("Finished...\n")
-    for channel in channels:
-        print("Channel {}".format(channel.index))
-        print("\tMinimum: {}".format(minimum[channel.index]))
-        print("\tMaximum: {}".format(maximum[channel.index]))
+    print("Finished acquiring...\n")
 
     # Plot the acquired data
-    x_axis = np.arange(num_samples)/sample_rate
-    plt.figure()
+    time_data_s = np.arange(num_samples)/sample_rate
+    fig, ax = plt.subplots()
     for channel in channels:
-        plt.plot(x_axis, data_transfer.buffer[channel.index, :] / max_sample_value * amplitude_mV, label=f"Channel {channel.index}")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Amplitude [mV]")
-    plt.legend()
+        unit_data_V = channel.convert_data(data_transfer.buffer[channel.index, :], units.V)
+        unit_data_N = unit_data_V * 10 * units.N / units.V
+        print("Channel {}".format(channel.index))
+        print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
+        print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
+        ax.plot(time_data_s, unit_data_V, label=f"Channel {channel.index}")
+    ax.yaxis.set_units(units.V)
+    ax.xaxis.set_units(units.us)
+    ax.legend()
     plt.show()

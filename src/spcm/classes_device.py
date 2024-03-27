@@ -14,6 +14,8 @@ from .pyspcm import (int64, c_double, c_void_p, create_string_buffer, spcm_hOpen
                     byref)
 
 from .classes_error_exception import SpcmError, SpcmException, SpcmTimeout
+from .classes_unit_conversion import UnitConversion
+from . import units
 
 
 class Device():
@@ -270,7 +272,8 @@ class Device():
             cmd |= arg
         self.set_i(SPC_M2CMD, cmd)
     
-    def timeout(self, timeout : int = None) -> int:
+    #@Decorators.unitize(units.ms, "timeout", int)
+    def timeout(self, timeout : int = None, return_unit = None) -> int:
         """
         Sets the timeout in ms (see register `SPC_TIMEOUT` in the manual)
         
@@ -286,8 +289,11 @@ class Device():
         """
 
         if timeout is not None:
+            timeout = UnitConversion.convert(timeout, units.ms, int)
             self.set_i(SPC_TIMEOUT, timeout)
-        return self.get_i(SPC_TIMEOUT)
+        return_value = self.get_i(SPC_TIMEOUT)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value, return_unit)
+        return return_value
     
     def start(self, *args) -> None:
         """

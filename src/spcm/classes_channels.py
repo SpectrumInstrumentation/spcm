@@ -2,17 +2,26 @@
 
 from .constants import *
 
+import numpy.typing as npt
+
 from .classes_card import Card
 from .classes_card_stack import CardStack
 
 from .classes_error_exception import SpcmException
 
+from .classes_unit_conversion import UnitConversion
+from . import units
+import pint
 
 class Channel:
     """A class to represent a channel of a card only used inside the Channels class in the list of channels"""
 
     card : Card
     index : int
+
+    _conversion_amp : pint.Quantity = None
+    _conversion_offset : pint.Quantity = None
+    _electrical_load : pint.Quantity = None
 
     def __init__(self, index : int, card : Card) -> None:
         """
@@ -28,6 +37,9 @@ class Channel:
 
         self.card = card
         self.index = index
+        self._conversion_amp = None
+        self._conversion_offset = 0 * units.percent
+        self._electrical_load = 50 * units.ohm
     
     def __str__(self) -> str:
         """
@@ -109,8 +121,8 @@ class Channel:
         if value is not None:
             self.card.set_i(SPC_PATH0 + (SPC_PATH1 - SPC_PATH0) * self.index, value)
         return self.card.get_i(SPC_PATH0 + (SPC_PATH1 - SPC_PATH0) * self.index)
-        
-    def amp(self, value : int = None) -> int:
+    
+    def amp(self, value : int = None, return_unit = None) -> int:
         """
         Sets the output/input range (amplitude) of the analog front-end of the channel of the card in mV (see register `SPC_AMP` in the manual)
     
@@ -118,35 +130,86 @@ class Channel:
         ----------
         value : int
             The output range (amplitude) of the specific channel in millivolts
+        unit : pint.Unit = None
+            The unit of the return value
             
         Returns
         -------
-        int
-            The output range (amplitude) of the specific channel in millivolts
+        int | pint.Quantity
+            The output range (amplitude) of the specific channel in millivolts or the unit specified
         """
 
         if value is not None:
+            self._conversion_amp = value
+            value = UnitConversion.convert(value, units.mV, int)
             self.card.set_i(SPC_AMP0 + (SPC_AMP1 - SPC_AMP0) * self.index, value)
-        return self.card.get_i(SPC_AMP0 + (SPC_AMP1 - SPC_AMP0) * self.index)
+        value = self.card.get_i(SPC_AMP0 + (SPC_AMP1 - SPC_AMP0) * self.index)
+        value = UnitConversion.to_unit(value * units.mV, return_unit)
+        return value
 
-    def offset(self, value : int = None) -> int:
+    def offset(self, value : int = None, return_unit = None) -> int:
         """
-        Sets the offset of the analog front-end of the channel of the card in mV (see register `SPC_OFFSET` in the manual)
+        Sets the offset of the analog front-end of the channel of the card in % of the full range (see register `SPC_OFFS0` in the manual)
+        If the value is given and has a unit, then the return value will also have that same unit
     
         Parameters
         ----------
         value : int
-            The offset of the specific channel in millivolts
+            The offset of the specific channel in %
+        unit : pint.Unit = None
+            The unit of the return value
             
         Returns
         -------
-        int
-            The offset of the specific channel in millivolts
+        int | pint.Quantity
+            The offset of the specific channel in % or the unit specified
         """
 
         if value is not None:
+            self._conversion_offset = value
+            value = UnitConversion.convert(value, units.percent, int)
             self.card.set_i(SPC_OFFS0 + (SPC_OFFS1 - SPC_OFFS0) * self.index, value)
-        return self.card.get_i(SPC_OFFS0 + (SPC_OFFS1 - SPC_OFFS0) * self.index)
+        value = UnitConversion.to_unit(self.card.get_i(SPC_OFFS0 + (SPC_OFFS1 - SPC_OFFS0) * self.index), return_unit)
+        return value
+    
+    def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = None) -> npt.NDArray:
+        """
+        Converts the data to the correct unit
+        
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The data to be converted
+        return_unit : pint.Unit = None
+            The unit of the return value
+            
+        Returns
+        -------
+        numpy.ndarray
+            The converted data
+        """
+
+        max_value = self.card.max_sample_value()
+        return_data = (data / max_value - self._conversion_offset) * self._conversion_amp
+        return return_data.to(return_unit)
+    
+    def reconvert_data(self, data : npt.NDArray) -> npt.NDArray:
+        """
+        Convert data with units back to integer values
+        
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The data to be reconverted
+            
+        Returns
+        -------
+        numpy.ndarray
+            The reconverted data
+        """
+
+        return_data = int((data / self._conversion_amp + self._conversion_offset) * self.card.max_sample_value())
+        return return_data
 
     def termination(self, value : int) -> None:
         """
@@ -193,17 +256,17 @@ class Channel:
     
     def coupling_offset_compensation(self, value : int = None) -> int:
         """
-        Sets the coupling offset compensation of the analog front-end of the channel of the card (see register `SPC_ACDC_OFFS_COMPENSATION0` in the manual)
+        Enables or disables the coupling offset compensation of the analog front-end of the channel of the card (see register `SPC_ACDC_OFFS_COMPENSATION0` in the manual)
     
         Parameters
         ----------
         value : int
-            The coupling offset compensation of the specific channel
+            Enables the coupling offset compensation of the specific channel
             
         Returns
         -------
         int
-            The coupling offset compensation of the specific channel
+            return if the coupling offset compensation of the specific channel is enabled ("1") or disabled ("0")
         """
 
         if value is not None:
@@ -268,12 +331,44 @@ class Channel:
         -------
         int
             The custom stop value of the specific channel
+        
+        TODO: change this to a specific unit?
         """
 
         if value is not None:
             self.card.set_i(SPC_CH0_CUSTOM_STOP + self.index * (SPC_CH1_CUSTOM_STOP - SPC_CH0_CUSTOM_STOP), value)
         return self.card.get_i(SPC_CH0_CUSTOM_STOP + self.index * (SPC_CH1_CUSTOM_STOP - SPC_CH0_CUSTOM_STOP))
     
+    def ch_mask(self) -> int:
+        """
+        Gets mask for the "or"- or "and"-mask
+
+        Returns
+        -------
+        int
+            The mask for the "or"- or "and"-mask
+        """
+
+        return 1 << self.index
+    
+    def electrical_load(self, value : pint.Quantity = None) -> pint.Quantity:
+        """
+        Sets the electrical load of the user system connect the channel of the card. This is important for the correct
+        calculation of the output power. Typically, the load would be 50 Ohms, but it can be different.
+
+        Parameters
+        ----------
+        value : pint.Quantity
+            The electrical load connected by the user to the specific channel
+
+        Returns
+        -------
+        pint.Quantity
+            The electrical load connected by the user to the specific channel
+        """
+        if value is not None:
+            self._electrical_load = value
+        return self._electrical_load
 
 
 class Channels:
@@ -457,7 +552,7 @@ class Channels:
 
         for channel in self.channels:
             channel.path(value)
-        
+    
     def amp(self, value : int) -> None:
         """
         Sets the output/input range (amplitude) of the analog front-end of all channels of the card in mV (see register `SPC_AMP` in the manual)
@@ -568,3 +663,15 @@ class Channels:
     
         for channel in self.channels:
             channel.custom_stop(value)
+    
+    def ch_mask(self) -> int:
+        """
+        Gets mask for the "or"- or "and"-mask
+
+        Returns
+        -------
+        int
+            The mask for the "or"- or "and"-mask
+        """
+
+        return sum([channel.ch_mask() for channel in self.channels])

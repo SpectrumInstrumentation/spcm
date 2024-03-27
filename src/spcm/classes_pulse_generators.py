@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# TODO: implement units here and test that!
+
 from .constants import *
 
 from .classes_error_exception import SpcmException

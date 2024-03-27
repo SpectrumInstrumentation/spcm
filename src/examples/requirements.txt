@@ -4,3 +4,4 @@ psutil
 cupy-cuda12x
 matplotlib
 PyQt5
+pint

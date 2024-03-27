@@ -7,6 +7,9 @@ from .constants import *
 
 from .classes_data_transfer import DataTransfer
 
+from .classes_unit_conversion import UnitConversion
+from . import units
+
 from .classes_error_exception import SpcmTimeout
 
 class Multi(DataTransfer):
@@ -34,26 +37,29 @@ class Multi(DataTransfer):
         
         Parameters
         ----------
-        segment_size : int
-            the size of a single segment in memory in Bytes
+        segment_size : int | pint.Quantity
+            the size of a single segment in memory in Samples
         """
 
         if segment_size is not None:
+            segment_size = UnitConversion.convert(segment_size, units.S, int)
             self.card.set_i(SPC_SEGMENTSIZE, segment_size)
         segment_size = self.card.get_i(SPC_SEGMENTSIZE)
         self._segment_size = segment_size
     
     def allocate_buffer(self, segment_samples : int, num_segments : int = None) -> None:
-        """Memory allocation for the buffer that is used for communicating with the card
+        """
+        Memory allocation for the buffer that is used for communicating with the card
 
         Parameters
         ----------
-        segment_samples : int = None
+        segment_samples : int | pint.Quantity
             use the number of samples and get the number of active channels and bytes per samples directly from the card
-        num_segments : int
+        num_segments : int = None
             the number of segments that are used for the multiple recording mode
         """
         
+        segment_samples = UnitConversion.convert(segment_samples, units.S, int)
         self.segment_samples(segment_samples)
         if num_segments is None:
             self._num_segments = self._memory_size // segment_samples
@@ -90,6 +96,7 @@ class Multi(DataTransfer):
         ------
         StopIteration
         """
+        
         timeout_counter = 0
         # notify the card that data is available or read, but only after the first block
         if self._current_samples >= self._notify_samples:

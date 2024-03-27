@@ -113,7 +113,7 @@ class TimeStamp(DataTransfer):
         self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address but int16 sample: therefore / 2
         self.buffer = self.buffer.reshape((num_timestamps, 2), order='C') # array items per timestamp, because the maximum item size is 8 bytes = 64 bits
     
-    def start_buffer_transfer(self, *args, direction=SPCM_DIR_CARDTOPC, notify_samples=0, transfer_offset=0, transfer_length=None) -> None:
+    def start_buffer_transfer(self, *args, direction=SPCM_DIR_CARDTOPC, notify_timestamps=0, transfer_offset=0, transfer_length=None) -> None:
         """
         Start the transfer of the timestamp data to the card
         
@@ -124,8 +124,8 @@ class TimeStamp(DataTransfer):
         """
         
         notify_size = 0
-        if notify_samples: 
-            self._notify_timestamps = notify_samples
+        if notify_timestamps: 
+            self._notify_timestamps = notify_timestamps
         if self._notify_timestamps: 
             notify_size = self._notify_timestamps * self.bytes_per_ts
 

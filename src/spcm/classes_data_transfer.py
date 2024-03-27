@@ -12,6 +12,9 @@ from .pyspcm import c_void_p, spcm_dwDefTransfer_i64
 
 from .classes_functionality import CardFunctionality
 
+from .classes_unit_conversion import UnitConversion
+from . import units
+
 from .classes_error_exception import SpcmException, SpcmTimeout
 
 class DataTransfer(CardFunctionality):
@@ -127,11 +130,12 @@ class DataTransfer(CardFunctionality):
         
         Parameters
         ----------
-        memory_size : int
+        memory_size : int | pint.Quantity
             the size of the memory in Bytes
         """
 
         if memory_size is not None:
+            memory_size = UnitConversion.convert(memory_size, units.Sa, int)
             self.card.set_i(SPC_MEMSIZE, memory_size)
         self._memory_size = self.card.get_i(SPC_MEMSIZE)
         return self._memory_size
@@ -142,9 +146,11 @@ class DataTransfer(CardFunctionality):
         
         Parameters
         ----------
-        notify_samples : int
+        notify_samples : int | pint.Quantity
             the number of samples to notify the user about
         """
+
+        notify_samples = UnitConversion.convert(notify_samples, units.Sa, int)
         self._notify_samples = notify_samples
     
     def loops(self, loops : int = None) -> int:
@@ -200,11 +206,17 @@ class DataTransfer(CardFunctionality):
         
         Parameters
         ----------
-        num_samples : int
+        num_samples : int | pint.Quantity
+            the number of pre trigger samples
+        
+        Returns
+        -------
+        int
             the number of pre trigger samples
         """
 
         if num_samples is not None:
+            num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_PRETRIGGER, num_samples)
         return self.card.get_i(SPC_PRETRIGGER)
     
@@ -214,11 +226,17 @@ class DataTransfer(CardFunctionality):
         
         Parameters
         ----------
-        num_samples : int
+        num_samples : int | pint.Quantity
+            the number of post trigger samples
+        
+        Returns
+        -------
+        int
             the number of post trigger samples
         """
 
         if num_samples is not None:
+            num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_POSTTRIGGER, num_samples)
         return self.card.get_i(SPC_POSTTRIGGER)
     
@@ -228,10 +246,12 @@ class DataTransfer(CardFunctionality):
 
         Parameters
         ----------
-        num_samples : int = None
+        num_samples : int | pint.Quantity = None
             use the number of samples an get the number of active channels and bytes per samples directly from the card
         """
         
+        num_samples = UnitConversion.convert(num_samples, units.Sa, int)
+
         self._num_samples = num_samples
 
         sample_type = self.numpy_type()
@@ -279,6 +299,10 @@ class DataTransfer(CardFunctionality):
         ------
         SpcmException
         """
+
+        notify_samples = UnitConversion.convert(notify_samples, units.Sa, int)
+        transfer_offset = UnitConversion.convert(transfer_offset, units.Sa, int)
+        transfer_length = UnitConversion.convert(transfer_length, units.Sa, int)
 
         if self.buffer is None: 
             raise SpcmException(text="No buffer defined for transfer")
@@ -435,21 +459,27 @@ class DataTransfer(CardFunctionality):
         else:
             raise ImportError("File format not supported")
 
-    def avail_card_len(self, lAvailSamples : int = 0) -> None:
+    def avail_card_len(self, available_samples : int = 0) -> None:
         """
         Set the amount of data that has been read out of the data buffer (see register `SPC_DATA_AVAIL_CARD_LEN` in the manual)
 
         Parameters
         ----------
-        lAvailSamples : int
+        available_samples : int | pint.Quantity
             the amount of data that is available for reading
         """
 
-        self.card.set_i(SPC_DATA_AVAIL_CARD_LEN, lAvailSamples * self.bytes_per_sample * self.num_channels)
+        available_samples = UnitConversion.convert(available_samples, units.Sa, int)
+        self.card.set_i(SPC_DATA_AVAIL_CARD_LEN, available_samples * self.bytes_per_sample * self.num_channels)
     
-    def avail_user_pos(self, bytes : bool = False) -> int:
+    def avail_user_pos(self, in_bytes : bool = False) -> int:
         """
         Get the current position of the pointer in the data buffer (see register `SPC_DATA_AVAIL_USER_POS` in the manual)
+
+        Parameters
+        ----------
+        in_bytes : bool
+            if True, the position is returned in bytes
 
         Returns
         -------
@@ -458,13 +488,18 @@ class DataTransfer(CardFunctionality):
         """
 
         user_pos = self.card.get_i(SPC_DATA_AVAIL_USER_POS)
-        if not bytes:
+        if not in_bytes:
             user_pos = user_pos // self.bytes_per_sample // self.num_channels
         return user_pos
     
-    def avail_user_len(self, bytes : bool = False) -> int:
+    def avail_user_len(self, in_bytes : bool = False) -> int:
         """
         Get the current length of the data in the data buffer (see register `SPC_DATA_AVAIL_USER_LEN` in the manual)
+
+        Parameters
+        ----------
+        in_bytes : bool
+            if True, the length is returned in bytes
 
         Returns
         -------
@@ -473,11 +508,11 @@ class DataTransfer(CardFunctionality):
         """
 
         user_len = self.card.get_i(SPC_DATA_AVAIL_USER_LEN)
-        if not bytes:
+        if not in_bytes:
             user_len = user_len // self.bytes_per_sample // self.num_channels
         return user_len
     
-    def fill_size_promille(self) -> int:
+    def fill_size_promille(self, return_unit = None) -> int:
         """
         Get the fill size of the data buffer (see register `SPC_FILLSIZEPROMILLE` in the manual)
 
@@ -487,7 +522,9 @@ class DataTransfer(CardFunctionality):
             fill size
         """
 
-        return self.card.get_i(SPC_FILLSIZEPROMILLE)
+        return_value = self.card.get_i(SPC_FILLSIZEPROMILLE)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.promille, return_unit)
+        return return_value
     
     def wait_dma(self) -> None:
         """
@@ -571,9 +608,11 @@ class DataTransfer(CardFunctionality):
 
         Parameters
         ----------
-        samples : int
+        samples : int | pint.Quantity
             the number of samples to transfer
         """
+
+        samples = UnitConversion.convert(samples, units.Sa, int)
         self._to_transfer_samples = samples
     
     def __iter__(self):

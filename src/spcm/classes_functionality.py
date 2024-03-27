@@ -9,7 +9,7 @@ class CardFunctionality:
     card : Card
     function_type = 0
 
-    def __init__(self, card : Card) -> None:
+    def __init__(self, card : Card, *args, **kwargs) -> None:
         """
         Takes a Card object that is used by the functionality
 

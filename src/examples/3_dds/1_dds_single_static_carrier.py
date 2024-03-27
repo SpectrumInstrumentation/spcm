@@ -13,6 +13,9 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
+units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -26,20 +29,22 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # Setup the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS functionality
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
 
     # Start the test
-    dds[0].amp(0.4)
-    dds[0].freq(10e6) # 10 MHz
+    dds[0].amp(40 * units.percent)
+    dds[0].freq(10 * units.MHz)
+    dds[0].phase(20 * units.degrees)
     # Read back the exact frequency
-    freq_Hz = dds[0].get_freq()
-    amp = dds[0].get_amp()
-    print(f"Generated signal frequency: {freq_Hz} Hz and amplitude: {amp}")
+    freq = dds[0].get_freq(return_unit=units.MHz)
+    amp = dds[0].get_amp(return_unit=units.dB)
+    phase = dds[0].get_phase(return_unit=units.rad)
+    print(f"Generated signal frequency: {freq} and amplitude: {amp} and phase: {phase}")
     
     dds.exec_at_trg()
     dds.write_to_card()

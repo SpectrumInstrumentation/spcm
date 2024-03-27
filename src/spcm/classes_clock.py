@@ -2,7 +2,10 @@
 
 from .constants import *
 
+from . import units
+
 from .classes_functionality import CardFunctionality 
+from .classes_unit_conversion import UnitConversion
 
 class Clock(CardFunctionality):
     """a higher-level abstraction of the CardFunctionality class to implement the Card's clock engine"""
@@ -45,7 +48,7 @@ class Clock(CardFunctionality):
             self.card.set_i(SPC_CLOCKMODE, mode)
         return self.card.get_i(SPC_CLOCKMODE)
     
-    def max_sample_rate(self) -> int:
+    def max_sample_rate(self, return_unit = None) -> int:
         """
         Returns the maximum sample rate of the active card (see register `SPC_MIINST_MAXADCLOCK` in the manual)
     
@@ -54,9 +57,11 @@ class Clock(CardFunctionality):
         int
         """
         
-        return self.card.get_i(SPC_MIINST_MAXADCLOCK)
+        max_sr = self.card.get_i(SPC_MIINST_MAXADCLOCK)
+        if return_unit is not None: max_sr = UnitConversion.to_unit(max_sr * units.Hz, return_unit)
+        return max_sr
 
-    def sample_rate(self, sample_rate : int = 0, max : bool = False) -> int:
+    def sample_rate(self, sample_rate : int = 0, max : bool = False, return_unit = None) -> int:
         """
         Sets or gets the current sample rate of the handled card (see register `SPC_SAMPLERATE` in the manual)
 
@@ -66,6 +71,8 @@ class Clock(CardFunctionality):
             if the parameter sample_rate is given with the function call, then the card's sample rate is set to that value
         max : bool = False
             if max is True, the method sets the maximum sample rate of the card
+        unit : pint.Unit = None
+            the unit of the sample rate, by default None
     
         Returns
         -------
@@ -73,11 +80,13 @@ class Clock(CardFunctionality):
             the current sample rate in Samples/s
         """
         
-        if max:
-            sample_rate = self.max_sample_rate()
+        if max: sample_rate = self.max_sample_rate()
         if sample_rate:
+            sample_rate = UnitConversion.convert(sample_rate, units.Hz, int)
             self.card.set_i(SPC_SAMPLERATE, int(sample_rate))
-        return self.card.get_i(SPC_SAMPLERATE)
+        return_value = self.card.get_i(SPC_SAMPLERATE)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
+        return return_value
     
     def clock_output(self, clock_output : int = None) -> int:
         """
@@ -105,7 +114,7 @@ class Clock(CardFunctionality):
         
         Parameters
         ----------
-        reference_clock : int
+        reference_clock : int | pint.Quantity
             the reference clock of the card in Hz
         
         Returns
@@ -115,5 +124,6 @@ class Clock(CardFunctionality):
         """
         
         if reference_clock is not None:
+            reference_clock = UnitConversion.convert(reference_clock, units.Hz, int)
             self.card.set_i(SPC_REFERENCECLOCK, reference_clock)
         return self.card.get_i(SPC_REFERENCECLOCK)

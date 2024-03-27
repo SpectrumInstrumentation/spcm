@@ -4,6 +4,9 @@ from .constants import *
 
 from .classes_data_transfer import DataTransfer
 
+from .classes_unit_conversion import UnitConversion
+from . import units
+
 class Sequence(DataTransfer):
     """
     a high-level class to control the sequence mode on Spectrum Instrumentation cards
@@ -53,13 +56,13 @@ class Sequence(DataTransfer):
             self.card.set_i(SPC_SEQMODE_WRITESEGMENT, segment)
         return self.card.get_i(SPC_SEQMODE_WRITESEGMENT)
     
-    def segment_size(self, segment_size : int = None) -> int:
+    def segment_size(self, segment_size : int = None, return_unit = None) -> int:
         """
         Defines the number of valid/to be replayed samples for the current selected memory segment in samples per channel. (see register 'SPC_SEQMODE_SEGMENTSIZE' in chapter `Sequence Mode` in the manual)
 
         Parameters
         ----------
-        segment_size : int
+        segment_size : int | pint.Quantity
             The size of the segment in samples
 
         Returns
@@ -69,8 +72,11 @@ class Sequence(DataTransfer):
         """
 
         if segment_size is not None:
+            segment_size = UnitConversion.convert(segment_size, units.Sa, int)
             self.card.set_i(SPC_SEQMODE_SEGMENTSIZE, segment_size)
-        return self.card.get_i(SPC_SEQMODE_SEGMENTSIZE)
+        return_value = self.card.get_i(SPC_SEQMODE_SEGMENTSIZE)
+        if return_unit is not None: return UnitConversion.to_unit(return_value, return_unit)
+        return return_value
     
     def step_memory(self, step_index : int, next_step_index : int = None, segment_index : int = None, loops : int = None, flags : int = None) -> tuple[int, int, int, int]:
         """

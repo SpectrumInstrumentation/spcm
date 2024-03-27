@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
+# TODO unitize this whole class!
+
 from .constants import *
 
 from .classes_error_exception import SpcmException
 from .classes_functionality import CardFunctionality
+
+from .classes_unit_conversion import UnitConversion
+from . import units
 
 import ctypes
 
@@ -54,25 +59,37 @@ class DDSCore:
         
         Parameters
         ----------
-        amplitude : float
+        amplitude : float | pint.Quantity
             the value between 0 and 1 corresponding to the amplitude
+        
+        TODO: add voltage units?
         """
 
+        amplitude = UnitConversion.convert(amplitude, units.fraction, float)
         self.dds.set_d(SPC_DDS_CORE0_AMP + self.index, float(amplitude))
     # aliases
     amplitude = amp
 
-    def get_amp(self) -> float:
+    def get_amp(self, return_unit = None) -> float:
         """
         gets the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the returned amplitude, by default None
 
         Returns
         -------
         float
             the value between 0 and 1 corresponding to the amplitude
+        
+        TODO: add voltage units?
         """
 
-        return self.dds.card.get_d(SPC_DDS_CORE0_AMP + self.index)
+        return_value = self.dds.card.get_d(SPC_DDS_CORE0_AMP + self.index)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.fraction, return_unit)
+        return return_value
     # aliases
     get_amplitude = get_amp
 
@@ -82,25 +99,33 @@ class DDSCore:
         
         Parameters
         ----------
-        frequency : float
+        frequency : float | pint.Quantity
             the value of the frequency in Hz
         """
 
+        frequency = UnitConversion.convert(frequency, units.Hz, float)
         self.dds.set_d(SPC_DDS_CORE0_FREQ + self.index, float(frequency))
     # aliases
     frequency = freq
 
-    def get_freq(self) -> float:
+    def get_freq(self, return_unit = None) -> float:
         """
         gets the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
         
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the returned frequency, by default None
+
         Returns
         -------
-        float
+        float | pint.Quantity
             the value of the frequency in Hz the specific core
         """
 
-        return self.dds.card.get_d(SPC_DDS_CORE0_FREQ + self.index)
+        return_value = self.dds.card.get_d(SPC_DDS_CORE0_FREQ + self.index)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
+        return return_value
     # aliases
     get_frequency = get_freq
 
@@ -110,13 +135,14 @@ class DDSCore:
         
         Parameters
         ----------
-        phase : float
+        phase : float | pint.Quantity
             the value between 0 and 360 degrees of the phase
         """
 
+        phase = UnitConversion.convert(phase, units.deg, float)
         self.dds.set_d(SPC_DDS_CORE0_PHASE + self.index, float(phase))
 
-    def get_phase(self) -> float:
+    def get_phase(self, return_unit = None) -> float:
         """
         gets the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
         
@@ -126,7 +152,9 @@ class DDSCore:
             the value between 0 and 360 degrees of the phase
         """
 
-        return self.dds.card.get_d(SPC_DDS_CORE0_PHASE + self.index)
+        return_value = self.dds.card.get_d(SPC_DDS_CORE0_PHASE + self.index)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.deg, return_unit)
+        return return_value
 
     # DDS dynamic parameters
     def freq_slope(self, slope : float) -> None:
@@ -135,25 +163,33 @@ class DDSCore:
         
         Parameters
         ----------
-        slope : float
-            the rate of frequency change in Hz/s
+        slope : float | pint.Quantity
+            the rate of frequency change in Hz/s (positive or negative) or specified unit
         """
 
+        slope = UnitConversion.convert(slope, units.Hz/units.s, float)
         self.dds.set_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index, float(slope))
     # aliases
     frequency_slope = freq_slope
 
-    def get_freq_slope(self) -> float:
+    def get_freq_slope(self, return_unit = None) -> float:
         """
         get the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
         
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the returned frequency slope, by default None
+
         Returns
         -------
         float
             the rate of frequency change in Hz/s
         """
 
-        return self.dds.card.get_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index)
+        return_value = self.dds.card.get_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz/units.s, return_unit)
+        return return_value
     # aliases
     get_frequency_slope = get_freq_slope
 
@@ -163,25 +199,34 @@ class DDSCore:
         
         Parameters
         ----------
-        slope : float
-            the rate of amplitude change in 1/s
+        slope : float | pint.Quantity
+            the rate of amplitude change in 1/s (positive or negative) or specified unit
         """
 
+        slope = UnitConversion.convert(slope, 1/units.s, float)
         self.dds.set_d(SPC_DDS_CORE0_AMP_SLOPE + self.index, float(slope))
     # aliases
     amplitude_slope = amp_slope
 
-    def get_amp_slope(self) -> float:
+    def get_amp_slope(self, return_unit = None) -> float:
         """
         set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
         
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the returned amplitude slope, by default None
+
         Returns
         -------
         float
             the rate of amplitude change in 1/s
         """
 
-        self.dds.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + self.index)
+
+        return_value = self.dds.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + self.index)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value / units.s, return_unit)
+        return return_value
     # aliases
     amplitude_slope = amp_slope
 
@@ -242,8 +287,11 @@ class DDS(CardFunctionality):
 
     _current_core : int = -1
 
+    _channel_from_core : dict[int, int] = {}
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.channels = kwargs.get("channels", None)
         self.cores = []
         self.load_cores()
     
@@ -256,6 +304,14 @@ class DDS(CardFunctionality):
         num_cores = self.num_cores()
         for core in range(num_cores):
             self.cores.append(DDSCore(core, self))
+        
+        if self.channels is not None:
+            for channel in self.channels:
+                cores_on_channel = self.get_cores_on_channel(channel.index)
+                for core in range(num_cores):
+                    if cores_on_channel & (1 << core):
+                        self._channel_from_core[core] = channel.index
+            print(self._channel_from_core)
         
     def __len__(self) -> int:
         """
@@ -565,19 +621,25 @@ class DDS(CardFunctionality):
         
         Parameters
         ----------
-        period : float
+        period : float | pint.Quantity
             the time between DDS trigger events in seconds
         """
 
+        period = UnitConversion.convert(period, units.s, float)
         self.set_d(SPC_DDS_TRG_TIMER, float(period))
     
-    def get_trg_timer(self) -> float:
+    def get_trg_timer(self, return_unit = None) -> float:
         """
         get the period at which the timer should raise DDS trigger events. (see register `SPC_DDS_TRG_TIMER` in the manual)
 
         NOTE
         ----
         only used in conjecture with the trigger source set to SPCM_DDS_TRG_SRC_TIMER ---
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the returned time between DDS trigger events, by default None
         
         Returns
         ----------
@@ -585,7 +647,9 @@ class DDS(CardFunctionality):
             the time between DDS trigger events in seconds
         """
 
-        return self.card.get_d(SPC_DDS_TRG_TIMER)
+        return_value = self.card.get_d(SPC_DDS_TRG_TIMER)
+        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.s, return_unit)
+        return return_value
 
     def x_mode(self, xio : int, mode : int) -> None:
         """
@@ -721,7 +785,7 @@ class DDS(CardFunctionality):
     # aliases
     amplitude = amp
 
-    def get_amp(self, core_index : int) -> float:
+    def get_amp(self, core_index : int, return_unit = None) -> float:
         """
         gets the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
         
@@ -729,14 +793,16 @@ class DDS(CardFunctionality):
         ----------
         core_index : int
             the index of the core to be changed
+        return_unit : pint.Unit = None
+            the unit of the returned amplitude, by default None
 
         Returns
         -------
-        float
-            the value between 0 and 1 corresponding to the amplitude
+        float | pint.Quantity
+            the value between 0 and 1 corresponding to the amplitude of the specific core or in the specified unit
         """
 
-        return self.cores[core_index].get_amp()
+        return self.cores[core_index].get_amp(return_unit)
         # return self.card.get_d(SPC_DDS_CORE0_AMP + core_index)
     # aliases
     get_amplitude = get_amp
@@ -749,6 +815,8 @@ class DDS(CardFunctionality):
         -------
         float
             the minimum available amplitude
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_MIN)
@@ -761,6 +829,8 @@ class DDS(CardFunctionality):
         -------
         float
             the maximum available amplitude
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_MAX)
@@ -773,6 +843,8 @@ class DDS(CardFunctionality):
         -------
         float
             the step size of the available amplitudes
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_STEP)
@@ -803,7 +875,7 @@ class DDS(CardFunctionality):
     # aliases
     frequency = freq
 
-    def get_freq(self, core_index : int) -> float:
+    def get_freq(self, core_index : int, return_unit = None) -> float:
         """
         gets the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
         
@@ -811,14 +883,16 @@ class DDS(CardFunctionality):
         ----------
         core_index : int
             the index of the core to be changed
+        return_unit : pint.Unit = None
+            the unit of the returned frequency, by default None
         
         Returns
         -------
-        float
-            the value of the frequency in Hz the specific core
+        float | pint.Quantity
+            the value of the frequency in Hz the specific core or in the specified unit
         """
 
-        return self.cores[core_index].get_freq()
+        return self.cores[core_index].get_freq(return_unit)
     # aliases
     get_frequency = get_freq
 
@@ -830,6 +904,8 @@ class DDS(CardFunctionality):
         -------
         float
             the minimum available frequency
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_MIN)
@@ -842,6 +918,8 @@ class DDS(CardFunctionality):
         -------
         float
             the maximum available frequency
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_MAX)
@@ -854,6 +932,8 @@ class DDS(CardFunctionality):
         -------
         float
             the step size of the available frequencies
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_STEP)
@@ -881,9 +961,8 @@ class DDS(CardFunctionality):
         else:
             raise TypeError("phase() takes 1 or 2 positional arguments ({} given)".format(len(args) + 1))
         # self.set_d(SPC_DDS_CORE0_PHASE + core_index, float(phase))
-        self.set_d(SPC_DDS_CORE0_PHASE + core_index, float(phase))
 
-    def get_phase(self, core_index : int) -> float:
+    def get_phase(self, core_index : int, return_unit = None) -> float:
         """
         gets the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
         
@@ -891,6 +970,8 @@ class DDS(CardFunctionality):
         ----------
         core_index : int
             the index of the core to be changed
+        return_unit : pint.Unit = None
+            the unit of the returned phase, by default None
         
         Returns
         -------
@@ -898,8 +979,8 @@ class DDS(CardFunctionality):
             the value between 0 and 360 degrees of the phase
         """
 
-        return self.card.get_d(SPC_DDS_CORE0_PHASE + core_index)
-    
+        return self.cores[core_index].get_phase(return_unit)
+      
     def avail_phase_min(self) -> float:
         """
         get the minimum available phase (see register `SPC_DDS_AVAIL_PHASE_MIN` in the manual)
@@ -908,6 +989,8 @@ class DDS(CardFunctionality):
         -------
         float
             the minimum available phase
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_PHASE_MIN)
@@ -920,6 +1003,8 @@ class DDS(CardFunctionality):
         -------
         float
             the maximum available phase
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_PHASE_MAX)
@@ -932,6 +1017,8 @@ class DDS(CardFunctionality):
         -------
         float
             the step size of the available phases
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_PHASE_STEP)
@@ -987,7 +1074,7 @@ class DDS(CardFunctionality):
     # aliases
     frequency_slope = freq_slope
 
-    def get_freq_slope(self, core_index : int) -> float:
+    def get_freq_slope(self, core_index : int, return_unit=None) -> float:
         """
         get the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
         
@@ -995,6 +1082,8 @@ class DDS(CardFunctionality):
         ----------
         core_index : int
             the index of the core to be changed
+        return_unit : pint.Unit = None
+            the unit of the returned frequency slope, by default None
         
         Returns
         -------
@@ -1002,7 +1091,7 @@ class DDS(CardFunctionality):
             the rate of frequency change in Hz/s
         """
 
-        return self.card.get_d(SPC_DDS_CORE0_FREQ_SLOPE + core_index)
+        return self.cores[core_index].get_freq_slope(return_unit)
     # aliases
     get_frequency_slope = get_freq_slope
 
@@ -1014,6 +1103,8 @@ class DDS(CardFunctionality):
         -------
         float
             the minimum available frequency slope
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_SLOPE_MIN)
@@ -1026,6 +1117,8 @@ class DDS(CardFunctionality):
         -------
         float
             the maximum available frequency slope
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_SLOPE_MAX)
@@ -1038,6 +1131,8 @@ class DDS(CardFunctionality):
         -------
         float
             the step size of the available frequency slopes
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_FREQ_SLOPE_STEP)
@@ -1068,7 +1163,7 @@ class DDS(CardFunctionality):
     # aliases
     amplitude_slope = amp_slope
 
-    def get_amp_slope(self, core_index : int) -> float:
+    def get_amp_slope(self, core_index : int, return_unit = None) -> float:
         """
         set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
         
@@ -1076,6 +1171,8 @@ class DDS(CardFunctionality):
         ----------
         core_index : int
             the index of the core to be changed
+        return_unit : pint.Unit = None
+            the unit of the returned amplitude slope, by default None
         
         Returns
         -------
@@ -1083,7 +1180,7 @@ class DDS(CardFunctionality):
             the rate of amplitude change in 1/s
         """
 
-        self.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + core_index)
+        return self.cores[core_index].get_amp_slope(return_unit)
     # aliases
     amplitude_slope = amp_slope
 
@@ -1095,6 +1192,8 @@ class DDS(CardFunctionality):
         -------
         float
             the minimum available amplitude slope
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_SLOPE_MIN)
@@ -1107,6 +1206,8 @@ class DDS(CardFunctionality):
         -------
         float
             the maximum available amplitude slope
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_SLOPE_MAX)
@@ -1119,6 +1220,8 @@ class DDS(CardFunctionality):
         -------
         float
             the step size of the available amplitude slopes
+        
+        TODO: unitize!
         """
 
         return self.card.get_d(SPC_DDS_AVAIL_AMP_SLOPE_STEP)

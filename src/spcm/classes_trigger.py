@@ -1,11 +1,34 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
 from .constants import *
 
-from .classes_functionality import CardFunctionality 
+from .classes_functionality import CardFunctionality
+from .classes_card import Card
+from .classes_channels import Channels, Channel
+
+from .classes_unit_conversion import UnitConversion
+from . import units
+import pint
 
 class Trigger(CardFunctionality):
     """a higher-level abstraction of the CardFunctionality class to implement the Card's Trigger engine"""
+
+    channels : Channels = None
+
+    def __init__(self, card : 'Card', **kwargs) -> None:
+        """
+        Constructor of the Trigger class
+        
+        Parameters
+        ----------
+        card : Card
+            The card to use for the Trigger class
+        """
+
+        super().__init__(card)
+        self.channels = kwargs.get('channels', None)
     
     def __str__(self) -> str:
         """
@@ -78,13 +101,13 @@ class Trigger(CardFunctionality):
         return self.card.get_i(SPC_TRIG_ANDMASK)
 
     # Channel triggering
-    def ch_mode(self, channel : int, mode : int = None) -> int:
+    def ch_mode(self, channel, mode : int = None) -> int:
         """
         Set the mode for the trigger input lines (see register 'SPC_TRIG_CH0_MODE' in chapter `Trigger` in the manual)
         
         Parameters
         ----------
-        channel : int
+        channel : int | Channel
             The channel to set the mode for
         mode : int
             The mode for the trigger input lines
@@ -93,23 +116,25 @@ class Trigger(CardFunctionality):
         -------
         int
             The mode for the trigger input lines
+        
         """
 
+        channel_index = int(channel)
         if mode is not None:
-            self.card.set_i(SPC_TRIG_CH0_MODE + channel, mode)
-        return self.card.get_i(SPC_TRIG_CH0_MODE + channel)
+            self.card.set_i(SPC_TRIG_CH0_MODE + channel_index, mode)
+        return self.card.get_i(SPC_TRIG_CH0_MODE + channel_index)
 
-    def ch_level(self, channel : int, level : int, trigger_level = None) -> int:
+    def ch_level(self, channel : int, level_num : int, level_value = None, return_unit : pint.Unit = None) -> int:
         """
         Set the level for the trigger input lines (see register 'SPC_TRIG_CH0_LEVEL0' in chapter `Trigger` in the manual)
         
         Parameters
         ----------
-        channel : int
+        channel : int | Channel
             The channel to set the level for
-        level : int
+        level_num : int
             The level 0 or level 1
-        trigger_level : int
+        level_value : int | pint.Quantity | None
             The level for the trigger input lines
         
         Returns
@@ -118,9 +143,57 @@ class Trigger(CardFunctionality):
             The level for the trigger input lines
         """
 
-        if level is not None:
-            self.card.set_i(SPC_TRIG_CH0_LEVEL0 + channel + 100 * level, trigger_level)
-        return self.card.get_i(SPC_TRIG_CH0_LEVEL0 + channel + 100 * level)
+        channel_index = int(channel)
+        if isinstance(level_value, units.Quantity) and (isinstance(channel, Channel) or isinstance(self.channels[channel_index], Channel)):
+            if not isinstance(channel, Channel):
+                channel = self.channels[channel_index]
+            level_value = channel.reconvert_data(level_value)
+        if level_value is not None:
+            self.card.set_i(SPC_TRIG_CH0_LEVEL0 + channel_index + 100 * level_num, level_value)
+        return_value = self.card.get_i(SPC_TRIG_CH0_LEVEL0 + channel_index + 100 * level_num)
+        if return_unit is not None and (isinstance(channel, Channel) or isinstance(self.channels[channel_index], Channel)):
+            if not isinstance(channel, Channel):
+                channel = self.channels[channel_index]
+            return_value = channel.convert_data(return_value, return_unit=return_unit)
+        return return_value
+
+    def ch_level0(self, channel : int, level_value = None, return_unit : pint.Unit = None) -> int:
+        """
+        Set the level 0 for the trigger input lines (see register 'SPC_TRIG_CH0_LEVEL0' in chapter `Trigger` in the manual)
+        
+        Parameters
+        ----------
+        channel : int | Channel
+            The channel to set the level for
+        level_value : int | pint.Quantity | None
+            The level for the trigger input lines
+        
+        Returns
+        -------
+        int
+            The level for the trigger input lines
+        """
+
+        return self.ch_level(channel, 0, level_value, return_unit)
+    
+    def ch_level1(self, channel : int, level_value = None, return_unit : pint.Unit = None) -> int:
+        """
+        Set the level 1 for the trigger input lines (see register 'SPC_TRIG_CH0_LEVEL1' in chapter `Trigger` in the manual)
+        
+        Parameters
+        ----------
+        channel : int | Channel
+            The channel to set the level for
+        level_value : int | pint.Quantity | None
+            The level for the trigger input lines
+        
+        Returns
+        -------
+        int
+            The level for the trigger input lines
+        """
+
+        return self.ch_level(channel, 1, level_value, return_unit)
 
     # Channel OR Mask0
     def ch_or_mask0(self, mask : int = None) -> int:
@@ -163,24 +236,39 @@ class Trigger(CardFunctionality):
         return self.card.get_i(SPC_TRIG_CH_ANDMASK0)
     
     # Delay
-    def delay(self, delay : int = None) -> int:
+    def delay(self, delay : int = None, return_unit : pint.Unit = None) -> int:
         """
         Set the delay for the trigger input lines in number of sample clocks (see register 'SPC_TRIG_DELAY' in chapter `Trigger` in the manual)
         
         Parameters
         ----------
-        delay : int
+        delay : int | pint.Quantity
             The delay for the trigger input lines
+        return_unit : pint.Unit
+            The unit to return the value in
 
         Returns
         -------
-        int
+        int | pint.Quantity
             The delay for the trigger input lines
+
+        NOTE
+        ----
+        different cards have different step sizes for the delay. 
+        If a delay with unit is given, this function takes the value, 
+        calculates the integer value and rounds to the nearest allowed delay value
         """
 
+        sr = self.card.get_i(SPC_SAMPLERATE) * units.Hz
         if delay is not None:
+            if isinstance(delay, units.Quantity):
+                delay_step = self.card.get_i(SPC_TRIG_AVAILDELAY_STEP)
+                delay = np.rint(int(delay * sr) / delay_step).astype(np.int64) * delay_step
             self.card.set_i(SPC_TRIG_DELAY, delay)
-        return self.card.get_i(SPC_TRIG_DELAY)
+        return_value = self.card.get_i(SPC_TRIG_DELAY)
+        if return_unit is not None: 
+            return_value = UnitConversion.to_unit(return_value / sr, return_unit)
+        return return_value
     
     # Main external window trigger (ext0/Trg0)
     def ext0_mode(self, mode : int = None) -> int:
@@ -265,7 +353,7 @@ class Trigger(CardFunctionality):
         return self.card.get_i(SPC_TRIG_EXT1_MODE)
     
     # Trigger level
-    def ext0_level0(self, level : int = None) -> int:
+    def ext0_level0(self, level = None, return_unit = None) -> int:
         """
         Set the trigger level 0 for the ext0 trigger (see register 'SPC_TRIG_EXT0_LEVEL0' in chapter `Trigger` in the manual)
         
@@ -273,18 +361,23 @@ class Trigger(CardFunctionality):
         ----------
         level : int
             The trigger level 0 for the ext0 trigger in mV
+        return_unit : pint.Unit
+            The unit to return the value in
         
         Returns
         -------
-        int
-            The trigger level 0 for the ext0 trigger in mV
+        int | pint.Quantity
+            The trigger level 0 for the ext0 trigger in mV or in the specified unit
         """
 
         if level is not None:
+            level = UnitConversion.convert(level, units.mV, int)
             self.card.set_i(SPC_TRIG_EXT0_LEVEL0, level)
-        return self.card.get_i(SPC_TRIG_EXT0_LEVEL0)
+        return_value = self.card.get_i(SPC_TRIG_EXT0_LEVEL0)
+        if return_unit is not None: return UnitConversion.to_unit(return_value * units.mV, return_unit)
+        return return_value
     
-    def ext0_level1(self, level : int = None) -> int:
+    def ext0_level1(self, level = None, return_unit = None) -> int:
         """
         Set the trigger level 1 for the ext0 trigger (see register 'SPC_TRIG_EXT0_LEVEL1' in chapter `Trigger` in the manual)
         
@@ -292,18 +385,23 @@ class Trigger(CardFunctionality):
         ----------
         level : int
             The trigger level for the ext0 trigger in mV
+        return_unit : pint.Unit
+            The unit to return the value in
         
         Returns
         -------
-        int
-            The trigger level for the ext0 trigger in mV
+        int | pint.Quantity
+            The trigger level for the ext0 trigger in mV or in the specified unit
         """
 
         if level is not None:
+            level = UnitConversion.convert(level, units.mV, int)
             self.card.set_i(SPC_TRIG_EXT0_LEVEL1, level)
-        return self.card.get_i(SPC_TRIG_EXT0_LEVEL1)
+        return_value = self.card.get_i(SPC_TRIG_EXT0_LEVEL1)
+        if return_unit is not None: return UnitConversion.to_unit(return_value * units.mV, return_unit)
+        return return_value
     
-    def ext1_level0(self, level : int = None) -> int:
+    def ext1_level0(self, level = None, return_unit = None) -> int:
         """
         Set the trigger level 0 for the ext1 trigger (see register 'SPC_TRIG_EXT1_LEVEL0' in chapter `Trigger` in the manual)
         
@@ -311,13 +409,18 @@ class Trigger(CardFunctionality):
         ----------
         level : int
             The trigger level 0 for the ext1 trigger in mV
+        return_unit : pint.Unit
+            The unit to return the value in
         
         Returns
         -------
-        int
-            The trigger level 0 for the ext1 trigger in mV
+        int | pint.Quantity
+            The trigger level 0 for the ext1 trigger in mV or in the specified unit
         """
 
         if level is not None:
+            level = UnitConversion.convert(level, units.mV, int)
             self.card.set_i(SPC_TRIG_EXT1_LEVEL0, level)
-        return self.card.get_i(SPC_TRIG_EXT1_LEVEL0)
+        return_value = self.card.get_i(SPC_TRIG_EXT1_LEVEL0)
+        if return_unit is not None: return UnitConversion.to_unit(return_value * units.mV, return_unit)
+        return return_value

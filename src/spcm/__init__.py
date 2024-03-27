@@ -6,6 +6,20 @@
 
 __docformat__ = "numpy"
 
+# Units available
+from pint import UnitRegistry
+try:
+    import matplotlib.pyplot as plt
+    mpl = True
+except ImportError:
+    mpl = False
+units = UnitRegistry()
+units.setup_matplotlib(mpl)
+units.define("sample = 1 = Sa = Sample = Samples = S")
+units.define("promille = 0.001 = ‰ = permille = perthousand = perthousands = ppt")
+units.define("fraction = 1 = frac = Frac = Fracs = Fraction = Fractions = Fractions = Frac = Fracs")
+__all__ = ["units"]
+
 # Import all registery entries and spectrum card errors into the module's name space
 from .constants import *
 
@@ -31,7 +45,7 @@ from .classes_pulse_generators import PulseGenerator, PulseGenerators
 from .classes_block_average import BlockAverage
 from .classes_boxcar import Boxcar
 
-__all__ = [
+__all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
     "DataTransfer", "DDS", "DDSCore", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", "BlockAverage", "Boxcar",
     "SpcmException", "SpcmTimeout", "SpcmError",
@@ -54,5 +68,3 @@ try:
     dwErr = spcm_dwSetParam_ptr(None, SPC_WRITE_TO_LOG, version_ptr, len(version_str))
 except OSError as e:
     print(e)
-
-#print(__version__)

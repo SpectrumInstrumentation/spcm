@@ -30,6 +30,7 @@ classifiers = [
 dependencies = [
   "numpy >= 1.25.2",
   "h5py >= 3.10.0",
+  "pint >= 0.23",
 ]
 
 [project.urls]

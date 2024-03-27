@@ -19,11 +19,13 @@ class Card(Device):
     for your specific card.
 
     """
+
     _std_device_identifier : str = "/dev/spcm{}"
     _max_cards : int = 64
     
     _function_type : int = 0
     _card_type : int = 0
+    _max_sample_value : int = 0
 
     def __enter__(self) -> 'Card':
         """
@@ -70,6 +72,7 @@ class Card(Device):
         self._function_type = self.get_i(SPC_FNCTYPE)
         self._card_type = self.get_i(SPC_PCITYP)
         self._features = self.get_i(SPC_PCIFEATURES)
+        self._max_sample_value = self.get_i(SPC_MIINST_MAXADCVALUE)
         
         return self
     
@@ -301,11 +304,11 @@ class Card(Device):
     def max_sample_value(self) -> int:
         """
         Get the maximum ADC value of the card (see register `SPC_MIINST_MAXADCVALUE` in the manual)
-    
+
         Returns
         -------
         int
             The maximum ADC value of the card
         """
 
-        return self.get_i(SPC_MIINST_MAXADCVALUE)
+        return self._max_sample_value

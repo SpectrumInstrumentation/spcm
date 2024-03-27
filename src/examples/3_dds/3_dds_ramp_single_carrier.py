@@ -13,6 +13,7 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -26,7 +27,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
@@ -35,7 +36,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # Start the DDS test
     # Timer changes every 2.0 seconds
-    period_s = 2.0 # seconds
+    period_s = 2.0 * units.s
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     dds.trg_timer(period_s)
     # For slow ramps only change the value every 1000 steps
@@ -43,17 +44,17 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.amp_ramp_stepsize(1000)
 
     # Create one carrier and keep on for 2 seconds
-    dds[0].amp(0.4)
-    dds[0].freq(5e6) # 5 MHz
+    dds[0].amp(40 * units.percent)
+    dds[0].freq(5 * units.MHz) # 5 MHz
     dds.exec_at_trg()
 
     # Ramp the frequency of the carrier
-    dds[0].frequency_slope(10e6 / period_s) # 5 MHz/s
+    dds[0].frequency_slope(5 * units.MHz / units.s) # 5 MHz/s
     dds.exec_at_trg()
 
     # Stop frequency ramp
     dds[0].frequency_slope(0)
-    dds[0].freq(15e6) # 15 MHz
+    dds[0].freq(15 * units.MHz) # 15 MHz
     dds.exec_at_trg()
 
     # Ramp the amplitude of the carrier
@@ -62,7 +63,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # Stop amplitude ramp
     dds[0].amplitude_slope(0)
-    dds.amp(0, 0.01)
+    dds[0].amp(1 * units.percent)
     dds.exec_at_trg()
 
     # Write the list of commands to the card
