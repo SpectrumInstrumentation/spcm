@@ -13,6 +13,9 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units # spcm uses the pint library for unit handling (units is a UnitRegistry object)
+units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
+units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
 
 card : spcm.Card
 
@@ -30,25 +33,36 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     clock = spcm.Clock(card)
     sample_rate = clock.sample_rate(max = True)
 
-    # enable pulse generator output on XIO lines
-    multi_ios = spcm.MultiPurposeIOs(card)
-    multi_ios[0].x_mode(spcm.SPCM_XMODE_PULSEGEN)
+    # enable pulse generator output on XIO line 0
+    multi_io = spcm.MultiPurposeIO(card, 0)
+    multi_io.x_mode(spcm.SPCM_XMODE_PULSEGEN)
 
     # start the pulse generator
     # setup pulse generator 0 (output on X0)
     pulse_generators = spcm.PulseGenerators(card, spcm.SPCM_PULSEGEN_ENABLE0)
-    # get the clock of the card
-    pulse_gen_clock_Hz = pulse_generators.get_clock()
+    pulse_generator = pulse_generators[0]
 
-    # generate a continuous signal with 1 MHz
-    len_1MHz = int(pulse_gen_clock_Hz / spcm.MEGA(1))
-    pulse_generators[0].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
-    pulse_generators[0].period_length(len_1MHz)
-    pulse_generators[0].high_length(len_1MHz // 2) # 50% HIGH, 50% LOW
-    pulse_generators[0].delay(0)
-    pulse_generators[0].num_loops(0) # 0: infinite
-    pulse_generators[0].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-    pulse_generators[0].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE) # started by software force command
+    pulse_generator.mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
+    pulse_period = pulse_generator.pulse_period(1 * units.us)
+    rep_rate     = pulse_generator.repetition_rate(500 * units.kHz)
+    pulse_length = pulse_generator.pulse_length(1.5 * units.us)
+    duty_cycle   = pulse_generator.duty_cycle(1 * units.percent)
+    start_delay  = pulse_generator.start_delay(3 * units.ms)
+    repetitions  = pulse_generator.repetitions(0) # 0: infinite
+    state_signal = pulse_generator.start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+    trg_signal   = pulse_generator.start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE)
+    invert       = pulse_generator.invert_start_condition(False)
+
+    print(f"Pulse period:            {pulse_period}")
+    print(f"Repetition rate:         {rep_rate}")
+    print(f"Pulse length:            {pulse_length}")
+    print(f"Duty cycle:              {duty_cycle}")
+    print(f"Start delay:             {start_delay}")
+    print(f"Number of repetitions:   {repetitions}")
+    print(f"Start condition state:   {state_signal}")
+    print(f"Start condition trigger: {trg_signal}")
+    print(f"Invert start condition:  {invert}")
+
 
     # write the settings to the card
     # update the clock section to generate the programmed frequencies (SPC_SAMPLERATE)

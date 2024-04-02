@@ -4,9 +4,15 @@
 
 from .constants import *
 
+import numpy as np
+
 from .classes_error_exception import SpcmException
 from .classes_card import Card
-from .classes_functionality import CardFunctionality 
+from .classes_functionality import CardFunctionality
+
+import pint
+from .classes_unit_conversion import UnitConversion
+from . import units
 
 class PulseGenerator:
     """
@@ -346,6 +352,235 @@ class PulseGenerator:
         if config is not None:
             self.card.set_i(SPC_XIO_PULSEGEN0_CONFIG + self._reg_distance*self.pg_index, config)
         return self.card.get_i(SPC_XIO_PULSEGEN0_CONFIG + self._reg_distance*self.pg_index)
+    
+    def _get_clock(self, return_unit : pint.Unit = None) -> int:
+        """
+        Get the clock rate of the pulse generator (see register 'SPC_XIO_PULSEGEN_CLOCK' in chapter `Pulse Generator` in the manual)
+
+        Returns
+        -------
+        int
+            The clock rate in Hz
+        """
+
+        return_value = self.card.get_i(SPC_XIO_PULSEGEN_CLOCK)
+        return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
+        return return_value
+    
+    # Higher abtraction functions
+
+    def pulse_period(self, period : pint.Quantity = None, return_unit : pint.Unit = units.s) -> pint.Quantity:
+        """
+        Set the period length of the pulse generator signal in a time unit
+
+        Parameters
+        ----------
+        period : pint.Quantity
+            The period length in seconds
+        
+        Returns
+        -------
+        pint.Quantity
+            The period length in seconds
+        """
+
+        if period is not None:
+            if isinstance(period, pint.Quantity):
+                period = int((period * self._get_clock(units.Hz)).to_base_units().magnitude)
+            else:
+                raise ValueError("The period must be a pint.Quantity")
+            self.period_length(period)
+        return_value = self.period_length()
+        return_value = UnitConversion.to_unit((return_value / self._get_clock(units.Hz)), return_unit)
+        return return_value
+    
+    def repetition_rate(self, rate : pint.Quantity = None, return_unit : pint.Unit = units.Hz) -> pint.Quantity:
+        """
+        Set the repetition rate of the pulse generator signal in a frequency unit
+
+        Parameters
+        ----------
+        rate : pint.Quantity
+            The repetition rate in Hz
+        
+        Returns
+        -------
+        pint.Quantity
+            The repetition rate in Hz
+        """
+
+        if rate is not None:
+            if isinstance(rate, pint.Quantity):
+                period = int(np.rint((self._get_clock(units.Hz) / rate).to_base_units().magnitude))
+            else:
+                raise ValueError("The rate must be a pint.Quantity")
+            self.period_length(period)
+        return_value = self.period_length()
+        return_value = UnitConversion.to_unit((self._get_clock(units.Hz) / return_value), return_unit)
+        return return_value
+    
+    def pulse_length(self, length : pint.Quantity, return_unit : pint.Unit = units.s) -> pint.Quantity:
+        """
+        Set the pulse length of the pulse generator signal in a time unit
+
+        Parameters
+        ----------
+        length : pint.Quantity
+            The pulse length in seconds
+        
+        Returns
+        -------
+        pint.Quantity
+            The pulse length in seconds
+        """
+
+        if length is not None:
+            if isinstance(length, pint.Quantity):
+                length = int((length * self._get_clock(units.Hz)).to_base_units().magnitude)
+            else:
+                raise ValueError("The length must be a pint.Quantity")
+            self.high_length(length)
+        return_value = self.high_length()
+        return_value = UnitConversion.to_unit((return_value / self._get_clock(units.Hz)), return_unit)
+        return return_value
+    
+    def duty_cycle(self, duty_cycle : pint.Quantity = None, return_unit : pint.Unit = units.percent) -> pint.Quantity:
+        """
+        Set the duty cycle of the pulse generator signal in a percentage unit
+
+        Parameters
+        ----------
+        duty_cycle : pint.Quantity
+            The duty cycle in percentage
+        
+        Returns
+        -------
+        pint.Quantity
+            The duty cycle in percentage
+        """
+
+        period_length = self.period_length()
+        if duty_cycle is not None:
+            if isinstance(duty_cycle, pint.Quantity):
+                high_length = int(np.rint(period_length * duty_cycle))
+            else:
+                raise ValueError("The cycle must be a pint.Quantity")
+            self.high_length(high_length)
+        return_value = self.high_length()
+        return_value = UnitConversion.to_unit((return_value / period_length) * 100 * units.percent, return_unit)
+        return return_value
+    
+    def start_delay(self, delay : pint.Unit = None, return_unit : pint.Unit = units.s) -> pint.Unit:
+        """
+        Set the start delay of the pulse generator signal in a time unit
+
+        Parameters
+        ----------
+        delay : pint.Unit
+            The start delay in a pint quantity with time unit
+        
+        Returns
+        -------
+        pint.Unit
+            The start delay in a pint quantity with time unit
+        """
+
+        if delay is not None:
+            if isinstance(delay, pint.Quantity):
+                delay = int((delay * self._get_clock(units.Hz)).to_base_units().magnitude)
+            else:
+                raise ValueError("The delay must be a pint.Quantity")
+        return_value = self.delay(delay)
+        return_value = UnitConversion.to_unit((return_value / self._get_clock(units.Hz)), return_unit)
+        return return_value
+    
+    repetitions = num_loops
+
+    def start_condition_state_signal(self, signal : int = 0, invert : bool = False) -> int:
+        """
+        Set the start condition state signal of the pulse generator (see register 'SPC_XIO_PULSEGEN0_MUX1' in chapter `Pulse Generator` in the manual)
+
+        NOTE
+        ----
+        The Pulse Generator is started when the combined signal of both start condition signals are true and a rising edge
+        is detected. The invert parameter inverts the start condition state signal.
+        
+        Parameters
+        ----------
+        signal : int
+            The start condition state signal
+        invert : bool
+            Invert the start condition state signal
+        
+        Returns
+        -------
+        int
+            The start condition state signal
+        """
+
+        return_signal = self.mux1(signal)
+        return_invert = self.config()
+        if invert:
+            return_invert |= SPCM_PULSEGEN_CONFIG_MUX1_INVERT
+        else:
+            return_invert &= ~SPCM_PULSEGEN_CONFIG_MUX1_INVERT
+        return_invert = self.config(return_invert)
+        return return_signal, ((return_invert & SPCM_PULSEGEN_CONFIG_MUX1_INVERT) != 0)
+
+    def start_condition_trigger_signal(self, signal : int = 0, invert : bool = False) -> int:
+        """
+        Set the start condition trigger signal of the pulse generator (see register 'SPC_XIO_PULSEGEN0_MUX2' in chapter `Pulse Generator` in the manual)
+
+        NOTE
+        ----
+        The Pulse Generator is started when the combined signal of both start condition signals are true and a rising edge
+        is detected. The invert parameter inverts the start condition state signal.
+        
+        Parameters
+        ----------
+        signal : int
+            The start condition trigger signal
+        invert : bool
+            Invert the start condition trigger signal
+        
+        Returns
+        -------
+        int
+            The start condition trigger signal
+        """
+
+        return_signal = self.mux2(signal)
+        return_invert = self.config()
+        if invert:
+            return_invert |= SPCM_PULSEGEN_CONFIG_MUX2_INVERT
+        else:
+            return_invert &= ~SPCM_PULSEGEN_CONFIG_MUX2_INVERT
+        return_invert = self.config(return_invert)
+        return return_signal, ((return_invert & SPCM_PULSEGEN_CONFIG_MUX2_INVERT) != 0)
+    
+    def invert_start_condition(self, invert : bool = None) -> bool:
+        """
+        Invert the start condition of the pulse generator
+
+        Parameters
+        ----------
+        invert : bool
+            Invert the start condition
+        
+        Returns
+        -------
+        bool
+            The start condition inversion
+        """
+
+        if invert is not None:
+            return_invert = self.config()
+            if invert:
+                return_invert |= SPCM_PULSEGEN_CONFIG_INVERT
+            else:
+                return_invert &= ~SPCM_PULSEGEN_CONFIG_INVERT
+            self.config(return_invert)
+        return ((self.config() & SPCM_PULSEGEN_CONFIG_INVERT) != 0)
 
 class PulseGenerators(CardFunctionality):
     """
@@ -381,8 +616,8 @@ class PulseGenerators(CardFunctionality):
         super().__init__(card, *args, **kwargs)
         # Check for the pulse generator option on the card
         features = self.card.get_i(SPC_PCIEXTFEATURES)
-        if features & SPCM_FEAT_EXTFW_PULSEGEN and self.card._verbose:
-            print(f"Pulse generator option available")
+        if features & SPCM_FEAT_EXTFW_PULSEGEN:
+            self.card._print(f"Pulse generator option available")
         else:
             raise SpcmException(text="This card doesn't have the pulse generator functionality installed. Please contact sales@spec.de to get more information about this functionality.")
         
