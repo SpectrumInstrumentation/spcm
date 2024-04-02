@@ -51,7 +51,7 @@ class Channel:
             String representation of the Channel class
         """
         
-        return f"Channel({self.index}, {self.card})"
+        return f"Channel {self.index}"
     
     __repr__ = __str__
 
@@ -140,7 +140,7 @@ class Channel:
         """
 
         if value is not None:
-            self._conversion_amp = value
+            self._conversion_amp = UnitConversion.force_unit(value, units.mV)
             value = UnitConversion.convert(value, units.mV, int)
             self.card.set_i(SPC_AMP0 + (SPC_AMP1 - SPC_AMP0) * self.index, value)
         value = self.card.get_i(SPC_AMP0 + (SPC_AMP1 - SPC_AMP0) * self.index)
@@ -154,27 +154,59 @@ class Channel:
     
         Parameters
         ----------
-        value : int
-            The offset of the specific channel in %
+        value : int | pint.Quantity = None
+            The offset of the specific channel as integer in % or as a Quantity in % or mV
         unit : pint.Unit = None
             The unit of the return value
             
         Returns
         -------
         int | pint.Quantity
-            The offset of the specific channel in % or the unit specified
+            The offset of the specific channel in % or the unit specified by return_unit
         """
 
+        # Analog in cards are programmed in percent of the full range and analog output cards in mV (in the M2p, M4i/x and M5i families)
+        card_unit = 1
+        fnc_type = self.card.function_type()
+        if fnc_type == SPCM_TYPE_AI:
+            card_unit = units.percent
+        elif fnc_type == SPCM_TYPE_AO:
+            card_unit = units.mV
+
         if value is not None:
-            self._conversion_offset = value
-            value = UnitConversion.convert(value, units.percent, int)
+            # The user gives a value as a Quantity
+            if isinstance(value, pint.Quantity):
+                if fnc_type == SPCM_TYPE_AO:
+                    # The card expects a value in mV
+                    if value.check('[]'):
+                        # Convert from percent to mV
+                        value = (value * self._conversion_amp).to(card_unit)
+                    else:
+                        value = value.to(card_unit)
+                elif fnc_type == SPCM_TYPE_AI:
+                    # The card expects a value in percent
+                    if value.check('[electric_potential]'):
+                        # Convert from mV to percent
+                        value = (value / self._conversion_amp).to(card_unit)
+                    else:
+                        value = value.to(card_unit)
+            else:
+                # Value is given as a number
+                pass
+
+            value = UnitConversion.convert(value, card_unit, int)
             self.card.set_i(SPC_OFFS0 + (SPC_OFFS1 - SPC_OFFS0) * self.index, value)
-        value = UnitConversion.to_unit(self.card.get_i(SPC_OFFS0 + (SPC_OFFS1 - SPC_OFFS0) * self.index), return_unit)
-        return value
+        
+        return_value = self.card.get_i(SPC_OFFS0 + (SPC_OFFS1 - SPC_OFFS0) * self.index)
+        # Turn the return value into a quantity
+        return_quantity = UnitConversion.to_unit(return_value, return_unit)
+        # Save the conversion offset to be able to convert the data to a quantity with the correct unit
+        self._conversion_offset = UnitConversion.force_unit(return_value, card_unit)
+        return return_quantity
     
     def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = None) -> npt.NDArray:
         """
-        Converts the data to the correct unit
+        Converts the data to the correct unit in units of electrical potential
         
         Parameters
         ----------
@@ -186,16 +218,19 @@ class Channel:
         Returns
         -------
         numpy.ndarray
-            The converted data
+            The converted data in units of electrical potential
         """
 
         max_value = self.card.max_sample_value()
-        return_data = (data / max_value - self._conversion_offset) * self._conversion_amp
+        if self._conversion_offset.check('[]'):
+            return_data = (data / max_value - self._conversion_offset) * self._conversion_amp
+        else:
+            return_data = (data / max_value) * self._conversion_amp - self._conversion_offset
         return return_data.to(return_unit)
     
     def reconvert_data(self, data : npt.NDArray) -> npt.NDArray:
         """
-        Convert data with units back to integer values
+        Convert data with units back to integer values in units of electrical potential
         
         Parameters
         ----------
@@ -205,10 +240,13 @@ class Channel:
         Returns
         -------
         numpy.ndarray
-            The reconverted data
+            The reconverted data as integer in mV
         """
 
-        return_data = int((data / self._conversion_amp + self._conversion_offset) * self.card.max_sample_value())
+        if self._conversion_offset.check('[]'):
+            return_data = int((data / self._conversion_amp + self._conversion_offset) * self.card.max_sample_value())
+        else:
+            return_data = int(((data + self._conversion_offset) / self._conversion_amp) * self.card.max_sample_value())
         return return_data
 
     def termination(self, value : int) -> None:

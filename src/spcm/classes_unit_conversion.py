@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
+import pint
 from . import units
 
 class UnitConversion:
@@ -8,13 +11,16 @@ class UnitConversion:
     """
 
     @staticmethod
-    def convert(value, base_unit, dtype = int):
+    def convert(value, base_unit, dtype = int, rounding = np.rint):
         if isinstance(value, units.Quantity):
-            return dtype(value.to(base_unit).magnitude)
+            if rounding is not None:
+                return int(rounding(value.to(base_unit).magnitude))
+            else:
+                return dtype(value.to(base_unit).magnitude)
         return value
     
     @staticmethod
-    def to_unit(value, unit):
+    def to_unit(value, unit : pint.Unit = None):
         if isinstance(value, units.Quantity):
             if isinstance(unit, units.Unit):
                 return value.to(unit)
@@ -22,5 +28,18 @@ class UnitConversion:
                 return value.to(unit.units)
             else:
                 return value.magnitude
-        return value
+        else:
+            if isinstance(unit, units.Unit):
+                return value * unit
+            elif isinstance(unit, units.Quantity):
+                return value * unit.units
+            else:
+                return value
     
+    @staticmethod
+    def force_unit(value, unit : pint.Unit):
+        if isinstance(value, units.Quantity):
+            return_value = value.to(unit)
+        else:
+            return_value =  value * unit
+        return return_value

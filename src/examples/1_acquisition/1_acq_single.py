@@ -35,55 +35,49 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_NONE)       # trigger set to none #software
     trigger.and_mask(spcm.SPC_TMASK_NONE)      # no AND mask
-    # delay = trigger.delay(100 * units.us, return_unit=units.us)
-    # print(f"Trigger delay: {delay}")
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
     # we'll try to set the samplerate to 20 MHz
-    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.Hz)
+    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
     print(f"Sample rate: {sample_rate}")
     
     # setup the channels
     channels = spcm.Channels(card) # enable all channels
     amplitude_V = 200 * units.mV
     channels.amp(amplitude_V)
-    channels[0].offset(-100 * units.percent)
+    channels[0].offset(-200 * units.mV)
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
-    # max_sample_value = card.max_sample_value()
 
     # Channel triggering
     trigger.ch_or_mask0(channels[0].ch_mask())
     trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
     ch_level = trigger.ch_level0(channels[0], 200 * units.mV, return_unit=units.mV)
-    print(f"Channel trigger level: {ch_level}")
+    print(f"{channels[0]} trigger level: {ch_level}")
 
     # define the data buffer
-    num_samples = 1 * units.KiS # 1 KibiSample = 1024 samples
     data_transfer = spcm.DataTransfer(card)
-    data_transfer.memory_size(num_samples)
-    data_transfer.allocate_buffer(num_samples)
-    data_transfer.post_trigger(num_samples // 2) # half of the total number of samples after trigger event
+    data_transfer.duration(100*units.us, post_trigger_duration=80*units.us)
     # Start DMA transfer
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     
     # start card
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 
-    print("Finished acquiring...\n")
+    print("Finished acquiring...")
 
     # Plot the acquired data
-    time_data_s = np.arange(num_samples)/sample_rate
+    time_data_s = data_transfer.time_data()
     fig, ax = plt.subplots()
     for channel in channels:
         unit_data_V = channel.convert_data(data_transfer.buffer[channel.index, :], units.V)
-        unit_data_N = unit_data_V * 10 * units.N / units.V
-        print("Channel {}".format(channel.index))
+        print(channel)
         print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
         print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
         ax.plot(time_data_s, unit_data_V, label=f"Channel {channel.index}")
-    ax.yaxis.set_units(units.V)
+    ax.yaxis.set_units(units.mV)
     ax.xaxis.set_units(units.us)
+    ax.axvline(0, color='k', linestyle='--', label='Trigger')
     ax.legend()
     plt.show()

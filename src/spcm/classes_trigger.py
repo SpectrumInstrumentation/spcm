@@ -144,17 +144,28 @@ class Trigger(CardFunctionality):
         """
 
         channel_index = int(channel)
-        if isinstance(level_value, units.Quantity) and (isinstance(channel, Channel) or isinstance(self.channels[channel_index], Channel)):
-            if not isinstance(channel, Channel):
-                channel = self.channels[channel_index]
-            level_value = channel.reconvert_data(level_value)
-        if level_value is not None:
+        # if a level value is given in the form of a quantity, convert it to the card's unit as a integer value
+        if isinstance(level_value, units.Quantity):
+            if isinstance(channel, Channel):
+                level_value = channel.reconvert_data(level_value)
+            elif self.channels and isinstance(self.channels[channel_index], Channel):
+                level_value = self.channels[channel_index].reconvert_data(level_value)
+            else:
+                raise ValueError("No channel information available to convert the trigger level value. Please provide a channel object or set the channel information in the Trigger object.")
+        
+        if isinstance(level_value, int):
             self.card.set_i(SPC_TRIG_CH0_LEVEL0 + channel_index + 100 * level_num, level_value)
+
         return_value = self.card.get_i(SPC_TRIG_CH0_LEVEL0 + channel_index + 100 * level_num)
-        if return_unit is not None and (isinstance(channel, Channel) or isinstance(self.channels[channel_index], Channel)):
-            if not isinstance(channel, Channel):
-                channel = self.channels[channel_index]
-            return_value = channel.convert_data(return_value, return_unit=return_unit)
+        # if a return unit is given, convert the value to the given unit if a channel object is available
+        if isinstance(return_unit, pint.Unit):
+            if isinstance(channel, Channel):
+                return_value = channel.convert_data(return_value, return_unit=return_unit)
+            elif self.channels and isinstance(self.channels[channel_index], Channel):
+                return_value = self.channels[channel_index].convert_data(return_value, return_unit=return_unit)
+            else:
+                raise ValueError("No channel information available to convert the returning trigger level value. Please provide a channel object or set the channel information in the Trigger object.")
+            
         return return_value
 
     def ch_level0(self, channel : int, level_value = None, return_unit : pint.Unit = None) -> int:
@@ -269,6 +280,18 @@ class Trigger(CardFunctionality):
         if return_unit is not None: 
             return_value = UnitConversion.to_unit(return_value / sr, return_unit)
         return return_value
+    
+    def trigger_counter(self) -> int:
+        """
+        Get the number of trigger events since acquisition start (see register 'SPC_TRIGGERCOUNTER' in chapter `Trigger` in the manual)
+        
+        Returns
+        -------
+        int
+            The trigger counter
+        """
+
+        return self.card.get_i(SPC_TRIGGERCOUNTER)
     
     # Main external window trigger (ext0/Trg0)
     def ext0_mode(self, mode : int = None) -> int:

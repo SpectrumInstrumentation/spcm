@@ -65,7 +65,7 @@ class DDSCore:
         TODO: add voltage units?
         """
 
-        amplitude = UnitConversion.convert(amplitude, units.fraction, float)
+        amplitude = UnitConversion.convert(amplitude, units.fraction, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_AMP + self.index, float(amplitude))
     # aliases
     amplitude = amp
@@ -103,7 +103,7 @@ class DDSCore:
             the value of the frequency in Hz
         """
 
-        frequency = UnitConversion.convert(frequency, units.Hz, float)
+        frequency = UnitConversion.convert(frequency, units.Hz, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_FREQ + self.index, float(frequency))
     # aliases
     frequency = freq
@@ -139,7 +139,7 @@ class DDSCore:
             the value between 0 and 360 degrees of the phase
         """
 
-        phase = UnitConversion.convert(phase, units.deg, float)
+        phase = UnitConversion.convert(phase, units.deg, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_PHASE + self.index, float(phase))
 
     def get_phase(self, return_unit = None) -> float:
@@ -167,7 +167,7 @@ class DDSCore:
             the rate of frequency change in Hz/s (positive or negative) or specified unit
         """
 
-        slope = UnitConversion.convert(slope, units.Hz/units.s, float)
+        slope = UnitConversion.convert(slope, units.Hz/units.s, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index, float(slope))
     # aliases
     frequency_slope = freq_slope
@@ -203,7 +203,7 @@ class DDSCore:
             the rate of amplitude change in 1/s (positive or negative) or specified unit
         """
 
-        slope = UnitConversion.convert(slope, 1/units.s, float)
+        slope = UnitConversion.convert(slope, 1/units.s, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_AMP_SLOPE + self.index, float(slope))
     # aliases
     amplitude_slope = amp_slope
@@ -625,7 +625,7 @@ class DDS(CardFunctionality):
             the time between DDS trigger events in seconds
         """
 
-        period = UnitConversion.convert(period, units.s, float)
+        period = UnitConversion.convert(period, units.s, float, rounding=None)
         self.set_d(SPC_DDS_TRG_TIMER, float(period))
     
     def get_trg_timer(self, return_unit = None) -> float:

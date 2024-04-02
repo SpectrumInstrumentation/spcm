@@ -12,6 +12,7 @@ from .pyspcm import c_void_p, spcm_dwDefTransfer_i64
 
 from .classes_functionality import CardFunctionality
 
+import pint
 from .classes_unit_conversion import UnitConversion
 from . import units
 
@@ -78,6 +79,7 @@ class DataTransfer(CardFunctionality):
     _np_buffer : npt.NDArray[np.int_] # Internal object on which the getter setter logic is working
     _8bit_mode : bool = False
     _12bit_mode : bool = False
+    _pre_trigger : int = 0
 
     def __init__(self, card, *args, **kwargs) -> None:
         """
@@ -105,6 +107,7 @@ class DataTransfer(CardFunctionality):
         self._np_buffer = None
         self._8bit_mode = False
         self._12bit_mode = False
+        self._pre_trigger = 0
         
         super().__init__(card, *args, **kwargs)
         self.buffer_type = SPCM_BUF_DATA
@@ -112,16 +115,16 @@ class DataTransfer(CardFunctionality):
         self._bits_per_sample()
         self.num_channels = self.card.active_channels()
 
-    def _sample_rate(self) -> int:
+    def _sample_rate(self) -> pint.Quantity:
         """
         Get the sample rate of the card
 
         Returns
         -------
-        int
-            the sample rate of the card
+        pint.Quantity
+            the sample rate of the card in Hz as a pint quantity
         """
-        return self.card.get_i(SPC_SAMPLERATE)
+        return self.card.get_i(SPC_SAMPLERATE) * units.Hz
 
     def memory_size(self, memory_size : int = None) -> int:
         """
@@ -218,7 +221,8 @@ class DataTransfer(CardFunctionality):
         if num_samples is not None:
             num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_PRETRIGGER, num_samples)
-        return self.card.get_i(SPC_PRETRIGGER)
+        self._pre_trigger = self.card.get_i(SPC_PRETRIGGER)
+        return self._pre_trigger
     
     def post_trigger(self, num_samples : int = None) -> int:
         """
@@ -238,7 +242,9 @@ class DataTransfer(CardFunctionality):
         if num_samples is not None:
             num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_POSTTRIGGER, num_samples)
-        return self.card.get_i(SPC_POSTTRIGGER)
+        post_trigger = self.card.get_i(SPC_POSTTRIGGER)
+        self._pre_trigger = self._num_samples - post_trigger
+        return post_trigger
     
     def allocate_buffer(self, num_samples : int) -> None:
         """
@@ -344,6 +350,70 @@ class DataTransfer(CardFunctionality):
             cmd |= arg
         self.card.cmd(cmd)
         self.card._print("... data transfer started")
+
+    def duration(self, duration : pint.Quantity, pre_trigger_duration : pint.Quantity = None, post_trigger_duration : pint.Quantity = None) -> None:
+        """
+        Set the duration of the data transfer
+        
+        Parameters
+        ----------
+        duration : pint.Quantity
+            the duration of the data transfer
+        pre_trigger_duration : pint.Quantity = None
+            the duration before the trigger event
+        post_trigger_duration : pint.Quantity = None
+            the duration after the trigger event
+        
+        Returns
+        -------
+        pint.Quantity
+            the duration of the data transfer
+        """
+
+        if pre_trigger_duration is None and post_trigger_duration is None:
+            raise ValueError("Please define either pre_trigger_duration or post_trigger_duration")
+
+        memsize_min = self.card.get_i(SPC_AVAILMEMSIZE_MIN)
+        memsize_max = self.card.get_i(SPC_AVAILMEMSIZE_MAX)
+        memsize_stp = self.card.get_i(SPC_AVAILMEMSIZE_STEP)
+        num_samples = (duration * self._sample_rate()).to_base_units().magnitude
+        num_samples = np.ceil(num_samples / memsize_stp) * memsize_stp
+        num_samples = np.clip(num_samples, memsize_min, memsize_max)
+        num_samples = int(num_samples)
+        self.memory_size(num_samples)
+        self.allocate_buffer(num_samples)
+        if pre_trigger_duration is not None:
+            pre_min = self.card.get_i(SPC_AVAILPRETRIGGER_MIN)
+            pre_max = self.card.get_i(SPC_AVAILPRETRIGGER_MAX)
+            pre_stp = self.card.get_i(SPC_AVAILPRETRIGGER_STEP)
+            pre_samples = (pre_trigger_duration * self._sample_rate()).to_base_units().magnitude
+            pre_samples = np.ceil(pre_samples / pre_stp) * pre_stp
+            pre_samples = np.clip(pre_samples, pre_min, pre_max)
+            pre_samples = int(post_samples)
+            self.post_trigger(post_samples)
+        if post_trigger_duration is not None:
+            post_min = self.card.get_i(SPC_AVAILPOSTTRIGGER_MIN)
+            post_max = self.card.get_i(SPC_AVAILPOSTTRIGGER_MAX)
+            post_stp = self.card.get_i(SPC_AVAILPOSTTRIGGER_STEP)
+            post_samples = (post_trigger_duration * self._sample_rate()).to_base_units().magnitude
+            post_samples = np.ceil(post_samples / post_stp) * post_stp
+            post_samples = np.clip(post_samples, post_min, post_max)
+            post_samples = int(post_samples)
+            self.post_trigger(post_samples)
+        return num_samples, post_samples
+
+    def time_data(self) -> npt.NDArray[np.float_]:
+        """
+        Get the time array for the data buffer
+        
+        Returns
+        -------
+        numpy array
+            the time array
+        """
+
+        sample_rate = self._sample_rate()
+        return (np.arange(self._num_samples) - self._pre_trigger) / sample_rate
     
     def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
