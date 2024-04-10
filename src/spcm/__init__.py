@@ -5,6 +5,7 @@
 """
 
 __docformat__ = "numpy"
+import numpy as np
 
 # Units available
 from pint import UnitRegistry
@@ -13,11 +14,14 @@ try:
     mpl = True
 except ImportError:
     mpl = False
-units = UnitRegistry()
+units = UnitRegistry(autoconvert_offset_to_baseunit=True)
 units.setup_matplotlib(mpl)
 units.define("sample = 1 = Sa = Sample = Samples = S")
 units.define("promille = 0.001 = ‰ = permille = perthousand = perthousands = ppt")
 units.define("fraction = 1 = frac = Frac = Fracs = Fraction = Fractions = Fractions = Frac = Fracs")
+units.highZ = np.inf * units.ohm
+units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
+units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
 __all__ = ["units"]
 
 # Import all registery entries and spectrum card errors into the module's name space

@@ -70,6 +70,7 @@ class Device():
         self._handle = handle
         self._kwargs = kwargs
         self._throw_error = kwargs.get("throw_error", True)
+        self._verbose = kwargs.get("verbose", False)
     
     def __del__(self) -> None:
         """Destructor that closes the connection associated with the handle"""

@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units 
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -26,30 +28,29 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     
     # setup card mode
     card.card_mode(spcm.SPC_REC_STD_MULTI) # multiple recording mode
-    card.timeout(5000)
-
-    # setup channel 0
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)
-    max_sample_value = card.max_sample_value()
+    card.timeout(5 * units.s)
 
     # setup trigger engine
     trigger = spcm.Trigger(card)
-    # trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
     trigger.or_mask(spcm.SPC_TMASK_NONE)
-    trigger.ch_or_mask0(spcm.SPC_TMASK0_CH0)
-    trigger.ch_mode(0, spcm.SPC_TM_POS)
-    trigger.ch_level(0, 0, 4)
 
     # setup clock engine
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(3200e6)
+    clock.sample_rate(200 * units.MHz)
+
+    # setup channel 0
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
+    channels.amp(1 * units.V)
+
+    # Channel triggering
+    trigger.ch_or_mask0(spcm.SPC_TMASK0_CH0)
+    trigger.ch_mode(0, spcm.SPC_TM_POS)
+    trigger.ch_level0(channels[0], 200 * units.mV, return_unit=units.mV)
 
     # setup data transfer
-    num_samples = 4096
-    samples_per_segment = 2048
+    num_samples = 4 * units.KiS
+    samples_per_segment = 2 * units.KiS
     multiple_recording = spcm.Multi(card)
     multiple_recording.memory_size(num_samples)
     multiple_recording.allocate_buffer(samples_per_segment)
@@ -62,27 +63,26 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
         card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 
         data = multiple_recording.buffer
+        time_data = multiple_recording.time_data()
 
         # this is the point to do anything with the data
         # e.g. calculate minimum and maximum of the acquired data
-        minimum = np.min(data, axis=-1)
-        maximum = np.max(data, axis=-1)
+        fig, ax = plt.subplots()
         for segment in range(data.shape[0]):
-            # print min and max for all channels in all segments
             print("Segment {}".format(segment))
             for channel in channels:
-                print("\tChannel {}".format(channel.index))
-                print("\t\tMinimum: {:.3f} mV".format(minimum[segment, channel] / max_sample_value * amplitude_mV))
-                print("\t\tMaximum: {:.3f} mV".format(maximum[segment, channel] / max_sample_value * amplitude_mV))
-    
-        plt.figure()
-        for segment in range(data.shape[0]):
-            for channel in channels:
-                plt.plot(np.arange(samples_per_segment) / sample_rate, data[segment, channel.index, :] / max_sample_value * amplitude_mV, '.', label="Ch {}, Seg {}".format(channel.index, segment))
-        plt.xlabel("Time [s]")
-        plt.ylabel("Amplitude [mV]")
-        plt.ylim(-amplitude_mV*1.1, amplitude_mV*1.1)
-        plt.legend()
+                chan_data = channel.convert_data(data[segment, channel.index])
+                minimum = np.min(chan_data)
+                maximum = np.max(chan_data)
+                print(f"\t{channel}")
+                print(f"\t\tMinimum: {minimum}")
+                print(f"\t\tMaximum: {maximum}")
+
+                ax.plot(time_data, chan_data, '.', label="{}, Seg {}".format(channel, segment))
+        ax.yaxis.set_units(units.mV)
+        ax.xaxis.set_units(units.us)
+        ax.axvline(0, color='k', linestyle='--', label='Trigger')
+        ax.legend()
         plt.show()
     except spcm.SpcmTimeout as timeout:
         print("Timeout...")

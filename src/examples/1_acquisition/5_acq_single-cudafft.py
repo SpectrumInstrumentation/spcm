@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 import cupy
 import matplotlib.pyplot as plt
@@ -27,27 +29,25 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
-    card.timeout(5000)                   # timeout 5 s
+    card.timeout(5 * units.s)
 
     # setup trigger engine
     trigger = spcm.Trigger(card)
-    trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)  # trigger set to software
-    trigger.and_mask(spcm.SPC_TMASK_NONE)
+    trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
 
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)  # set input range to +/- 1000 mV
+    amplitude = channels[0].amp(1 * units.V, return_unit=units.V)
 
     # we try to use the max samplerate
     clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    clock.output(0)                           # no clock output
-    sample_rate = clock.sample_rate(max = True) # set to maximum sample rate
-    print("Used samplerate: {0} MS/s\n".format(sample_rate // 1000000))
+    clock.mode(spcm.SPC_CM_INTPLL)
+    sample_rate = clock.sample_rate(max = True, return_unit=(units.MHz)) # set to maximum sample rate
+    print(f"Used Sample Rate: {sample_rate}")
 
     # setup a data transfer buffer
-    num_samples = spcm.KIBI(14)
+    num_samples = 14 * units.KiS # KibiSamples = 1024 Samples
+    num_samples_magnitude = num_samples.to_base_units().magnitude
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
@@ -84,14 +84,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
             afDest[i] = ((float)anSource[i]) * dFactor;
         }
         ''', 'CudaKernelScale')
-    data_volt_gpu = cupy.zeros(num_samples, dtype = cupy.float32)
-    CupyKernelConvertSignalToVolt((num_samples // num_thread_per_block,), (num_thread_per_block,), (data_raw_gpu, data_volt_gpu, (amplitude_mV / 1000) / max_value))
+    data_volt_gpu = cupy.zeros(num_samples_magnitude, dtype = cupy.float32)
+    CupyKernelConvertSignalToVolt((num_samples_magnitude // num_thread_per_block,), (num_thread_per_block,), (data_raw_gpu, data_volt_gpu, amplitude.to(units.V).magnitude / max_value))
 
     # calculate the FFT
     fftdata_gpu = cupy.fft.fft(data_volt_gpu)
 
     # length of FFT result
-    num_fft_samples = num_samples // 2 + 1
+    num_fft_samples = num_samples_magnitude // 2 + 1
 
     # scale the FFT result
     CupyKernelScaleFFTResult = cupy.RawKernel(r'''
@@ -102,7 +102,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
             pcompDest[i].imag (pcompSource[i].imag() / (lLen / 2 + 1)); // divide by length of signal
         }
         ''', 'CudaScaleFFTResult', translate_cucomplex=True)
-    CupyKernelScaleFFTResult((num_samples // num_thread_per_block,), (num_thread_per_block,), (fftdata_gpu, fftdata_gpu, num_samples))
+    CupyKernelScaleFFTResult((num_samples_magnitude // num_thread_per_block,), (num_thread_per_block,), (fftdata_gpu, fftdata_gpu, num_samples_magnitude))
 
     # calculate real spectrum from complex FFT result
     CupyKernelFFTToSpectrum = cupy.RawKernel(r'''
@@ -129,12 +129,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print("done\n")
 
     # plot FFT spectrum
-    plt.figure()
-    step = (sample_rate // 2) / (spectrum_cpu.size - 1)
-    freq = np.arange(0, sample_rate // 2, step)
-    plt.ylim([-140, 0])  # range of Y axis
-    plt.plot(freq, spectrum_cpu[:(spectrum_cpu.size - 1)])
-    plt.xlabel("Frequency [Hz]")
+    fig, ax = plt.subplots()
+    freq = np.linspace(0, 1, spectrum_cpu.size - 1) * sample_rate / 2
+    ax.set_ylim([-70, 30])  # range of Y axis
+    ax.plot(freq, spectrum_cpu[:-1])
+    # plt.xlabel("Frequency [Hz]")
+    ax.xaxis.set_units(units.MHz)
     plt.show()
 
 

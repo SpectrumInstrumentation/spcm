@@ -47,6 +47,25 @@ class Multi(DataTransfer):
         segment_size = self.card.get_i(SPC_SEGMENTSIZE)
         self._segment_size = segment_size
     
+    def post_trigger(self, num_samples : int = None) -> int:
+        """
+        Set the number of post trigger samples (see register `SPC_POSTTRIGGER` in the manual)
+        
+        Parameters
+        ----------
+        num_samples : int | pint.Quantity
+            the number of post trigger samples
+        
+        Returns
+        -------
+        int
+            the number of post trigger samples
+        """
+
+        post_trigger = super().post_trigger(num_samples)
+        self._pre_trigger = self._segment_size - post_trigger
+        return post_trigger
+
     def allocate_buffer(self, segment_samples : int, num_segments : int = None) -> None:
         """
         Memory allocation for the buffer that is used for communicating with the card
@@ -60,6 +79,7 @@ class Multi(DataTransfer):
         """
         
         segment_samples = UnitConversion.convert(segment_samples, units.S, int)
+        num_segments = UnitConversion.convert(num_segments, units.S, int)
         self.segment_samples(segment_samples)
         if num_segments is None:
             self._num_segments = self._memory_size // segment_samples
@@ -68,8 +88,24 @@ class Multi(DataTransfer):
         super().allocate_buffer(segment_samples * self._num_segments)
         num_channels = self.card.active_channels()
         if self.bits_per_sample > 1 and not self._12bit_mode:
-            self.buffer = self.buffer.reshape((self._num_segments, num_channels, segment_samples), order='F')
+            self.buffer = self.buffer.reshape((self._num_segments, num_channels, segment_samples), order='C')
     
+    def time_data(self, total_num_samples : int = None) -> npt.NDArray[np.float_]:
+        """
+        Get the time array for the data buffer
+        
+        Returns
+        -------
+        numpy array
+            the time array
+        """
+
+        sample_rate = self._sample_rate()
+        if total_num_samples is None:
+            total_num_samples = self._num_samples // self._num_segments
+        total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
+        return (np.arange(total_num_samples) - self._pre_trigger) / sample_rate
+
     def unpack_12bit_buffer(self) -> npt.NDArray[np.int_]:
         """
         Unpacks the 12-bit packed data to 16-bit data
@@ -115,10 +151,10 @@ class Multi(DataTransfer):
 
                 current_segment = user_pos // self._segment_size
                 current_pos_in_segment = user_pos % self._segment_size
-                final_segment = ((user_pos+user_len) // self._segment_size) + 1
+                final_segment = ((user_pos+user_len) // self._segment_size)
                 final_pos_in_segment = (user_pos+user_len) % self._segment_size
 
-                print("NumSamples = {}, CurrentSegment = {}, CurrentPos = {},  FinalSegment = {}, FinalPos = {}, UserLen = {}".format(self._notify_samples, current_segment, current_pos_in_segment, final_segment, final_pos_in_segment, user_len))
+                self.card._print("NumSamples = {}, CurrentSegment = {}, CurrentPos = {},  FinalSegment = {}, FinalPos = {}, UserLen = {}".format(self._notify_samples, current_segment, current_pos_in_segment, final_segment, final_pos_in_segment, user_len))
 
                 self._current_samples += self._notify_samples
                 if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:

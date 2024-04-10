@@ -15,6 +15,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 
 # Load the cards
@@ -28,17 +30,14 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     # setup all the channels
     channels = spcm.Channels(stack=stack)
     channels.enable(True)
-    channels.amp(1000)  # 1000 mV
+    channels.amp(1 * units.V)
 
     master = 0
     for i, card in enumerate(stack.cards):
         # read function and sn and check for D/A card
-        sn = card.sn()
-        fnc_type = card.function_type()
-        card_name = card.product_name()
-        if fnc_type != spcm.SPCM_TYPE_AO:
-            spcm.SpcmException(text="This is an example for D/A cards.\nCard: {0} sn {1:05d} not supported by this example\n".format(card_name, sn))
-        print("Found: {0} sn {1:05d}".format(card_name, sn))
+        if card.function_type() != spcm.SPCM_TYPE_AO:
+            spcm.SpcmException(f"This is an example for D/A cards.\n{card} not supported by this example\n")
+        print(f"Found: {card}")
 
         # set up the mode
         card.card_mode(spcm.SPC_REP_STD_CONTINUOUS)

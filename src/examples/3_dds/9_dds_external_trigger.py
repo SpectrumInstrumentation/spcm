@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -26,18 +28,19 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the card
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     
     # Activate external trigger mode
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # disable default software trigger
     trigger.ext0_mode(spcm.SPC_TM_POS) # positive edge
-    trigger.ext0_level0(1500) # Trigger level is 1.5 V (1500 mV)
+    trigger.ext0_level0(1.5 * units.V) # Trigger level is 1.5 V (1500 mV)
     trigger.ext0_coupling(spcm.COUPLING_DC) # set DC coupling
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     core0 = dds[0]
     dds.reset()
 
@@ -45,13 +48,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_CARD)
 
     # Create one carrier and keep it off
-    core0.amp(0.4)
-    core0.freq(5e6) # 5 MHz
+    core0.amp(40 * units.percent)
+    core0.freq(5 * units.MHz)
     dds.exec_at_trg()
 
     # each trigger event will change the generated frequency by 1 MHz
     for i in range(1, 11):
-        core0.freq(5e6 + i*1e6)
+        core0.freq(5 * units.MHz + i * units.MHz)
         dds.exec_at_trg()    # turn off as soon as possible again
     dds.write_to_card()
 

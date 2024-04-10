@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,10 +38,11 @@ def generate_function(t, parameters):
     return y
 
 # A generator for get piecewise-linear approximated functions
-def calculate_slope(points):
+def calculate_slope(t, y):
     # Slopes along the lines
-    difference = np.diff(points, axis=0)
-    return np.divide(difference[:,1], difference[:,0])
+    t_diff = np.diff(t)
+    y_diff = np.diff(y)
+    return np.divide(y_diff, t_diff)
 
 
 card : spcm.Card
@@ -54,7 +57,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the channels
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
@@ -64,22 +67,22 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Start the DDS test
     num_cores = len(dds)
     # 20 Carriers from 90 to 110 MHz
-    first_init_freq_Hz  = 90e6
-    delta_init_freq_Hz  =  1e6
+    first_init_freq_Hz  = 90 * units.MHz
+    delta_init_freq_Hz  =  1 * units.MHz
     # to 20 Carriers from 95 to 105 MHz
-    first_final_freq_Hz = 95e6
-    delta_final_freq_Hz =  5e5
+    first_final_freq_Hz = 95  * units.MHz
+    delta_final_freq_Hz = 500 * units.kHz 
     
     # Ramp settings
     num_segments = 16
-    total_time_s = 5.0 # seconds
+    total_time_s = 5.0 * units.s
     ramp_type = 'cosine' # 'cosine' or 'square' or '3rd-order'
 
     # STEP 0 - Initialize frequencies
-    dds.trg_timer(2.0)
+    dds.trg_timer(2.0 * units.s)
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     for core in dds:
-        core.amp(0.45 / num_cores)
+        core.amp(45 * units.percent / num_cores)
         core.freq(first_init_freq_Hz + int(core) * delta_init_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
@@ -105,13 +108,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
         y = generate_function(t, parameters)
 
         t_s = t * parameters["time_s"]
-        points = np.array([t_s, y]).T
-        slopes[core, :] = calculate_slope(points)
+        # points = np.array([t_s, y]).T
+        sl_core = calculate_slope(t_s, y)
+        slopes[core, :] = sl_core.to_base_units().magnitude
 
 
-        plt.plot(*points.T, 'ok')
+        plt.plot(t_s, y, 'ok')
         t_fine_s = np.linspace(t_s[0], t_s[1], 2, endpoint=True)
-        for j, sl in enumerate(slopes[core]):
+        for j, sl in enumerate(sl_core):
             plt.plot(t_s[j] + t_fine_s, y[j] + sl*(t_fine_s), '--')
         
     # plt.legend()

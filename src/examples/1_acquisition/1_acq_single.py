@@ -14,8 +14,6 @@ See the LICENSE file for the conditions under which this software may be used an
 
 import spcm
 from spcm import units # spcm uses the pint library for unit handling (units is a UnitRegistry object)
-units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
-units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,23 +36,19 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    # we'll try to set the samplerate to 20 MHz
-    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
-    print(f"Sample rate: {sample_rate}")
+    clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
     
     # setup the channels
-    channels = spcm.Channels(card) # enable all channels
-    amplitude_V = 200 * units.mV
-    channels.amp(amplitude_V)
-    channels[0].offset(-200 * units.mV)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    channels.amp(200 * units.mV)
+    channels[0].offset(0 * units.mV, return_unit=units.mV)
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
 
     # Channel triggering
     trigger.ch_or_mask0(channels[0].ch_mask())
     trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
-    ch_level = trigger.ch_level0(channels[0], 200 * units.mV, return_unit=units.mV)
-    print(f"{channels[0]} trigger level: {ch_level}")
+    trigger.ch_level0(channels[0], 0 * units.mV, return_unit=units.mV)
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)

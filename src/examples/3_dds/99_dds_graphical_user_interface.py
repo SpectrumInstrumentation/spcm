@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 import sys
 import os
@@ -114,7 +116,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
     card.write_setup()
 
     # Setup DDS

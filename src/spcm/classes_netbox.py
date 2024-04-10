@@ -60,6 +60,20 @@ class Netbox(CardStack):
         """
 
         return self.is_netbox
+    
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the Netbox
+
+        Returns
+        -------
+        str
+            The string representation of the Netbox
+        """
+
+        netbox_type = self.type()
+        netbox_str = "DN{series:x}.{family:x}{speed:x}-{channel:d}".format(**netbox_type)
+        return f"Netbox: {netbox_str} at {self.ip()} sn {self.sn():05d}"
         
     def type(self) -> dict[int, int, int, int]:
         """

@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 from enum import IntEnum
 
@@ -69,7 +71,7 @@ class SEGMENT_IDX(IntEnum):
     SEG_STOP     =  8  # DC level for stop/end
 
 
-def vDoDataCalculation(sequence : spcm.Sequence, series : int, max_value : int):
+def vDoDataCalculation(sequence : spcm.Sequence):
     """
     calculates and writes the output data for all segments
 
@@ -77,16 +79,13 @@ def vDoDataCalculation(sequence : spcm.Sequence, series : int, max_value : int):
     ----------
     sequence : spcm.Sequence
         the sequenc object that handles the data transfer
-    series : int
-        the type of the card
-    max_value : int
-        the maximum value for the output data
     """
 
     print("Calculation of output data")
 
     factor = 1
     # This series has a slightly increased minimum size value.
+    series = sequence.card.series()
     if series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES, spcm.TYP_M5IEXPSERIES]:
         factor = 6
 
@@ -95,7 +94,7 @@ def vDoDataCalculation(sequence : spcm.Sequence, series : int, max_value : int):
     sequence.allocate_buffer(segment_len_sample)
 
     # helper values: Full Scale
-    full_scale = max_value
+    full_scale = sequence.card.max_sample_value()
     half_scale = full_scale // 2
 
     # !!! to keep the example simple we will generate the same data on all active channels !!!
@@ -107,7 +106,7 @@ def vDoDataCalculation(sequence : spcm.Sequence, series : int, max_value : int):
     # --- sync puls: first half zero, second half -FS
     segment_len_sample = factor * 80
     sequence.buffer[:, :segment_len_sample // 2] = 0
-    sequence.buffer[:, segment_len_sample // 2:] = -max_value
+    sequence.buffer[:, segment_len_sample // 2:] = -full_scale
     vWriteSegmentData(sequence, SEGMENT_IDX.SEG_SYNC, segment_len_sample)
 
     # --- ramp up
@@ -245,7 +244,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # set up the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
     channels.stop_level(spcm.SPCM_STOPLVL_HOLDLAST)
 
     # set up the mode
@@ -261,14 +260,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     clock = spcm.Clock(card)
     series = card.series()
     if (series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES]):
-        sample_rate = clock.sample_rate(spcm.MEGA(50))
+        sample_rate = clock.sample_rate(50 * units.MHz, return_unit=units.MHz)
     else:
-        sample_rate = clock.sample_rate(spcm.MEGA(1))
+        sample_rate = clock.sample_rate(1 * units.MHz, return_unit=units.MHz)
     clock.clock_output(0)
 
     # generate the data and transfer it to the card
-    max_value = card.max_sample_value()
-    vDoDataCalculation(sequence, series, max_value - 1)
+    vDoDataCalculation(sequence)
     print("... data has been transferred to board memory")
 
     # define the sequence in which the segments will be replayed
@@ -276,7 +274,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     print("... sequence configured")
 
     # We'll start and wait until all sequences are replayed.
-    card.timeout(0)
+    card.timeout(0 * units.s)
     print("Starting the card")
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
 

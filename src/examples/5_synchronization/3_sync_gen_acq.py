@@ -14,6 +14,8 @@ See the LICENSE file for the conditions under which this software may be used an
 
 
 import spcm
+from spcm import units
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -32,7 +34,7 @@ def setupCardAD(card : spcm.Card):
     
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    channels.amp(1000)  # 1000 mV
+    channels.amp(1 * units.V)
 
     # setup trigger
     trigger = spcm.Trigger(card)
@@ -42,9 +44,11 @@ def setupCardAD(card : spcm.Card):
     # set up clock
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    clock.sample_rate(spcm.MEGA(5))
+    clock.sample_rate(5 * units.MHz)
 
-    card.timeout(5000)
+    card.timeout(5 * units.s)
+
+    return channels
 
 def setupCardDA(card : spcm.Card):
     """
@@ -62,13 +66,13 @@ def setupCardDA(card : spcm.Card):
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
-    channels.amp(1000)  # 1000 mV
+    channels.amp(1 * units.V)
     channels.stop_level(spcm.SPCM_STOPLVL_HOLDLAST)
 
     # setup clock
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    clock.sample_rate(spcm.MEGA(5))
+    clock.sample_rate(5 * units.MHz)
     clock.output(0)
 
     # setup trigger
@@ -101,17 +105,13 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     card_DA : spcm.Card = None
     card_AD : spcm.Card = None
     for card in stack.cards:
-
         # read type, function and sn and check for A/D card
-        sn = card.sn()
-        fnc_type = card.function_type()
-        card_name = card.product_name()
-        if fnc_type == spcm.SPCM_TYPE_AO:
+        if card.function_type() == spcm.SPCM_TYPE_AO:
             card_DA = card
-            print("DA card found: {0} sn {1:05d}".format(card_name, sn))
-        elif fnc_type == spcm.SPCM_TYPE_AI:
+            print(f"DA card found: {card_DA}")
+        elif card.function_type() == spcm.SPCM_TYPE_AI:
             card_AD = card
-            print("AD card found: {0} sn {1:05d}".format(card_name, sn))
+            print(f"AD card found: {card_AD}")
 
     if not card_AD or not card_DA:
         raise spcm.SpcmException(text="Invalid cards ...")
@@ -120,15 +120,15 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     setupCardDA(card_DA)
 
     # setup AD card
-    setupCardAD(card_AD)
+    channels_AD = setupCardAD(card_AD)
 
     # setup star-hub
     stack.sync_enable(True)
 
     # settings for the FIFO mode buffer handling
-    samples_to_acquire_MiS = 10 # 10 MiS
-    num_samples = spcm.MEBI(4)
-    notify_samples = spcm.KIBI(8)
+    samples_to_acquire = 10 * units.MiS
+    num_samples = 4 * units.MiS
+    notify_samples = 8 * units.KiS
 
     # buffer settings for Fifo transfer
     data_transfer_AD = spcm.DataTransfer(card_AD)
@@ -136,12 +136,12 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     data_transfer_AD.pre_trigger(8)
     data_transfer_AD.allocate_buffer(num_samples)
     data_transfer_AD.notify_samples(notify_samples)
-    data_transfer_AD.to_transfer_samples(spcm.MEBI(samples_to_acquire_MiS))
+    data_transfer_AD.to_transfer_samples(samples_to_acquire)
     data_transfer_AD.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
     stack.start(spcm.M2CMD_CARD_ENABLETRIGGER)
 
-    print("Acquisition stops after {} MSamples are transferred".format(samples_to_acquire_MiS))
+    print(f"Acquisition stops after {samples_to_acquire} are transferred")
 
     print("Press Ctrl+C to stop")
 
@@ -153,12 +153,13 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         for data_block in data_transfer_AD:
             plot_data = np.concatenate((plot_data, data_block[channel, :]))
     except KeyboardInterrupt:
-        print("\nStopped by user")
+        print("Stopped by user")
         pass
 
-    x_range = np.arange(0, len(plot_data)) / spcm.MEGA(5) # 5 MHz Sample Rate
+    time_data = data_transfer_AD.time_data(plot_data.shape[0])
+    data = channels_AD[0].convert_data(plot_data)
     plt.figure()
-    plt.plot(x_range, plot_data)
+    plt.plot(time_data, data)
     plt.show()
 
     # stop star-hub

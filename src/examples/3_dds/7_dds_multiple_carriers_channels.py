@@ -14,6 +14,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -27,11 +29,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
    
     # Switch groups of cores to other channels
@@ -54,13 +57,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Start the test
     num_freq     = len(dds)
     # 20 Carriers from 5 to 15 MHz
-    start_freq_Hz = 5e6 #   5 MHz
-    delta_freq_Hz = 5e5 # 500 kHz
+    start_freq_Hz = 5 * units.MHz
+    delta_freq_Hz = 500 * units.kHz
     for core in dds:
-        amp = 0.4/num_freq
+        amp = 40 * units.percent/num_freq
         core.amp(amp)
         core.freq(start_freq_Hz + int(core) * delta_freq_Hz)
-        print("Core {} - Frequency: {} Hz - Amplitude: {}".format(int(core), core.get_freq(), core.get_amp()))
+        print("{} - Frequency: {} - Amplitude: {}".format(core, core.get_freq(return_unit=units.MHz), core.get_amp(return_unit=units.dBm)))
     dds.exec_at_trg()
     dds.write_to_card()
 

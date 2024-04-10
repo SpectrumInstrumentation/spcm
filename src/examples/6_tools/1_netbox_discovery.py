@@ -26,19 +26,15 @@ for devices_identifiers in device_list.values():
     with spcm.Netbox(card_identifiers=devices_identifiers, sync_identifier=sync_identifier.format(sync_id), find_sync=True) as netbox:
         if netbox:
             found_netbox = True
-            netbox_type = netbox.type()
-            netbox_str = "DN{series:x}.{family:x}{speed:x}-{channel:d}".format(**netbox_type)
-            netbox_ip = netbox.ip()
-            netbox_sn = netbox.sn()
-            print("Netbox found: {} at {} with SN {}".format(netbox_str, netbox_ip, netbox_sn))
+            print("found:")
+            print(f"- {netbox}")
 
             for card in netbox.cards:
-                print(f'\t{card.product_name()} SN: {card.sn()}')
+                print(f"    {card}")
 
             if netbox.is_synced:
-                print('\t{} at SN: {}'.format(sync_identifier.format(sync_id), netbox.netbox_card.sn()))
+                print("     > {} at {}".format(sync_identifier.format(sync_id), netbox.netbox_card))
                 sync_id += 1
-            print("----------------------------------------------")
 
 if not found_netbox:
     print("No Netbox found")

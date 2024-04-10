@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 import psutil
 import os
@@ -33,33 +35,34 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
 
     # Start the DDS test
     num_freq      = 100
-    start_freq_Hz  = 5.0e6 # 5 MHz
-    delta_freq_Hz  = 1.0e5 # 100 kHz
+    start_freq_Hz  = 5.0 * units.MHz
+    delta_freq_Hz  = 100 * units.kHz
     
     freq_list = []
     for i in range(num_freq):
         freq_list.append(start_freq_Hz + i*delta_freq_Hz)
 
     # STEP 0 - Initialize frequencies
-    period_s = 1.0 # seconds
+    period_s = 1.0 * units.s
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     dds.trg_timer(period_s)
-    dds[0].amp(0.1)
+    dds[0].amp(10 * units.percent)
     dds[0].freq(freq_list[0])
     dds.exec_at_trg()
     dds.write_to_card()
     
     # STEP 1a - Pre-fill Buffer
-    period_s = 1e-3 # 1 ms
+    period_s = 1 * units.ms
     dds.trg_timer(period_s)
     fill_maximum = dds.queue_cmd_max()
     fill_number = int(fill_maximum / 4)

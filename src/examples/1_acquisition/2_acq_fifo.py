@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 import matplotlib.pyplot as plt
         
@@ -26,33 +28,36 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     
     # single FIFO mode
     card.card_mode(spcm.SPC_REC_FIFO_SINGLE)
-    card.timeout(5000)
-
-    # setup channels 0 and 1
-    # channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)
-    channels.termination(1)
-    max_value = card.max_sample_value()
+    card.timeout(5 * units.s)
 
     # setup trigger engine
     trigger = spcm.Trigger(card)
-    trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
+    trigger.or_mask(spcm.SPC_TMASK_NONE)
+    trigger.and_mask(spcm.SPC_TMASK_NONE)
 
     # setup clock engine
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(spcm.MEGA(20))
+    clock.sample_rate(20 * units.MHz)
+
+    # setup channels
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
+    channels.amp(1 * units.V)
+    channels.termination(1)
+
+    # Channel triggering
+    trigger.ch_or_mask0(channels[0].ch_mask())
+    trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
+    trigger.ch_level0(channels[0], 0 * units.mV, return_unit=units.mV)
 
     # define the data buffer
-    num_samples = spcm.KIBI(512)
-    notify_samples = spcm.KIBI(128)
-    plot_samples = spcm.KIBI(1)
+    num_samples = 512 * units.KiS
+    notify_samples = 128 * units.KiS
+    plot_samples = 4 * units.KiS
 
     data_transfer = spcm.DataTransfer(card)
     data_transfer.allocate_buffer(num_samples)
-    data_transfer.pre_trigger(1024)
+    data_transfer.pre_trigger(spcm.KIBI(1))
     data_transfer.notify_samples(notify_samples)
     data_transfer.start_buffer_transfer()
 
@@ -72,18 +77,21 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
         pass
 
     # Print the results
-    print("\nFinished...")
-    minimum = np.min(data_array)
-    maximum = np.max(data_array)
-    print("Minimum: {0:d}".format(minimum))
-    print("Maximum: {0:d}".format(maximum))
+    print("Finished...\n")
     
     # Plot the accumulated data
-    plt.figure()
+    time_data_s = data_transfer.time_data(total_num_samples=plot_samples)
+    fig, ax = plt.subplots()
     for channel in channels:
-        plt.plot(np.arange(plot_samples)/sample_rate, data_array[channel.index,:plot_samples]/max_value*amplitude_mV, label="Channel {}".format(channel.index))
-    plt.xlabel("Time [s]")
-    plt.ylabel("Amplitude [mV]")
-    plt.legend()
+        # unit_data_V = data_array[channel.index, :plot_samples]
+        unit_data_V = channel.convert_data(data_array[channel, :plot_samples.to_base_units().magnitude], units.V)
+        print(channel)
+        print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
+        print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
+        ax.plot(time_data_s, unit_data_V, label=f"{channel}")
+    ax.xaxis.set_units(units.ms)
+    ax.yaxis.set_units(units.mV)
+    ax.axvline(0, color='k', linestyle='--', label='Trigger')
+    ax.legend()
     plt.show()
 

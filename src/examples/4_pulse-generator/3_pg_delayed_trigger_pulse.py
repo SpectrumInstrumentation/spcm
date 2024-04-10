@@ -14,6 +14,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 
@@ -49,12 +51,12 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     len_1ms    = int(pulse_gen_clock * 0.001 + 1) # +1 because the HIGH area needs to be at least one sample less than length, so we increase length by one to get the calculated HIGH time
     offset_5us = int(pulse_gen_clock * 0.000005)
     pulse_generators[1].mode(spcm.SPCM_PULSEGEN_MODE_SINGLESHOT)
-    pulse_generators[1].period_length(len_1ms)
-    pulse_generators[1].high_length(len_1ms - 1)
-    pulse_generators[1].delay(offset_5us) # delay the pulse for 5us
-    pulse_generators[1].num_loops(1) # just once
-    pulse_generators[1].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-    pulse_generators[1].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_CARDTRIGGER) # started by card's trigger event
+    pulse_generators[1].pulse_period(1 * units.ms) # or
+    pulse_generators[1].pulse_length(0.99 * units.ms) # or
+    pulse_generators[1].start_delay(0 * units.us)
+    pulse_generators[1].repetitions(1) # just once
+    pulse_generators[1].start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+    pulse_generators[1].start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_CARDTRIGGER)
 
     # write the settings to the card
     # update the clock section to generate the programmed frequencies (SPC_SAMPLERATE)

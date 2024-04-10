@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 
 card : spcm.Card
@@ -24,35 +26,34 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_FIFO_MULTI) # multiple recording FIFO mode
-    card.timeout(5000)
+    card.timeout(5 * units.s)
 
     # setup clock engine
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(20e6)
+    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
 
     # setup trigger engine
     trigger = spcm.Trigger(card)
     trigger.ext0_mode(spcm.SPC_TM_POS)   # set trigger mode
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # trigger set to external
     trigger.ext0_coupling(spcm.COUPLING_DC)  # trigger coupling
-    trigger.ext0_level0(1500)            # trigger level of 1.5 Volt
+    trigger.ext0_level0(1.5 * units.V)
 
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)
+    channels.amp(1 * units.V)
     channels.termination(1)
-    max_sample_value = card.max_sample_value()
+    # max_sample_value = card.max_sample_value()
 
     # settings for the FIFO mode buffer handling
-    total_samples = spcm.KIBI(96) # set this to zero to record forever
-    num_samples = spcm.KIBI(48)
-    notify_samples = spcm.KIBI(12)
+    total_samples = 96 * units.KiB # set this to zero to record forever
+    num_samples = 48 * units.KiB
+    notify_samples = 12 * units.KiB
     num_timestamps = spcm.KIBI(8)
     
     # setup data transfer buffer
-    num_samples_in_segment = 4096
+    num_samples_in_segment = 4 * units.KiB
     num_segments = num_samples // num_samples_in_segment
     multiple_recording = spcm.Multi(card)
     multiple_recording.loops(0)
@@ -60,7 +61,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     multiple_recording.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
     multiple_recording.to_transfer_samples(total_samples)
     multiple_recording.notify_samples(notify_samples)
-    multiple_recording.post_trigger(num_samples_in_segment - 128)
+    multiple_recording.post_trigger(num_samples_in_segment - 128 * units.S)
 
     # setup timestamps
     ts = spcm.TimeStamp(card)
@@ -80,18 +81,22 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print("Recording... press Ctrl+C to stop")
     try:
         for data_block in multiple_recording:
-
-            print("")
-            ts_data_range = ts.poll()
             segment = 0
-            for ts_block in ts_data_range:
-                timestampVal2 = ts_block[0] / sample_rate   # lower 8 bytes
+            while True:
+                ts_data_range = ts.poll()
+                for ts_block in ts_data_range:
+                    timestampVal2 = (ts_block[0] / sample_rate).to_base_units()   # lower 8 bytes
 
-                # write timestamp value to file
-                print("Segment[{}]: Time: {:0.2f} s, Minimum: {:0.3f} mV, Maximum: {:0.3f} mV".format(segment_cnt, timestampVal2, np.min(data_block[:,segment,:])/max_sample_value*amplitude_mV, np.max(data_block[:,segment,:])/max_sample_value*amplitude_mV))
-                segment += 1
-                segment_cnt += 1
-                if segment >= data_block.shape[1]:
+                    # write timestamp value to file
+                    unit_data_block = channels[0].convert_data(data_block[segment,:,:], units.V)
+                    minimum = np.min(unit_data_block)
+                    maximum = np.max(unit_data_block)
+                    print(f"Segment[{segment_cnt}]: Time: {timestampVal2}, Minimum: {minimum}, Maximum: {maximum}")
+                    segment += 1
+                    segment_cnt += 1
+                    if segment >= data_block.shape[0]:
+                        break
+                if segment >= data_block.shape[0]:
                     break
     except KeyboardInterrupt:
         print("Recording stopped by user...")

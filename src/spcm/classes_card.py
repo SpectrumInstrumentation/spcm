@@ -76,6 +76,18 @@ class Card(Device):
         
         return self
     
+    def __str__(self) -> str:
+        """
+        String representation of the card
+
+        Returns
+        -------
+        str
+            String representation of the card
+        """
+        return "Card: {} sn {:05d}".format(self.product_name(), self.sn())
+    __repr__ = __str__
+    
     def find(self, card_type : int = 0, serial_number : int = 0) -> Union[bool, int]:
         """
         Find first card that is connected to the computer, with either the given card type or serial number

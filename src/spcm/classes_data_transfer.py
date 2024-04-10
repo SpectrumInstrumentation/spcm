@@ -239,11 +239,13 @@ class DataTransfer(CardFunctionality):
             the number of post trigger samples
         """
 
+        if self._memory_size < num_samples:
+            raise ValueError("The number of post trigger samples needs to be smaller than the total number of samples")
         if num_samples is not None:
             num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_POSTTRIGGER, num_samples)
         post_trigger = self.card.get_i(SPC_POSTTRIGGER)
-        self._pre_trigger = self._num_samples - post_trigger
+        self._pre_trigger = self._memory_size - post_trigger
         return post_trigger
     
     def allocate_buffer(self, num_samples : int) -> None:
@@ -344,7 +346,7 @@ class DataTransfer(CardFunctionality):
         # we define the buffer for transfer and start the DMA transfer
         self.card._print("Starting the DMA transfer and waiting until data is in board memory")
         self._c_buffer = self.buffer.ctypes.data_as(c_void_p)
-        spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, direction, notify_size, self._c_buffer, transfer_offset_bytes, transfer_length_bytes)
+        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, direction, notify_size, self._c_buffer, transfer_offset_bytes, transfer_length_bytes))
         cmd = 0
         for arg in args:
             cmd |= arg
@@ -402,7 +404,7 @@ class DataTransfer(CardFunctionality):
             self.post_trigger(post_samples)
         return num_samples, post_samples
 
-    def time_data(self) -> npt.NDArray[np.float_]:
+    def time_data(self, total_num_samples : int = None) -> npt.NDArray[np.float_]:
         """
         Get the time array for the data buffer
         
@@ -413,7 +415,10 @@ class DataTransfer(CardFunctionality):
         """
 
         sample_rate = self._sample_rate()
-        return (np.arange(self._num_samples) - self._pre_trigger) / sample_rate
+        if total_num_samples is None:
+            total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
+            total_num_samples = self._num_samples
+        return ((np.arange(total_num_samples) - self._pre_trigger) / sample_rate).to_base_units()
     
     def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
@@ -443,6 +448,22 @@ class DataTransfer(CardFunctionality):
         data_int12 = np.concatenate((fst_int12[:, None], snd_int12[:, None]), axis=1).reshape((-1,))
         data_int12 = data_int12.reshape((self.num_channels, self._num_samples), order='F')
         return data_int12
+    
+    def unpackbits(self):
+        """
+        Unpack the buffer to bits
+
+        Returns
+        -------
+        numpy array
+            the unpacked buffer
+        """
+        data = self.buffer
+        dshape = list(data.shape)
+        return_data = data.reshape([-1, 1])
+        num_bits = return_data.dtype.itemsize * 8
+        mask = 2**np.arange(num_bits, dtype=return_data.dtype).reshape([1, num_bits])
+        return (return_data & mask).astype(bool).astype(int).reshape(dshape + [num_bits])
 
     def tofile(self, filename : str, **kwargs) -> None:
         """
@@ -672,7 +693,7 @@ class DataTransfer(CardFunctionality):
     _to_transfer_samples = 0
     _current_samples = 0
 
-    def to_transfer_samples(self, samples: int) -> None:
+    def to_transfer_samples(self, samples) -> None:
         """
         This method sets the number of samples to transfer
 

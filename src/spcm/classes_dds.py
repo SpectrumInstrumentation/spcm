@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# TODO unitize this whole class!
-
 from .constants import *
 
 from .classes_error_exception import SpcmException
 from .classes_functionality import CardFunctionality
+from .classes_channels import Channels, Channel
 
 from .classes_unit_conversion import UnitConversion
 from . import units
@@ -19,10 +18,12 @@ class DDSCore:
 
     dds : "DDS"
     index : int
+    channel : Channel
 
     def __init__(self, core_index, dds, *args, **kwargs) -> None:
         self.dds = dds
         self.index = core_index
+        self.channel = kwargs.get("channel", None)
     
     def __int__(self) -> int:
         """
@@ -35,6 +36,18 @@ class DDSCore:
         """
         return self.index
     __index__ = __int__
+
+    def __str__(self) -> str:
+        """
+        get the string representation of the core
+
+        Returns
+        -------
+        str
+            the string representation of the core
+        """
+        return f"Core {self.index}"
+    __repr__ = __str__
 
     def __add__(self, other) -> int:
         """
@@ -61,11 +74,12 @@ class DDSCore:
         ----------
         amplitude : float | pint.Quantity
             the value between 0 and 1 corresponding to the amplitude
-        
-        TODO: add voltage units?
         """
 
-        amplitude = UnitConversion.convert(amplitude, units.fraction, float, rounding=None)
+        if self.channel is not None:
+            amplitude = self.channel.to_amplitude_fraction(amplitude)
+        elif isinstance(amplitude, units.Quantity) and amplitude.check("[]"):
+            amplitude = UnitConversion.convert(amplitude, units.fraction, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_AMP + self.index, float(amplitude))
     # aliases
     amplitude = amp
@@ -83,12 +97,13 @@ class DDSCore:
         -------
         float
             the value between 0 and 1 corresponding to the amplitude
-        
-        TODO: add voltage units?
         """
 
         return_value = self.dds.card.get_d(SPC_DDS_CORE0_AMP + self.index)
-        if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.fraction, return_unit)
+        if self.channel is not None:
+            return_value = self.channel.from_amplitude_fraction(return_value, return_unit)
+        else:
+            return_value = UnitConversion.to_unit(return_value, return_unit)
         return return_value
     # aliases
     get_amplitude = get_amp
@@ -279,6 +294,7 @@ class DDS(CardFunctionality):
     """
 
     cores : list[DDSCore] = []
+    channels : Channels = None
 
     _dtm : int = 0
     _register_list : ctypes._Pointer
@@ -302,16 +318,21 @@ class DDS(CardFunctionality):
 
         self.cores = []
         num_cores = self.num_cores()
-        for core in range(num_cores):
-            self.cores.append(DDSCore(core, self))
         
         if self.channels is not None:
             for channel in self.channels:
                 cores_on_channel = self.get_cores_on_channel(channel.index)
                 for core in range(num_cores):
                     if cores_on_channel & (1 << core):
-                        self._channel_from_core[core] = channel.index
-            print(self._channel_from_core)
+                        self._channel_from_core[core] = channel
+                    # else:
+                    #     self._channel_from_core[core] = None
+        
+        for core in range(num_cores):
+            if core in self._channel_from_core:
+                self.cores.append(DDSCore(core, self, channel=self._channel_from_core[core]))
+            else:
+                self.cores.append(DDSCore(core, self))
         
     def __len__(self) -> int:
         """
@@ -543,6 +564,8 @@ class DDS(CardFunctionality):
             the channel number
         *args : int
             the cores that are connected to the channel
+        
+        TODO: change the channel associated with each core
         """
 
         mask = 0

@@ -11,12 +11,16 @@ class UnitConversion:
     """
 
     @staticmethod
-    def convert(value, base_unit, dtype = int, rounding = np.rint):
+    def convert(value, base_unit = None, dtype = int, rounding = np.rint):
         if isinstance(value, units.Quantity):
-            if rounding is not None:
-                return int(rounding(value.to(base_unit).magnitude))
+            if base_unit is not None:
+                base_value = value.to(base_unit)
             else:
-                return dtype(value.to(base_unit).magnitude)
+                base_value = value.to_base_units()
+            if rounding is not None:
+                return int(rounding(base_value.magnitude))
+            else:
+                return dtype(base_value.magnitude)
         return value
     
     @staticmethod

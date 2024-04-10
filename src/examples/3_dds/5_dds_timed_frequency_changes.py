@@ -14,6 +14,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -27,24 +29,25 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the card
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
 
     # Start the test
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
-    dds.trg_timer(3.0)
-    dds[0].amp(0.4)
-    dds[0].freq(5e6)  # 5 MHz
+    dds.trg_timer(3.0 * units.s)
+    dds[0].amp(40 * units.percent)
+    dds[0].freq(5 * units.MHz)
     dds.exec_at_trg()
     
-    dds[0].freq(10e6) # 10 MHz
+    dds[0].freq(10 * units.MHz)
     dds.exec_at_trg()
     
-    dds[0].freq(15e6) # 15 MHz
+    dds[0].freq(15 * units.MHz)
     dds.exec_at_trg()
     
     dds.write_to_card()

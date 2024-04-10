@@ -2,6 +2,7 @@
 
 from .constants import *
 
+import numpy as np
 import numpy.typing as npt
 
 from .classes_card import Card
@@ -21,7 +22,8 @@ class Channel:
 
     _conversion_amp : pint.Quantity = None
     _conversion_offset : pint.Quantity = None
-    _electrical_load : pint.Quantity = None
+    _output_load : pint.Quantity = None
+    _series_impedance : pint.Quantity = None
 
     def __init__(self, index : int, card : Card) -> None:
         """
@@ -39,7 +41,8 @@ class Channel:
         self.index = index
         self._conversion_amp = None
         self._conversion_offset = 0 * units.percent
-        self._electrical_load = 50 * units.ohm
+        self._output_load = 50 * units.ohm
+        self._series_impedance = 50 * units.ohm
     
     def __str__(self) -> str:
         """
@@ -140,6 +143,8 @@ class Channel:
         """
 
         if value is not None:
+            if isinstance(value, pint.Quantity):
+                value = self.voltage_conversion(value)
             self._conversion_amp = UnitConversion.force_unit(value, units.mV)
             value = UnitConversion.convert(value, units.mV, int)
             self.card.set_i(SPC_AMP0 + (SPC_AMP1 - SPC_AMP0) * self.index, value)
@@ -149,8 +154,8 @@ class Channel:
 
     def offset(self, value : int = None, return_unit = None) -> int:
         """
-        Sets the offset of the analog front-end of the channel of the card in % of the full range (see register `SPC_OFFS0` in the manual)
-        If the value is given and has a unit, then the return value will also have that same unit
+        Sets the offset of the analog front-end of the channel of the card in % of the full range o rmV (see register `SPC_OFFS0` in the manual)
+        If the value is given and has a unit, then this unit is converted to the unit of the card (mV or %)
     
         Parameters
         ----------
@@ -204,7 +209,7 @@ class Channel:
         self._conversion_offset = UnitConversion.force_unit(return_value, card_unit)
         return return_quantity
     
-    def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = None) -> npt.NDArray:
+    def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = units.mV) -> npt.NDArray:
         """
         Converts the data to the correct unit in units of electrical potential
         
@@ -226,7 +231,8 @@ class Channel:
             return_data = (data / max_value - self._conversion_offset) * self._conversion_amp
         else:
             return_data = (data / max_value) * self._conversion_amp - self._conversion_offset
-        return return_data.to(return_unit)
+        return_data = UnitConversion.to_unit(return_data, return_unit)
+        return return_data
     
     def reconvert_data(self, data : npt.NDArray) -> npt.NDArray:
         """
@@ -389,7 +395,7 @@ class Channel:
 
         return 1 << self.index
     
-    def electrical_load(self, value : pint.Quantity = None) -> pint.Quantity:
+    def output_load(self, value : pint.Quantity = None) -> pint.Quantity:
         """
         Sets the electrical load of the user system connect the channel of the card. This is important for the correct
         calculation of the output power. Typically, the load would be 50 Ohms, but it can be different.
@@ -405,8 +411,81 @@ class Channel:
             The electrical load connected by the user to the specific channel
         """
         if value is not None:
-            self._electrical_load = value
-        return self._electrical_load
+            self._output_load = value
+        return self._output_load
+    
+    def voltage_conversion(self, value : pint.Quantity) -> pint.Quantity:
+        """
+        Convert the voltage that is needed at a certain output load to the voltage setting of the card if the load would be 50 Ohm
+
+        Parameters
+        ----------
+        value : pint.Quantity
+            The voltage that is needed at a certain output load
+
+        Returns
+        -------
+        pint.Quantity
+            The corresponding voltage at an output load of 50 Ohm
+        """
+
+        # The two at the end is because the value expected by the card is defined for a 50 Ohm load
+        if self._output_load == np.inf * units.ohm:
+            return value / 2
+        return value / (self._output_load / (self._output_load + self._series_impedance)) / 2
+
+    def to_amplitude_fraction(self, value) -> float:
+        """
+        Convert the voltage, percentage or power to percentage of the full range of the card
+
+        Parameters
+        ----------
+        value : pint.Quantity | float
+            The voltage that should be outputted at a certain output load
+
+        Returns
+        -------
+        float
+            The corresponding fraction of the full range of the card
+        """
+
+        if isinstance(value, units.Quantity) and value.check("[power]"):
+            # U_pk = U_rms * sqrt(2)
+            value = np.sqrt(2 * value.to('mW') * self._output_load) / self._conversion_amp * 100 * units.percent
+        elif isinstance(value, units.Quantity) and value.check("[electric_potential]"):
+            # value in U_pk
+            value = self.voltage_conversion(value) / self._conversion_amp * 100 * units.percent
+        value = UnitConversion.convert(value, units.fraction, float, rounding=None)
+        return value
+    
+    def from_amplitude_fraction(self, fraction, return_unit : pint.Quantity = None) -> pint.Quantity:
+        """
+        Convert the percentage of the full range to voltage, percentage or power
+
+        Parameters
+        ----------
+        fraction : float
+            The percentage of the full range of the card
+        return_unit : pint.Quantity
+            The unit of the return value
+
+        Returns
+        -------
+        pint.Quantity
+            The corresponding voltage, percentage or power
+        """
+
+        return_value = fraction
+        if isinstance(return_unit, units.Unit) and (1*return_unit).check("[power]"):
+            return_value = (np.power(self._conversion_amp * fraction, 2) / self._output_load / 2).to(return_unit)
+            # U_pk = U_rms * sqrt(2)
+        elif isinstance(return_unit, units.Unit) and (1*return_unit).check("[electric_potential]"):
+            return_value = (self._conversion_amp * fraction / 100).to(return_unit)
+            # value in U_pk
+            # value = self.voltage_conversion(value) / self._conversion_amp * 100 * units.percent
+        elif isinstance(return_unit, units.Unit) and (1*return_unit).check("[]"):
+            return_value = UnitConversion.force_unit(fraction, return_unit)
+        return return_value
 
 
 class Channels:
@@ -701,6 +780,19 @@ class Channels:
     
         for channel in self.channels:
             channel.custom_stop(value)
+    
+    def output_load(self, value : pint.Quantity) -> None:
+        """
+        Sets the electrical load of the user system connect the channel of the card. This is important for the correct
+        calculation of the output power. Typically, the load would be 50 Ohms, but it can be different.
+
+        Parameters
+        ----------
+        value : pint.Quantity
+            The electrical load connected by the user to the specific channel
+        """
+        for channel in self.channels:
+            channel.output_load(value)
     
     def ch_mask(self) -> int:
         """

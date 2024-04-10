@@ -15,6 +15,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 
@@ -41,14 +43,14 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     pulse_generators = spcm.PulseGenerators(card, enable=spcm.SPCM_PULSEGEN_ENABLE1)
     pulse_gen_clock = pulse_generators.get_clock()
 
-    len_1ms = int(pulse_gen_clock * 0.001 + 1) # +1 because the HIGH area needs to be at least one sample less than length, so we increase length by one to get the calculated HIGH time
+    # len_1ms = int(pulse_gen_clock * 0.001 + 1) # +1 because the HIGH area needs to be at least one sample less than length, so we increase length by one to get the calculated HIGH time
     pulse_generators[1].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
-    pulse_generators[1].period_length(len_1ms)
-    pulse_generators[1].high_length(len_1ms - 1)
-    pulse_generators[1].delay(0)
-    pulse_generators[1].num_loops(1) # just once per event
-    pulse_generators[1].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-    pulse_generators[1].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_XIO2) # started by rising edge on X2
+    pulse_generators[1].pulse_period(100 * units.us) # or
+    pulse_generators[1].pulse_length(99 * units.us) # or
+    pulse_generators[1].start_delay(0 * units.us)
+    pulse_generators[1].repetitions(1) # just once
+    pulse_generators[1].start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+    pulse_generators[1].start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_XIO2) # started by rising edge on X2
 
     # write the settings to the card
     pulse_generators.write_setup()

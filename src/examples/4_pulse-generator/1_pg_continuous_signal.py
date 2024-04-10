@@ -13,9 +13,7 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
-from spcm import units # spcm uses the pint library for unit handling (units is a UnitRegistry object)
-units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
-units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
+from spcm import units
 
 card : spcm.Card
 
@@ -46,7 +44,7 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     pulse_period = pulse_generator.pulse_period(1 * units.us)
     rep_rate     = pulse_generator.repetition_rate(500 * units.kHz)
     pulse_length = pulse_generator.pulse_length(1.5 * units.us)
-    duty_cycle   = pulse_generator.duty_cycle(1 * units.percent)
+    duty_cycle   = pulse_generator.duty_cycle(50 * units.percent)
     start_delay  = pulse_generator.start_delay(3 * units.ms)
     repetitions  = pulse_generator.repetitions(0) # 0: infinite
     state_signal = pulse_generator.start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)

@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -26,7 +28,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     
     # Activate the xio dds mode
     multi_ios = spcm.MultiPurposeIOs(card)
@@ -36,13 +39,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     core0 = dds[0]
     dds.reset()
 
     # Start the DDS test
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
-    dds.trg_timer(1.0) # 1 s
+    dds.trg_timer(1.0 * units.s)
 
     dds.x_mode(0, spcm.SPCM_DDS_XMODE_MANUAL)
     dds.x_mode(1, spcm.SPCM_DDS_XMODE_WAITING_FOR_TRG)
@@ -50,8 +53,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.exec_at_trg()
 
     # Create one carrier and keep it off
-    core0.amp(0.4)
-    core0.freq(10) # 10 Hz
+    core0.amp(40 * units.percent)
+    core0.freq(10 * units.Hz)
     dds.x_manual_output(spcm.SPCM_DDS_X0)
     dds.exec_at_trg()
 

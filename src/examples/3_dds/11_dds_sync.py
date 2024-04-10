@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 # Load the cards
 card_identifiers = ["/dev/spcm0", "/dev/spcm1"]
@@ -24,7 +26,7 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     # setup all the channels in the card stack
     channels = spcm.Channels(stack=stack, stack_enable=[spcm.CHANNEL0, spcm.CHANNEL0])
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
 
     multi_dds = []
     for card in stack.cards:
@@ -39,8 +41,8 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         dds.reset()
 
         # Start the test
-        dds.amp(0, 0.4)
-        dds.freq(0, 1.0e6)
+        dds[0].amp(40 * units.percent)
+        dds[0].freq(1.0 * units.MHz)
         dds.trg_src(spcm.SPCM_DDS_TRG_SRC_NONE)
         dds.exec_at_trg()
         dds.write_to_card()

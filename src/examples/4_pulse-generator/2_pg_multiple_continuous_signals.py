@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 
@@ -27,7 +29,7 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
 
     clock = spcm.Clock(card)
-    sample_rate = clock.sample_rate(max = True)
+    sample_rate = clock.sample_rate(max = True, return_unit=units.MHz)
 
     multi_ios = spcm.MultiPurposeIOs(card)
     for io in multi_ios:
@@ -38,7 +40,7 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     pulse_gen_clock = pulse_generators.get_clock()
 
     # setup pulse generator 0 (output on X0)
-    # generate a continuous signal with the maximum frequency
+    # generate a continuous signal with the maximum frequency (in units of clock ticks)
     pulse_generators[0].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
     pulse_generators[0].period_length(2)
     pulse_generators[0].high_length(1) # 50% HIGH, 50% LOW
@@ -50,25 +52,28 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
 
     # setup the pulse generator 1 (output on x1)
     # generate a continuous signal with ~1 MHz, 50% duty cycle
-    len_1MHz = int(pulse_gen_clock / spcm.MEGA(1))
     pulse_generators[1].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
-    pulse_generators[1].period_length(len_1MHz)
-    pulse_generators[1].high_length(len_1MHz // 2) # 50% HIGH, 50% LOW
-    pulse_generators[1].delay(0)
-    pulse_generators[1].num_loops(0) # 0: infinite
-    pulse_generators[1].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-    pulse_generators[1].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE) # started by software force command
+    pulse_generators[1].pulse_period(1 * units.us) # or
+    # pulse_generators[1].repetition_rate(1 * units.MHz)
+    pulse_generators[1].pulse_length(0.5 * units.us) # or
+    # pulse_generators[1].duty_cycle(50 * units.percent)
+    pulse_generators[1].start_delay(0 * units.us)
+    pulse_generators[1].repetitions(0) # 0: infinite
+    pulse_generators[1].start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+    pulse_generators[1].start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE)
 
 
     # setup the pulse generator 2 (output on x2)
     # same signal as pulse generator 1, but with a phase shift
     pulse_generators[2].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
-    pulse_generators[2].period_length(len_1MHz)
-    pulse_generators[2].high_length(len_1MHz // 2) # 50% HIGH, 50% LOW
-    pulse_generators[2].delay(len_1MHz // 4) # delay for 1/4 of the period to achieve a "phase shift" by 90°
-    pulse_generators[2].num_loops(0) # 0: infinite
-    pulse_generators[2].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-    pulse_generators[2].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE) # started by software force command
+    pulse_generators[2].pulse_period(1 * units.us) # or
+    # pulse_generators[2].repetition_rate(1 * units.MHz)
+    pulse_generators[2].pulse_length(0.5 * units.us) # or
+    # pulse_generators[2].duty_cycle(50 * units.percent)
+    pulse_generators[2].start_delay(0.25 * units.us)
+    pulse_generators[2].repetitions(0) # 0: infinite
+    pulse_generators[2].start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+    pulse_generators[2].start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE)
 
 
     if len(multi_ios) > 3:
@@ -76,12 +81,14 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
         # generate a continuous signal with ~500 kHz after the first edge on pulse generator 2 occurred, and delay the start for two periods of the 1MHz signal.
         len_500kHz = int(pulse_gen_clock / spcm.KILO(500))
         pulse_generators[3].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
-        pulse_generators[3].period_length(len_500kHz)
-        pulse_generators[3].high_length(9*len_500kHz // 10) # 90% HIGH, 10% LOW
-        pulse_generators[3].delay(2*len_1MHz) # delay for two periods of 1MHz signal
-        pulse_generators[3].num_loops(0) # 0: infinite
-        pulse_generators[3].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-        pulse_generators[3].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_PULSEGEN2) # started by first edge of pulse generator 2
+        pulse_generators[3].pulse_period(2 * units.us) # or
+        # pulse_generators[3].repetition_rate(500 * units.kHz)
+        pulse_generators[3].pulse_length(1.8 * units.us) # or
+        # pulse_generators[3].duty_cycle(90 * units.percent)
+        pulse_generators[3].start_delay(2 * units.us)
+        pulse_generators[3].repetitions(0) # 0: infinite
+        pulse_generators[3].start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+        pulse_generators[3].start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_PULSEGEN2) # started by first edge of pulse generator 2
 
     # write the settings to the card
     # update the clock section to generate the programmed frequencies (SPC_SAMPLERATE)

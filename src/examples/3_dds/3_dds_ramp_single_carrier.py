@@ -15,6 +15,7 @@ See the LICENSE file for the conditions under which this software may be used an
 import spcm
 from spcm import units
 
+
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
@@ -27,11 +28,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
+    channels.output_load(50 * units.ohm)
     channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
 
     # Start the DDS test
@@ -58,7 +60,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.exec_at_trg()
 
     # Ramp the amplitude of the carrier
-    dds[0].amplitude_slope(-0.39 / period_s) # 1/s
+    dds[0].amplitude_slope(-39 * units.percent / period_s) # 1/s
     dds.exec_at_trg()
 
     # Stop amplitude ramp

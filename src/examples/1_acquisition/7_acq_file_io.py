@@ -13,24 +13,25 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
-    card.timeout(5000)
+    card.timeout(5 * units.s)
 
     clock = spcm.Clock(card)
-    sample_rate = clock.sample_rate(spcm.MEGA(20))
+    clock.sample_rate(20 * units.MHz)
     
     # setup the channels
     channels = spcm.Channels(card) # enable all channels
-    amplitude_mV = 1000
-    channels.amp(amplitude_mV)
+    channels.amp(1 * units.V)
 
     # define the data buffer
-    num_samples = spcm.KIBI(1)
+    num_samples = 1 * units.KiS
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
@@ -50,7 +51,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
     # data_transfer.fromfile('data.hdf5')
     # data_transfer.fromfile('data.bin', dtype=np.int8, shape=(len(channels), num_samples))
 
-    plt.figure()
-    for channel in data_transfer.buffer:
-        plt.plot(channel)
+    fig, ax = plt.subplots()
+    time_data = data_transfer.time_data()
+    for channel in channels:
+        data = channel.convert_data(data_transfer.buffer[channel], units.V)
+        ax.plot(time_data, data, label=f"{channel}")
+    ax.xaxis.set_units(units.ms)
+    ax.yaxis.set_units(units.mV)
+    ax.legend()
     plt.show()

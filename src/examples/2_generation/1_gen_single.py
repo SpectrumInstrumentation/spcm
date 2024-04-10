@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 
 card : spcm.Card
@@ -27,7 +29,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # Enable all the channels and setup amplitude
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
     channels.enable(True)
 
     # Setup the clock
@@ -35,12 +37,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     series = card.series()
     # set samplerate to 50 MHz (M4i) or 1 MHz (otherwise), no clock output
     if (series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES]):
-        sample_rate = clock.sample_rate(spcm.MEGA(50))
+        clock.sample_rate(50 * units.MHz)
     else:
-        sample_rate = clock.sample_rate(spcm.MEGA(1))
+        clock.sample_rate(1 * units.MHz)
     clock.clock_output(0)
 
-    num_samples = spcm.MEBI(32)
+    num_samples = 32 * units.MiS
 
     # setup the trigger mode
     trigger = spcm.Trigger(card)
@@ -53,12 +55,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     data_transfer.allocate_buffer(num_samples)
     data_transfer.loops(0) # loop continuously
     # simple ramp for analog output cards
-    data_transfer.buffer[:] = np.arange(-num_samples//2, num_samples//2).astype(np.int16)
+    
+    samples = num_samples.to_base_units().magnitude
+    data_transfer.buffer[:] = np.arange(-samples//2, samples//2).astype(np.int16)
 
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA) # Wait for the writing to buffer being done
 
     # We'll start and wait until the card has finished or until a timeout occurs
-    card.timeout(10000) # 10 s
+    card.timeout(10 * units.s)
     print("Starting the card and waiting for ready interrupt\n(continuous and single restart will have timeout)")
     try:
         card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)

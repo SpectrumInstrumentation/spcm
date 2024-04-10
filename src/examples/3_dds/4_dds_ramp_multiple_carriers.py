@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -26,36 +28,37 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
 
     # Start the DDS test
     num_cores = len(dds)
-    # 20 Carriers from 5 to 15 MHz
-    first_init_freq_Hz  = 5.0e6 #   5   MHz
-    delta_init_freq_Hz  = 5.0e5 # 500   kHz
-    # 20 Carriers from 8 to 12 MHz
-    first_final_freq_Hz = 8.0e6 #   9 MHz
-    delta_final_freq_Hz = 2.0e5 # 100 kHz
+    # 5 to 15 MHz
+    first_init_freq_Hz  = 5.0 * units.MHz
+    delta_init_freq_Hz  = 500 * units.kHz
+    # 8 to 12 MHz
+    first_final_freq_Hz = 8.0 * units.MHz
+    delta_final_freq_Hz = 200 * units.kHz
 
     # STEP 0 - Initialize frequencies
-    dds.trg_timer(2.0)
+    dds.trg_timer(2.0 * units.s)
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     for core in dds:
-        core.amp(0.45 / num_cores)
+        core.amp(45 * units.percent / num_cores)
         core.freq(first_init_freq_Hz + int(core) * delta_init_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
 
     # STEP 1 - Start the ramp
-    period_s = 5.0 # seconds
-    dds.trg_timer(period_s) # after 2.0 s stop the ramp
+    period_s = 5.0 * units.s
+    dds.trg_timer(period_s)
     for core in dds:
-        core.frequency_slope((first_final_freq_Hz - first_init_freq_Hz + int(core) * (delta_final_freq_Hz  - delta_init_freq_Hz)) / period_s) # Hz/s
+        core.frequency_slope((first_final_freq_Hz - first_init_freq_Hz + int(core) * (delta_final_freq_Hz  - delta_init_freq_Hz)) / period_s)
     dds.exec_at_trg()
     
     # STEP 2 - Stop the ramp

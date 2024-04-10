@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 
 card : spcm.Card
@@ -27,32 +29,33 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the card    
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.output_load(50 * units.ohm)
+    channels.amp(1 * units.V)
     card.write_setup()
     
     # Setup DDS
-    dds = spcm.DDS(card)
+    dds = spcm.DDS(card, channels=channels)
     dds.reset()
 
     # Set the data transfer mode to DMA
     dds.data_transfer_mode(spcm.SPCM_DDS_DTM_DMA)
 
     # Start the DDS test
-    carrier_freq_Hz  =   10e6 # 10 MHz
-    modulation_freq_Hz  = 1   #  1 Hz
-    modulation_depth_Hz = 1e6 #  1 MHz
-    period_s = 20e-3 # 20 ms
-    num_samples = int(1/(period_s * modulation_freq_Hz))
+    carrier_freq  =   10 * units.MHz
+    modulation_freq  = 1 * units.Hz
+    modulation_depth = 1 * units.MHz
+    period_s = 20 * units.ms
+    num_samples = int(1/(period_s * modulation_freq))
     
     sample_range = np.arange(num_samples)*period_s
-    freq_list = carrier_freq_Hz + modulation_depth_Hz * np.sin(2*np.pi*sample_range*modulation_freq_Hz)
+    freq_list = carrier_freq + modulation_depth * np.sin(2*np.pi*sample_range*modulation_freq)
 
     # STEP 0 - Initialize frequencies
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
-    dds.trg_timer(1.0)
+    dds.trg_timer(1.0 * units.s)
     core0 = dds[0]
-    core0.amp(0.1)
-    core0.freq(carrier_freq_Hz)
+    core0.amp(10 * units.percent)
+    core0.freq(carrier_freq)
     dds.exec_at_trg()
     dds.write_to_card()
     

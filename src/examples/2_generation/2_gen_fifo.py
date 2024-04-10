@@ -13,11 +13,13 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 
 # to speed up the calculation of new data we pre-calculate the signals
 # to simplify that we use special frequencies
-signal_frequency_Hz = [ 40000, 20000, 10000, 5000, 2500, 1250, 625, 312.5 ]
+signal_frequency = np.array([ 40000, 20000, 10000, 5000, 2500, 1250, 625, 312.5 ]) * units.Hz
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -31,15 +33,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # setup all channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
     channels.enable(True)
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
 
     # set samplerate to 50 MHz (M4i) or 1 MHz (otherwise), no clock output
     clock = spcm.Clock(card)
     series = card.series()
     if (series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES]):
-        sample_rate = clock.sample_rate(spcm.MEGA(50))
+        sample_rate = clock.sample_rate(50 * units.MHz, return_unit=units.MHz)
     else:
-        sample_rate = clock.sample_rate(spcm.MEGA(1))
+        sample_rate = clock.sample_rate(1 * units.MHz, return_unit=units.MHz)
     clock.clock_output(0)
 
     # setup the trigger mode
@@ -47,27 +49,29 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
 
     # define the data buffer
-    num_samples = spcm.MEBI(8)
-    notify_samples = spcm.KIBI(512)
+    num_samples = 8 * units.MiS
+    notify_samples = 512 * units.KiS
 
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
-    data_transfer.pre_trigger(1024)
+    data_transfer.pre_trigger(1024 * units.S)
     data_transfer.notify_samples(notify_samples)
 
     # Precalculating the data
-    num_data = int(sample_rate / np.min(signal_frequency_Hz[:len(channels)]))
+    min_freq = np.min(signal_frequency[:len(channels)])
+    num_data = int((sample_rate / min_freq).to_base_units().magnitude)
     
-    data_range = np.arange(num_data)
+    time_data = data_transfer.time_data(num_data)
     data_matrix = np.empty((len(channels), num_data), dtype=np.int16)
     for channel in channels:
-        data_matrix[channel.index, :] = np.int16(32767 * np.sin(2.* np.pi*data_range/(sample_rate / signal_frequency_Hz[channel.index])))
+        data_matrix[channel.index, :] = np.int16(32767 * np.sin(2.* np.pi*time_data * signal_frequency[channel.index]).to(units.fraction).magnitude)
     
     # pre-fill the complete DMA buffer
-    memory_indices = np.mod(np.arange(num_samples), num_data)
+    memory_indices = np.mod(np.arange(num_samples.to_base_units().magnitude), num_data)
     data_transfer.buffer[:, memory_indices] = data_matrix[:, memory_indices]
-    current_sample_position = num_samples
+    current_sample_position = int(num_samples.to(units.S).magnitude)
+    notify_samples_mag = int(notify_samples.to(units.S).magnitude)
 
     # we define the buffer for transfer and start the DMA transfer
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, direction=spcm.SPCM_DIR_PCTOCARD)
@@ -75,9 +79,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # pre-fill the data buffer
     for data_block in data_transfer:
-        data_indices = np.mod(np.arange(current_sample_position, current_sample_position + notify_samples), num_data)
+        data_indices = np.mod(np.arange(current_sample_position, current_sample_position + notify_samples_mag), num_data)
         data_block[:] = data_matrix[:, data_indices] # !!! data_block is a numpy ndarray and you need to write into that array, hence the [:]
-        current_sample_position += notify_samples
+        current_sample_position += notify_samples_mag
         if data_transfer.fill_size_promille() == 1000:
             break
     print("\n... data has been transferred to board memory")
@@ -87,9 +91,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # We'll start the replay and run until a timeout occurs or user interrupts the program
     try:
         for data_block in data_transfer:
-            data_indices = np.mod(np.arange(current_sample_position, current_sample_position + notify_samples), num_data)
+            data_indices = np.mod(np.arange(current_sample_position, current_sample_position + notify_samples_mag), num_data)
             data_block[:] = data_matrix[:, data_indices] # !!! data_block is a numpy ndarray and you need to write into that array, hence the [:]
-            current_sample_position += notify_samples
+            current_sample_position += notify_samples_mag
     except spcm.SpcmException as exception:
         # Probably a buffer underrun has happened, capure the event here
         print(exception)

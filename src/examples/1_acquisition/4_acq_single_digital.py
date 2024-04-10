@@ -13,6 +13,8 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 import spcm
+from spcm import units
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -25,30 +27,27 @@ card : spcm.Card
 with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:            # if you want to open the first card of a specific type
     
     # do a simple standard setup
-    # num_channels = card.channels_enable(0xFFFFFFFF) # 32 bits enabled
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # standard single acquisition mode
-    card.timeout(5000)
+    card.timeout(5 * units.s)
 
     # setup the channels
-    channels = spcm.Channels(card, card_enable=0xFFFFFFFF)
+    channels = spcm.Channels(card, card_enable=0xFFFF)
 
     # Set the trigger to software trigger
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
-    trigger.and_mask(spcm.SPC_TMASK_NONE)
 
     # setup clock engine
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(spcm.MEGA(125))
-    clock.output(0)
+    clock.sample_rate(125 * units.MHz)
 
     # define the data buffer
-    num_samples = spcm.KIBI(16)
+    num_samples = 1 * units.KiS # KibiSamples = 1024 Samples
     data_transfer = spcm.DataTransfer(card)
-    data_transfer.post_trigger(num_samples // 2)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
+    data_transfer.post_trigger(num_samples // 2)
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, direction=spcm.SPCM_DIR_CARDTOPC)
 
     # start everything
@@ -56,16 +55,17 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
         card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
     except spcm.SpcmException as exception:
         print("... Timeout")
-
-    # this is the point to do anything with the data
-    # e.g. print first 100 samples to screen
-    # for sample in data_transfer.buffer[:100]:
-    #     print("0b{:032b}".format(sample))
+    
+    bit_buffer = data_transfer.unpackbits()
 
     # Plot the acquired data
-    x_axis = np.arange(num_samples)/sample_rate
-    plt.figure()
-    plt.plot(x_axis, data_transfer.buffer)
+    time_data = data_transfer.time_data()
+    fig, ax = plt.subplots(len(channels), 1, sharex=True)
+    for channel in channels:
+        ax[channel].step(time_data, bit_buffer[:, channel], label=f"{channel}")
+        ax[channel].set_yticks([])
+        ax[channel].xaxis.set_units(units.us)
+    #ax.legend()
     plt.show()
 
     print("Finished...")

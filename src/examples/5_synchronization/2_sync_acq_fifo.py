@@ -16,6 +16,8 @@ See the LICENSE file for the conditions under which this software may be used an
 
 import threading
 import spcm
+from spcm import units
+
 import numpy as np
 
 class CardThread (threading.Thread):
@@ -47,20 +49,17 @@ sync_identifier  = "sync0"
 with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_identifier) as stack:
     
     channels = spcm.Channels(stack=stack, stack_enable=[spcm.CHANNEL0, spcm.CHANNEL0])
-    channels.amp(1000) # 1000 mV
+    channels.amp(1 * units.V)
 
     data_transfer = []
     for card in stack.cards:
         # read type, function and sn and check for A/D card
-        sn   = card.sn()
-        fnc_type        = card.function_type()
-        card_name       = card.product_name()
-        if fnc_type != spcm.SPCM_TYPE_AI:
-            raise spcm.SpcmException(text="This is an example for A/D cards.\nCard: {0} sn {1:05d} not supported by example\n".format(card_name, sn))
-        print("Found: {0} sn {1:05d}".format(card_name, sn))
+        if card.function_type() != spcm.SPCM_TYPE_AI:
+            raise spcm.SpcmException(f"This is an example for A/D cards.\n{card} not supported by example\n")
+        print(f"Found: {card}")
 
         card.card_mode(spcm.SPC_REC_FIFO_SINGLE) # single FIFO mode
-        card.timeout(5000) # timeout 5 s
+        card.timeout(5 * units.s) # timeout 5 s
 
         trigger = spcm.Trigger(card)
         trigger.or_mask(spcm.SPC_TMASK_SOFTWARE) # trigger set to software
@@ -69,7 +68,7 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         # we try to set the samplerate to 20 MHz on internal PLL, no clock output
         clock = spcm.Clock(card)
         clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-        sample_rate = clock.sample_rate(spcm.MEGA(20))
+        sample_rate = clock.sample_rate(20 * units.MHz)
         clock.output(0) # no clock output
 
         # define the data buffer
@@ -87,12 +86,6 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     # setup star-hub
     num_cards = len(card_identifiers)
     stack.sync_enable(True)
-
-    # find star-hub carrier card and set it as clock master
-    for i, card in enumerate(stack.cards):
-        features = card.features()
-        if features & (spcm.SPCM_FEAT_STARHUB5 | spcm.SPCM_FEAT_STARHUB16):
-            break
 
     # start all cards using the star-hub handle
     stack.start(spcm.M2CMD_CARD_ENABLETRIGGER)
