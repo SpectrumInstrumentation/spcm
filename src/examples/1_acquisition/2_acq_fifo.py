@@ -69,7 +69,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     data_array = np.array([])
     try:
         print("Press Ctrl+C to stop the recording and show the results...")
-        # Get the first data block
+        # Get a block of data
         for data_block in data_transfer:
             if data_array.size == 0:
                 data_array = data_block

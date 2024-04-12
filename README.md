@@ -137,6 +137,32 @@ If the `device_identifier` is given that card is opened, if at the same time `ca
 ### Demo devices
 To test the Spectrum Instrumentation API with user code without hardware, the Control Center gives the user the option to create [demo devices](https://spectrum-instrumentation.com/support/knowledgebase/software/How_to_set_up_a_demo_card.php). These demo devices can be used in the same manner as real devices. Simply change the device identifier string to the string as shown in the Control Center.
 
+## Units and quantities
+
+`spcm` uses [pint](https://pint.readthedocs.io/en/stable/) to handle all quantities that have a physical unit. To enable the use of qunatities simply import the units module from `spcm`:
+
+```python
+from spcm import units
+```
+
+This import the `units` object from `spcm`. which is a `UnitRegistry` object from  `pint`. Defining a quantity is as simples as:
+
+```python
+from spcm import units
+
+frequency = 100 * units.MHz
+amplitude = 1 * units.V
+# etc...
+```
+
+All methods within the `spcm` that expect a value that is related to a physical quantity support the quantities, for example setting a timeout:
+
+```python
+card.timeout(5 * units.s)
+```
+
+See our dedicated examples for more information about where units can be used.
+
 ## Card Functionality
 After opening a card, StarHub or group of card, specific functionality of the cards can be accessed through `CardFunctionality` classes. 
 
@@ -174,6 +200,29 @@ with spcm.Card('/dev/spcm0') as card:
 ```
 Each of these functionalities typically corresponds to a chapter in your device manual, so for further reference please have a look in the device manual.
 
+## Setting up Channels
+
+The Channels functionality allows the user to setup individual channels on a Card or a CardStack. The channels object is also a Python iterator, hence if a channels object is used it a for-loop, each iteration provides a Channel object:
+
+```python
+channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | CHANNEL1)
+for channel in channels:
+    # do something with each channel
+```
+
+In addition, the user can define the output load connected to the channel (standard value 50 Ohm), to any resistor value or high impedance (`units.highZ`). With this output load, the amplitude setting can be done with the repect to this output load:
+
+```python
+channels = Channels(card, card_enable=spcm.CHANNEL0 | CHANNEL1)
+channels[0].output_load(units.highZ)
+channels[0].amp(1 * units.V)
+# or for all channels
+channels.output_load(units.highZ)
+channels.amp(1 * units.V)
+```
+
+This information allows the user to convert the data coming from `DataTransfer`, using the `convert_data()` method. See the section "Setting up a data transfer buffer ..." for more details.
+
 ## Setting up the Clock engine
 
 The Clock engine is used to generate a clock signal that is used as the source for all timing critical processes on the card.
@@ -183,8 +232,10 @@ To get the maximum sample rate of the active card and set the sample rate to the
 ```python
 clock = spcm.Clock(card)
 clock.mode(spcm.SPC_CM_INTPLL)
-sample_rate = clock.sample_rate(max=True) # (or) sample_rate = clock.sample_rate(20e6) # for a 20 MHz sample rate (see reference manual for allowed values)
-print("Current sample rate: {}S/s".format(sample_rate))
+sample_rate = clock.sample_rate(max=True) 
+# (or) 
+sample_rate = clock.sample_rate(20 * units.MHz) # for a 20 MHz sample rate (see reference manual for allowed values)
+print("Current sample rate: {}".format(sample_rate, return_unit=units.MS/units.s))
 ```
 
 ## Setting up the Trigger engine
@@ -197,7 +248,7 @@ The Trigger engine can be configured for a multitude of different configurations
 trigger = spcm.Trigger(card)
 trigger.or_mask(spcm.SPC_TMASK_EXT0) # set the ext0 hardware input as trigger source
 trigger.ext0_mode(spcm.SPC_TM_POS) # wait for a positive edge
-trigger.ext0_level0(1500) # Trigger level is 1.5 V (1500 mV)
+trigger.ext0_level0(1.5 * units.V)
 trigger.ext0_coupling(spcm.COUPLING_DC) # set DC coupling
 ```
 
@@ -212,6 +263,7 @@ To transfer data to or from the card, we have to setup a data transfer object. T
 
 ```python
 # define the data buffer
+num_samples = 4 * units.KiS # 1 KiS = 1 KibiSamples = 1024 Samples
 data_transfer = spcm.DataTransfer(card)
 data_transfer.memory_size(num_samples)
 data_transfer.allocate_buffer(num_samples)
@@ -241,15 +293,38 @@ This data can be further processed or plotted using, for example, [`matplotlib`]
 
 The setup of the DMA for replay is very similar. First card memory is allocated with `memory_size` and then a DMA buffer is allocated (`allocated_buffer`) and made accessible though the NumPy object `data_transfer.buffer`, which can then be written to using standard NumPy methods. Finally, data transfer from the host PC to the card is started and the programming is waiting until all the data is transferred:
 ```python
+num_samples = 4 * units.KiS # 1 KiS = 1 KibiSamples = 1024 Samples
 data_transfer = spcm.DataTransfer(card)
 data_transfer.memory_size(num_samples)
 data_transfer.allocate_buffer(num_samples)
 data_transfer.loops(0) # loop continuously
 # simple linear ramp for analog output cards
-data_transfer.buffer[:] = np.arange(-num_samples//2, num_samples//2).astype(np.int16)
+num_samples_magnitude = num_samples.to(units.S).magnitude
+data_transfer.buffer[:] = np.arange(-num_samples_magnitude//2, num_samples_magnitude//2).astype(np.int16)
 
 data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 ```
+
+#### Data transfer
+
+In the above it's assume that all the data has been transferred from the card into the buffer object, however if you're working in FIFO mode or you've defined the buffer to be smaller then the assigned card memory size, then the card will write to parts of the memory and tell you were it wrote. 
+
+This can be either handled manually (see the reference manual of your card, or the methods `avail_card_len()`, `avail_user_pos()` and `avail_user_len()`).
+
+Secondly, it can also be handled with Python iterators functionality. If the `data_transfer` object is handed to a for-loop, then in each iteration a view of the current active memory part is given in the form of a NumPy array and the user can do calculations on that.
+
+```python
+# Get a block of data
+for data_block in data_transfer:
+    # data_block is a NumPy array view of the currently active buffer part
+    for channel in channels:
+        data_units = channel.convert_data(data_block[:, channel])
+        minimum = np.min(data_units)
+        maximum = np.max(data_units)
+        print(f"Minimum: {minimum} - maximum: {maximum}")
+```
+
+The same principle also works with generator cards (see the example `2_gen_fifo.py`).
 
 ## Multiple recording / replay
 
@@ -258,7 +333,7 @@ In case of multiple recording / replay, the memory is divided in equally sized s
 The following code snippet shows how to setup the buffer for 4 segments with each 128 Samples:
 
 ```python
-samples_per_segment = 128
+samples_per_segment = 128 * units.S
 num_segments = 4
 multiple_recording = spcm.Multi(card)
 multiple_recording.memory_size(samples_per_segment*num_segments)
@@ -292,18 +367,17 @@ Create a pulse generators object and get the clock rate used by the pulse genera
 
 ```python
 pulse_generators = spcm.PulseGenerators(card)
-# get the clock of the card
-pulse_gen_clock_Hz = pulse_generators.get_clock()
 
 # generate a continuous signal with 1 MHz
-len_for_1MHz = pulse_gen_clock_Hz // spcm.MEGA(1)
-pulse_generators[0].mode(spcm.SPCM_PULSEGEN_MODE_TRIGGERED)
-pulse_generators[0].period_length(len_for_1MHz)
-pulse_generators[0].high_length(len_for_1MHz // 2) # 50% HIGH, 50% LOW
-pulse_generators[0].delay(0)
-pulse_generators[0].num_loops(0) # 0: infinite
-pulse_generators[0].mux1(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
-pulse_generators[0].mux2(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE) # started by software force command
+pulse_generators[0].pulse_period(1 * units.us)
+# pulse_generators[0].repetition_rate(1 * units.MHz) # (or)
+pulse_generators[0].duty_cycle(50 * units.percent)
+# pulse_generators[0].pulse_length(0.5 * units.us) # (or)
+pulse_generators[0].start_delay(0 * units.us)
+pulse_generators[0].repetitions(0) # 0: infinite
+pulse_generators[0].start_condition_state_signal(spcm.SPCM_PULSEGEN_MUX1_SRC_UNUSED)
+pulse_generators[0].start_condition_trigger_signal(spcm.SPCM_PULSEGEN_MUX2_SRC_SOFTWARE)
+pulse_generators[0].invert_start_condition(False)
 
 # and write the pulse generator settings
 pulse_generators.write_setup()
