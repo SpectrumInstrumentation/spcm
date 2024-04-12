@@ -4,6 +4,7 @@ Spectrum Instrumentation GmbH (c)
 2_acq_fifo.py
 
 Shows a simple FIFO mode example using only the few necessary commands
+- connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0
 
 Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families.
 
@@ -60,13 +61,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     data_transfer.pre_trigger(spcm.KIBI(1))
     data_transfer.notify_samples(notify_samples)
     data_transfer.start_buffer_transfer()
+    data_transfer.verbose(True)
 
     # start the card
     card.start(spcm.M2CMD_DATA_STARTDMA | spcm.M2CMD_CARD_ENABLETRIGGER)
 
     data_array = np.array([])
     try:
-        print("Press Ctrl+C to stop the example...")
+        print("Press Ctrl+C to stop the recording and show the results...")
         # Get the first data block
         for data_block in data_transfer:
             if data_array.size == 0:

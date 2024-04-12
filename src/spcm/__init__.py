@@ -18,7 +18,7 @@ units = UnitRegistry(autoconvert_offset_to_baseunit=True)
 units.setup_matplotlib(mpl)
 units.define("sample = 1 = Sa = Sample = Samples = S")
 units.define("promille = 0.001 = ‰ = permille = perthousand = perthousands = ppt")
-units.define("fraction = 1 = frac = Frac = Fracs = Fraction = Fractions = Fractions = Frac = Fracs")
+units.define("fraction = 1 = frac = Frac = Fracs = Fraction = Fractions = Frac = Fracs")
 units.highZ = np.inf * units.ohm
 units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
 units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html

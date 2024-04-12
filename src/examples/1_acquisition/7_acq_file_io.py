@@ -4,6 +4,7 @@ Spectrum Instrumentation GmbH (c)
 7_acq_file_io.py
 
 Shows a simple Standard mode example acquisition example with the addition of writing the acquired data to a file and reading it back.
+- connect a function generator that generates a sine wave with 10-100 kHz frequency and 100 - 1000 mV amplitude to channel 0
 
 Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families.
 
@@ -15,7 +16,6 @@ See the LICENSE file for the conditions under which this software may be used an
 import spcm
 from spcm import units
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
@@ -42,11 +42,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 
     # Write to file
+    print("Writing data to file: data.*")
     data_transfer.tofile('data.csv', delimiter=',')
     # data_transfer.tofile('data.hdf5')
     # data_transfer.tofile('data.bin')
 
     # Read back from file
+    print("Reading data from file: data.*")
     data_transfer.fromfile('data.csv', delimiter=',')
     # data_transfer.fromfile('data.hdf5')
     # data_transfer.fromfile('data.bin', dtype=np.int8, shape=(len(channels), num_samples))

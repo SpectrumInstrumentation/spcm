@@ -3,7 +3,8 @@ Spectrum Instrumentation GmbH (c)
 
 5_acq_single-cudafft.py
 
-Shows a simple Standard mode example using only the few necessary commands, with the additional of a CUDA processing step to do an FFT on the GPU
+Shows a simple Standard mode example using only the few necessary commands, with the addition of a CUDA processing step to do an FFT on the GPU
+- connect a function generator that generates a sine wave with 1-100 MHz frequency (depending on the max sample rate of your card) and 1 V amplitude to channel 0
 
 Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families.
 

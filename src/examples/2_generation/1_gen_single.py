@@ -3,7 +3,9 @@ Spectrum Instrumentation GmbH (c)
 
 1_gen_single.py
 
-Shows a simple standard mode example using only the few necessary commands
+Shows a simple standard mode example using only the few necessary commands.
+- There will be a saw-tooth signal generated on channel 0.
+- This signal will have an amplitude of 2 V and a period of 1.3 ms.
 
 Example for analog replay cards (AWG) for the the M2p, M4i and M4x card-families.
 
@@ -29,8 +31,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # Enable all the channels and setup amplitude
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
-    channels.amp(1 * units.V)
     channels.enable(True)
+    channels.output_load(units.highZ)
+    channels.amp(1 * units.V)
 
     # Setup the clock
     clock = spcm.Clock(card)

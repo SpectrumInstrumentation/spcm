@@ -527,13 +527,22 @@ class Device():
             else:
                 self._print(error_text)
     
-    def _print(self, text : str, **kwargs) -> None:
+    def _print(self, text : str, verbose : bool = False, **kwargs) -> None:
         """
         Print information
+
+        Parameters
+        ----------
+        text : str
+            The text that is printed
+        verbose : bool
+            A boolean that indicates if the text should forced to be printed
+        **kwargs
+            Additional parameters that are passed to the print function
     
         """
 
-        if self._verbose:
+        if self._verbose or verbose:
             print(text, **kwargs)
 
     def open(self, device_identifier : str) -> None:

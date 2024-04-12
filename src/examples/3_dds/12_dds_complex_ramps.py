@@ -119,8 +119,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
             plt.plot(t_s[j] + t_fine_s, y[j] + sl*(t_fine_s), '--')
         
     # plt.legend()
-    plt.xlabel('t(s)')
-    plt.ylabel('y(Hz)')
+    # plt.xlabel('t(s)')
+    # plt.ylabel('y(Hz)')
 
     plt.show(block=False)
 

@@ -4,6 +4,10 @@ Spectrum Instrumentation GmbH (c)
 2_gen_fifo.py
 
 Shows a simple FIFO mode example using only the few necessary commands
+- output on channel 0 and 1
+- sampling rate of the card 50 MHz (M4i/x) or 1 MHz (otherwise)
+- channel 0: sine wave with 40 kHz frequency and 1 V amplitude
+- channel 1: sine wave with 20 kHz frequency and 1 V amplitude
 
 Example for analog replay cards (AWG) for the the M2p, M4i and M4x card-families.
 
@@ -33,6 +37,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # setup all channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
     channels.enable(True)
+    channels.output_load(units.highZ)
     channels.amp(1 * units.V)
 
     # set samplerate to 50 MHz (M4i) or 1 MHz (otherwise), no clock output
@@ -58,7 +63,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     data_transfer.pre_trigger(1024 * units.S)
     data_transfer.notify_samples(notify_samples)
 
-    # Precalculating the data
+    ############################
+    print("Pre-calculate the data...")
     min_freq = np.min(signal_frequency[:len(channels)])
     num_data = int((sample_rate / min_freq).to_base_units().magnitude)
     
@@ -67,7 +73,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     for channel in channels:
         data_matrix[channel.index, :] = np.int16(32767 * np.sin(2.* np.pi*time_data * signal_frequency[channel.index]).to(units.fraction).magnitude)
     
-    # pre-fill the complete DMA buffer
+    ############################
+    print("Pre-fill the complete DMA buffer...")
     memory_indices = np.mod(np.arange(num_samples.to_base_units().magnitude), num_data)
     data_transfer.buffer[:, memory_indices] = data_matrix[:, memory_indices]
     current_sample_position = int(num_samples.to(units.S).magnitude)
@@ -84,9 +91,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
         current_sample_position += notify_samples_mag
         if data_transfer.fill_size_promille() == 1000:
             break
-    print("\n... data has been transferred to board memory")
+    print("... data has been transferred to board memory")
+
+    ############################
     print("Starting the card...")
-    print("press Ctrl+C to stop the example")
+    print("press Ctrl+C to stop the generation of the signals")
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
     # We'll start the replay and run until a timeout occurs or user interrupts the program
     try:

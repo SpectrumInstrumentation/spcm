@@ -63,9 +63,11 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
     fig, ax = plt.subplots(len(channels), 1, sharex=True)
     for channel in channels:
         ax[channel].step(time_data, bit_buffer[:, channel], label=f"{channel}")
+        ax[channel].set_ylabel(f"{channel.index}")
         ax[channel].set_yticks([])
         ax[channel].xaxis.set_units(units.us)
     #ax.legend()
+    fig.text(0.04, 0.5, 'channel', va='center', rotation='vertical')
     plt.show()
 
     print("Finished...")

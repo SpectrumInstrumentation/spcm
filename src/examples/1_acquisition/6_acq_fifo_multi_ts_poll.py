@@ -3,7 +3,9 @@ Spectrum Instrumentation GmbH (c)
 
 6_acq_fifo_multi_ts_poll.py
 
-Shows an example for FIFO mode with timestamp polling
+Shows an example for FIFO multiple-recording mode with timestamp polling. 
+- Please connect a trigger signal (3.3 V) to the trigger input EXT0.
+- On channel 0, you could for example provide a sinusoidal signal to the input with a frequency of 5 - 20 kHz and amplitude of +/- 0.5 V.
 
 Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families.
 
@@ -68,7 +70,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     ts.mode(spcm.SPC_TSMODE_STARTRESET, spcm.SPC_TSCNT_INTERNAL)
     ts.allocate_buffer(num_timestamps)
 
-    print("!!! Using external trigger - please connect a signal to the trigger input !!!")
+    print("External trigger required - please connect a trigger signal on the order of 1-10 Hz to the trigger input EXT0!")
 
     # Create second buffer
     ts.start_buffer_transfer(spcm.M2CMD_EXTRA_POLL)
@@ -88,7 +90,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
                     timestampVal2 = (ts_block[0] / sample_rate).to_base_units()   # lower 8 bytes
 
                     # write timestamp value to file
-                    unit_data_block = channels[0].convert_data(data_block[segment,:,:], units.V)
+                    unit_data_block = channels[0].convert_data(data_block[segment,:,:], units.V) # index definition: [segment, sample, channel] !
                     minimum = np.min(unit_data_block)
                     maximum = np.max(unit_data_block)
                     print(f"Segment[{segment_cnt}]: Time: {timestampVal2}, Minimum: {minimum}, Maximum: {maximum}")

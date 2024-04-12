@@ -3,7 +3,10 @@ Spectrum Instrumentation GmbH (c)
 
 3_gen_sequence.py
 
-Shows a simple sequence mode example using only the few necessary commands
+Shows a simple sequence mode example using only the few necessary commands.
+- output on channel 0
+- sampling rate of the card 50 MHz (M4i/x) or 1 MHz (otherwise)
+- signal period 70 us (M4i/x) or 3.5 ms (otherwise)
 
 Example for analog replay cards (AWG) for the the M2p, M4i and M4x card-families.
 
@@ -94,7 +97,7 @@ def vDoDataCalculation(sequence : spcm.Sequence):
     sequence.allocate_buffer(segment_len_sample)
 
     # helper values: Full Scale
-    full_scale = sequence.card.max_sample_value()
+    full_scale = sequence.card.max_sample_value()-1
     half_scale = full_scale // 2
 
     # !!! to keep the example simple we will generate the same data on all active channels !!!
@@ -244,6 +247,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # set up the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
+    channels.output_load(units.highZ) # high impedance
     channels.amp(1 * units.V)
     channels.stop_level(spcm.SPCM_STOPLVL_HOLDLAST)
 

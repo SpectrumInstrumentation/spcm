@@ -3,7 +3,8 @@ Spectrum Instrumentation GmbH (c)
 
 1_acq_single.py
 
-Shows a simple Standard mode example using only the few necessary commands
+Shows a simple Standard acquisition (recording) mode example using only the few necessary commands
+- connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0
 
 Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families.
 

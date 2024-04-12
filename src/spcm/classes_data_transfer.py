@@ -61,7 +61,17 @@ class DataTransfer(CardFunctionality):
 
     @property
     def buffer(self) -> npt.NDArray[np.int_]:
-        """The numpy buffer object that interfaces the Card and can be written and read from"""
+        """
+        The numpy buffer object that interfaces the Card and can be written and read from
+        
+        Returns
+        -------
+        numpy array
+            the numpy buffer object with the following array index definition: 
+            `[channel, sample]`
+            or in case of multiple recording / replay:
+            `[segment, sample, channel]`
+        """
         return self._np_buffer
     
     @buffer.setter
@@ -248,7 +258,7 @@ class DataTransfer(CardFunctionality):
         self._pre_trigger = self._memory_size - post_trigger
         return post_trigger
     
-    def allocate_buffer(self, num_samples : int) -> None:
+    def allocate_buffer(self, num_samples : int, no_reshape = False) -> None:
         """
         Memory allocation for the buffer that is used for communicating with the card
 
@@ -278,9 +288,8 @@ class DataTransfer(CardFunctionality):
         # Address of data-memory from numpy-array: ArrayVariable.__array_interface__['data'][0]
         start_pos_samples = ((self._buffer_alignment - (databuffer_unaligned.__array_interface__['data'][0] & dwMask)) // item_size)
         self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address to sample size
-        if self.bits_per_sample > 1:
-            if not self._12bit_mode:
-                self.buffer = self.buffer.reshape((self.num_channels, num_samples), order='F')
+        if self.bits_per_sample > 1 and not self._12bit_mode and not no_reshape:
+                self.buffer = self.buffer.reshape((self.num_channels, num_samples), order='F')  # index definition: [channel, sample] !
     
     def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=0, transfer_offset=0, transfer_length=None, exception_num_samples=False) -> None:
         """
@@ -416,9 +425,10 @@ class DataTransfer(CardFunctionality):
 
         sample_rate = self._sample_rate()
         if total_num_samples is None:
-            total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
             total_num_samples = self._num_samples
-        return ((np.arange(total_num_samples) - self._pre_trigger) / sample_rate).to_base_units()
+        total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
+        pre_trigger = UnitConversion.convert(self._pre_trigger, units.Sa, int)
+        return ((np.arange(total_num_samples) - pre_trigger) / sample_rate).to_base_units()
     
     def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
@@ -692,6 +702,22 @@ class DataTransfer(CardFunctionality):
 
     _to_transfer_samples = 0
     _current_samples = 0
+    
+    _verbose = False
+
+    def verbose(self, verbose : bool = None) -> bool:
+        """
+        Set or get the verbose mode for the data transfer
+
+        Parameters
+        ----------
+        verbose : bool = None
+            the verbose mode
+        """
+
+        if verbose is not None:
+            self._verbose = verbose
+        return self._verbose
 
     def to_transfer_samples(self, samples) -> None:
         """
@@ -749,7 +775,7 @@ class DataTransfer(CardFunctionality):
                     raise StopIteration
 
                 fill_size = self.fill_size_promille()
-                self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r')
+                self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
 
                 self.avail_card_len(self._notify_samples)
                 return self.buffer[:, user_pos:user_pos+self._notify_samples]
