@@ -65,9 +65,14 @@ try:
     from .pyspcm import spcm_dwGetParam_i64, spcm_dwSetParam_ptr, create_string_buffer, byref, int64
     driver_version = int64(0)
     spcm_dwGetParam_i64(None, SPC_GETDRVVERSION, byref(driver_version))
+    version_hex = driver_version.value
+    major = (version_hex & 0xFF000000) >> 24
+    minor = (version_hex & 0x00FF0000) >> 16
+    build = version_hex & 0x0000FFFF
     # Available starting from build 21797
-    if (driver_version.value & 0x0000FFFF) < 21797:
-        raise OSError("Driver version {} does not support writing spcm version to log".format(driver_version))
+    if build < 21797:
+        version_str = "v{}.{}.{}".format(major, minor, build)
+        raise OSError(f"Driver version build {version_str} does not support writing spcm version to log")
     version_str = bytes("Python package spcm v{}".format(__version__), "utf-8")
     version_ptr = create_string_buffer(version_str)
     dwErr = spcm_dwSetParam_ptr(None, SPC_WRITE_TO_LOG, version_ptr, len(version_str))

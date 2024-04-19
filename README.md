@@ -21,8 +21,9 @@ See the [SUPPORTED_DEVICES.md](https://github.com/SpectrumInstrumentation/spcm/b
 
 # Requirements
 [![Python](https://img.shields.io/pypi/pyversions/spcm.svg)](https://badge.fury.io/py/spcm)
-[![Static Badge](https://img.shields.io/badge/NumPy-1.25-green)](https://numpy.org/)
-[![Static Badge](https://img.shields.io/badge/h5py-3.10-orange)](https://www.h5py.org/)
+[![Static Badge](https://img.shields.io/badge/NumPy-1.25+-green)](https://numpy.org/)
+[![Static Badge](https://img.shields.io/badge/h5py-3.10+-orange)](https://www.h5py.org/)
+[![Static Badge](https://img.shields.io/badge/pint-0.23+-teal)](https://pint.readthedocs.io/en/stable/)
 
 `spcm` requires the Spectrum Instrumentation [driver](https://spectrum-instrumentation.com/support/downloads.php) which is available for Windows and Linux. 
 Please have a look in the manual of your product for more information about installing the driver on the different plattforms.
@@ -145,7 +146,7 @@ To test the Spectrum Instrumentation API with user code without hardware, the Co
 from spcm import units
 ```
 
-This import the `units` object from `spcm`. which is a `UnitRegistry` object from  `pint`. Defining a quantity is as simples as:
+This imports the `units` object from `spcm`. which is a `UnitRegistry` object from `pint`. Defining a quantity is as simple as:
 
 ```python
 from spcm import units
