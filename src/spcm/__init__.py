@@ -73,7 +73,9 @@ try:
     if build < 21797:
         version_str = "v{}.{}.{}".format(major, minor, build)
         raise OSError(f"Driver version build {version_str} does not support writing spcm version to log")
-    version_str = bytes("Python package spcm v{}".format(__version__), "utf-8")
+    from importlib.metadata import version
+    version_tag = version('spcm')
+    version_str = bytes("Python package spcm v{}".format(version_tag), "utf-8")
     version_ptr = create_string_buffer(version_str)
     dwErr = spcm_dwSetParam_ptr(None, SPC_WRITE_TO_LOG, version_ptr, len(version_str))
 except OSError as e:
