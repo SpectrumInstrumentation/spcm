@@ -123,6 +123,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds = spcm.DDS(card)
     dds.reset()
 
+    dds.phase_behaviour(spcm.SPCM_DDS_PHASE_JUMP)
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_NONE)
     dds.exec_at_trg()
     dds.write_to_card()

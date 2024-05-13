@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1303</width>
-    <height>970</height>
+    <width>1568</width>
+    <height>1076</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>QtSimpleGui</string>
+   <string>DDS GUI - Spectrum Instrumentation</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -4921,7 +4921,7 @@
         </widget>
        </item>
        <item row="7" column="3">
-        <widget class="QDoubleSpinBox" name="phase_13">
+        <widget class="QDoubleSpinBox" name="phase_14">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -4952,7 +4952,7 @@
         </widget>
        </item>
        <item row="7" column="2">
-        <widget class="QDoubleSpinBox" name="phase_14">
+        <widget class="QDoubleSpinBox" name="phase_13">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -5881,7 +5881,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1303</width>
+     <width>1568</width>
      <height>21</height>
     </rect>
    </property>
@@ -5903,13 +5903,162 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>enable_0</tabstop>
+  <tabstop>frequency_0</tabstop>
+  <tabstop>amplitude_0</tabstop>
+  <tabstop>phase_0</tabstop>
+  <tabstop>frequencySlope_0</tabstop>
+  <tabstop>amplitudeSlope_0</tabstop>
+  <tabstop>enable_1</tabstop>
+  <tabstop>frequency_1</tabstop>
+  <tabstop>amplitude_1</tabstop>
+  <tabstop>phase_1</tabstop>
+  <tabstop>frequencySlope_1</tabstop>
+  <tabstop>amplitudeSlope_1</tabstop>
+  <tabstop>enable_2</tabstop>
+  <tabstop>frequency_2</tabstop>
+  <tabstop>amplitude_2</tabstop>
+  <tabstop>phase_2</tabstop>
+  <tabstop>frequencySlope_2</tabstop>
+  <tabstop>amplitudeSlope_2</tabstop>
+  <tabstop>enable_3</tabstop>
+  <tabstop>frequency_3</tabstop>
+  <tabstop>amplitude_3</tabstop>
+  <tabstop>phase_3</tabstop>
+  <tabstop>frequencySlope_3</tabstop>
+  <tabstop>amplitudeSlope_3</tabstop>
+  <tabstop>enable_4</tabstop>
+  <tabstop>frequency_4</tabstop>
+  <tabstop>amplitude_4</tabstop>
+  <tabstop>phase_4</tabstop>
+  <tabstop>frequencySlope_4</tabstop>
+  <tabstop>amplitudeSlope_4</tabstop>
+  <tabstop>enable_5</tabstop>
+  <tabstop>frequency_5</tabstop>
+  <tabstop>amplitude_5</tabstop>
+  <tabstop>phase_5</tabstop>
+  <tabstop>frequencySlope_5</tabstop>
+  <tabstop>amplitudeSlope_5</tabstop>
+  <tabstop>enable_6</tabstop>
+  <tabstop>frequency_6</tabstop>
+  <tabstop>amplitude_6</tabstop>
+  <tabstop>phase_6</tabstop>
+  <tabstop>frequencySlope_6</tabstop>
+  <tabstop>amplitudeSlope_6</tabstop>
+  <tabstop>frequency_7</tabstop>
+  <tabstop>amplitude_7</tabstop>
+  <tabstop>enable_7</tabstop>
+  <tabstop>phase_7</tabstop>
+  <tabstop>frequencySlope_7</tabstop>
+  <tabstop>amplitudeSlope_7</tabstop>
+  <tabstop>enable_20</tabstop>
+  <tabstop>frequency_20</tabstop>
+  <tabstop>amplitude_20</tabstop>
+  <tabstop>phase_20</tabstop>
+  <tabstop>frequencySlope_20</tabstop>
+  <tabstop>amplitudeSlope_20</tabstop>
+  <tabstop>radioButton_01_0</tabstop>
+  <tabstop>radioButton_01_1</tabstop>
+  <tabstop>enable_8</tabstop>
+  <tabstop>frequency_8</tabstop>
+  <tabstop>amplitude_8</tabstop>
+  <tabstop>phase_8</tabstop>
+  <tabstop>frequencySlope_8</tabstop>
+  <tabstop>amplitudeSlope_8</tabstop>
+  <tabstop>enable_9</tabstop>
+  <tabstop>amplitude_9</tabstop>
+  <tabstop>frequency_9</tabstop>
+  <tabstop>phase_9</tabstop>
+  <tabstop>frequencySlope_9</tabstop>
+  <tabstop>amplitudeSlope_9</tabstop>
+  <tabstop>enable_10</tabstop>
+  <tabstop>frequency_10</tabstop>
+  <tabstop>phase_10</tabstop>
+  <tabstop>amplitude_10</tabstop>
+  <tabstop>frequencySlope_10</tabstop>
+  <tabstop>amplitudeSlope_10</tabstop>
+  <tabstop>enable_11</tabstop>
+  <tabstop>frequency_11</tabstop>
+  <tabstop>amplitude_11</tabstop>
+  <tabstop>phase_11</tabstop>
+  <tabstop>frequencySlope_11</tabstop>
+  <tabstop>amplitudeSlope_11</tabstop>
+  <tabstop>enable_21</tabstop>
+  <tabstop>frequency_21</tabstop>
+  <tabstop>amplitude_21</tabstop>
+  <tabstop>phase_21</tabstop>
+  <tabstop>frequencySlope_21</tabstop>
+  <tabstop>amplitudeSlope_21</tabstop>
+  <tabstop>radioButton_02_0</tabstop>
+  <tabstop>radioButton_02_2</tabstop>
+  <tabstop>enable_12</tabstop>
+  <tabstop>frequency_12</tabstop>
+  <tabstop>phase_12</tabstop>
+  <tabstop>amplitude_12</tabstop>
+  <tabstop>frequencySlope_12</tabstop>
+  <tabstop>amplitudeSlope_12</tabstop>
+  <tabstop>enable_13</tabstop>
+  <tabstop>frequency_13</tabstop>
+  <tabstop>amplitude_13</tabstop>
+  <tabstop>phase_13</tabstop>
+  <tabstop>frequencySlope_13</tabstop>
+  <tabstop>amplitudeSlope_13</tabstop>
+  <tabstop>enable_14</tabstop>
+  <tabstop>frequency_14</tabstop>
+  <tabstop>amplitude_14</tabstop>
+  <tabstop>phase_14</tabstop>
+  <tabstop>frequencySlope_14</tabstop>
+  <tabstop>amplitudeSlope_14</tabstop>
+  <tabstop>enable_15</tabstop>
+  <tabstop>frequency_15</tabstop>
+  <tabstop>amplitude_15</tabstop>
+  <tabstop>phase_15</tabstop>
+  <tabstop>frequencySlope_15</tabstop>
+  <tabstop>amplitudeSlope_15</tabstop>
+  <tabstop>enable_22</tabstop>
+  <tabstop>frequency_22</tabstop>
+  <tabstop>amplitude_22</tabstop>
+  <tabstop>phase_22</tabstop>
+  <tabstop>frequencySlope_22</tabstop>
+  <tabstop>amplitudeSlope_22</tabstop>
+  <tabstop>radioButton_03_0</tabstop>
+  <tabstop>radioButton_03_3</tabstop>
+  <tabstop>enable_16</tabstop>
+  <tabstop>frequency_16</tabstop>
+  <tabstop>amplitude_16</tabstop>
+  <tabstop>phase_16</tabstop>
+  <tabstop>frequencySlope_16</tabstop>
+  <tabstop>amplitudeSlope_16</tabstop>
+  <tabstop>enable_17</tabstop>
+  <tabstop>frequency_17</tabstop>
+  <tabstop>amplitude_17</tabstop>
+  <tabstop>phase_17</tabstop>
+  <tabstop>frequencySlope_17</tabstop>
+  <tabstop>amplitudeSlope_17</tabstop>
+  <tabstop>enable_18</tabstop>
+  <tabstop>frequency_18</tabstop>
+  <tabstop>amplitude_18</tabstop>
+  <tabstop>phase_18</tabstop>
+  <tabstop>frequencySlope_18</tabstop>
+  <tabstop>amplitudeSlope_18</tabstop>
+  <tabstop>enable_19</tabstop>
+  <tabstop>frequency_19</tabstop>
+  <tabstop>phase_19</tabstop>
+  <tabstop>amplitude_19</tabstop>
+  <tabstop>frequencySlope_19</tabstop>
+  <tabstop>amplitudeSlope_19</tabstop>
+  <tabstop>frequencyTimeDivider</tabstop>
+  <tabstop>amplitudeTimeDivider</tabstop>
+  <tabstop>pushButton</tabstop>
+ </tabstops>
  <resources>
   <include location="99_dds_graphical_user_interface.qrc"/>
  </resources>
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroup_02"/>
-  <buttongroup name="buttonGroup_03"/>
   <buttongroup name="buttonGroup_01"/>
+  <buttongroup name="buttonGroup_03"/>
  </buttongroups>
 </ui>
