@@ -140,7 +140,7 @@ To test the Spectrum Instrumentation API with user code without hardware, the Co
 
 ## Units and quantities
 
-`spcm` uses [pint](https://pint.readthedocs.io/en/stable/) to handle all quantities that have a physical unit. To enable the use of qunatities simply import the units module from `spcm`:
+`spcm` uses [pint](https://pint.readthedocs.io/en/stable/) to handle all quantities that have a physical unit. To enable the use of quantities simply import the units module from `spcm`:
 
 ```python
 from spcm import units
