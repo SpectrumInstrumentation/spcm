@@ -20,7 +20,7 @@ A high-level, object-oriented Python package for interfacing with Spectrum Instr
 See the [SUPPORTED_DEVICES.md](https://github.com/SpectrumInstrumentation/spcm/blob/master/src/spcm/SUPPORTED_DEVICES.md) file for a list of supported devices.
 
 # Requirements
-[![Python](https://img.shields.io/pypi/pyversions/spcm.svg)](https://badge.fury.io/py/spcm)
+[![Static Badge](https://img.shields.io/badge/Python-3.9+-blue)](https://www.python.org/)
 [![Static Badge](https://img.shields.io/badge/NumPy-1.25+-green)](https://numpy.org/)
 [![Static Badge](https://img.shields.io/badge/h5py-3.10+-orange)](https://www.h5py.org/)
 [![Static Badge](https://img.shields.io/badge/pint-0.23+-teal)](https://pint.readthedocs.io/en/stable/)
@@ -49,14 +49,14 @@ Note that: this will automatically install all the dependencies.
 
 The API documentation for the latest [stable release](https://spectruminstrumentation.github.io/spcm/spcm.html) is available for reading on GitHub pages.
 
-Please also see the hardware user manuals for your specific card for more information about the provided functionality.
+Please also see the hardware user manual for your specific card for more information about the available functionality.
 
 # Using spcm
 
 The `spcm` package is a high-level object-oriented programming library for controlling Spectrum Instrumentation devices.
 
 ## Examples
-For detailed examples see the `src\examples` directory. There are several sub-directories each corresponding to a certain kind of functionality. See also the examples on [GitHub](https://github.com/SpectrumInstrumentation/spcm/tree/master/src/examples).
+For detailed examples see the `src\examples` directory. There are several sub-directories each corresponding to a certain kind of functionality. You can find the most recent examples on [GitHub](https://github.com/SpectrumInstrumentation/spcm/tree/master/src/examples).
 
 
 ## Hardware interfaces
@@ -133,7 +133,7 @@ with spcm.Card(serial_number=[your serial number here]) as card:
 ```
 See the register `SPC_PCISERIALNO` in the reference manual of your specific device for more information.
 
-If the `device_identifier` is given that card is opened, if at the same time `card_type` or `serial_number` are given then these behave as an additional check too see if the opened card is of a certain type or has that specific serial number.
+If the `device_identifier` is given, that card is opened, if at the same time `card_type` or `serial_number` are given, then these behave as an additional check too see if the opened card is of a certain type or has that specific serial number.
 
 ### Demo devices
 To test the Spectrum Instrumentation API with user code without hardware, the Control Center gives the user the option to create [demo devices](https://spectrum-instrumentation.com/support/knowledgebase/software/How_to_set_up_a_demo_card.php). These demo devices can be used in the same manner as real devices. Simply change the device identifier string to the string as shown in the Control Center.
@@ -146,7 +146,7 @@ To test the Spectrum Instrumentation API with user code without hardware, the Co
 from spcm import units
 ```
 
-This imports the `units` object from `spcm`. which is a `UnitRegistry` object from `pint`. Defining a quantity is as simple as:
+This imports the `units` object from `spcm`. This is a `UnitRegistry` object from `pint`. Defining a quantity is as simple as:
 
 ```python
 from spcm import units
@@ -156,7 +156,7 @@ amplitude = 1 * units.V
 # etc...
 ```
 
-All methods within the `spcm` that expect a value that is related to a physical quantity support the quantities, for example setting a timeout:
+All methods within the `spcm` that expect a value related to a physical quantity, support these quantities, for example setting a timeout:
 
 ```python
 card.timeout(5 * units.s)
@@ -165,7 +165,7 @@ card.timeout(5 * units.s)
 See our dedicated examples for more information about where units can be used.
 
 ## Card Functionality
-After opening a card, StarHub or group of card, specific functionality of the cards can be accessed through `CardFunctionality` classes. 
+After opening a card, StarHub, group of cards or Netbox, specific functionality of the cards can be accessed through `CardFunctionality` classes. 
 
 | Name                | Description                                                         |
 |---------------------|---------------------------------------------------------------------|
@@ -181,6 +181,8 @@ After opening a card, StarHub or group of card, specific functionality of the ca
 | `BlockAverage`      | class for handling block averaging functionality                    |
 | `PulseGenerators`   | class for setting up the pulse generator functionality              |
 | `DDS`               | class for handling DDS functionality                                |
+| `DDSCommandList`    | class for abstracting streaming DDS commands using blocks of commands |
+| `DDSCommandQueue`   | class for abstracting streaming DDS commands using a queue of commands |
 
 To use a specific functionality simply initiate an instance of one of the classes and pass a device object:
 
@@ -211,7 +213,7 @@ for channel in channels:
     # do something with each channel
 ```
 
-In addition, the user can define the output load connected to the channel (standard value 50 Ohm), to any resistor value or high impedance (`units.highZ`). With this output load, the amplitude setting can be done with the repect to this output load:
+In addition, the user can define the output load connected to the channel (standard value 50 Ohm), to any resistor value or high impedance (`units.highZ`). With this output load, the amplitude setting is done with repect to this output load:
 
 ```python
 channels = Channels(card, card_enable=spcm.CHANNEL0 | CHANNEL1)
