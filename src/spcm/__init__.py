@@ -46,14 +46,16 @@ from .classes_multi import Multi
 from .classes_time_stamp import TimeStamp
 from .classes_sequence import Sequence
 from .classes_dds import DDS, DDSCore
+from .classes_dds_command_list import DDSCommandList
+from .classes_dds_command_queue import DDSCommandQueue
 from .classes_pulse_generators import PulseGenerator, PulseGenerators
 from .classes_block_average import BlockAverage
 from .classes_boxcar import Boxcar
 
 __all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
-    "DataTransfer", "DDS", "DDSCore", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", "BlockAverage", "Boxcar",
-    "SpcmException", "SpcmTimeout", "SpcmError",
+    "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", 
+    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmError",
 ]
 
 # Versioning support using versioneer

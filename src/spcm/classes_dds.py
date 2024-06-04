@@ -9,8 +9,6 @@ from .classes_channels import Channels, Channel
 from .classes_unit_conversion import UnitConversion
 from . import units
 
-import ctypes
-
 class DDSCore:
     """
     a class for controlling a single DDS core
@@ -296,13 +294,7 @@ class DDS(CardFunctionality):
     cores : list[DDSCore] = []
     channels : Channels = None
 
-    _dtm : int = 0
-    _register_list : ctypes._Pointer
-    _rl_size : int = MEBI(2)
-    _rl_current : int = 0
-
     _current_core : int = -1
-
     _channel_from_core : dict[int, int] = {}
 
     def __init__(self, *args, **kwargs) -> None:
@@ -325,8 +317,6 @@ class DDS(CardFunctionality):
                 for core in range(num_cores):
                     if cores_on_channel & (1 << core):
                         self._channel_from_core[core] = channel
-                    # else:
-                    #     self._channel_from_core[core] = None
         
         for core in range(num_cores):
             if core in self._channel_from_core:
@@ -405,23 +395,8 @@ class DDS(CardFunctionality):
         SpcmException
             if the command list is full
         """
-        if self._dtm == SPCM_DDS_DTM_SINGLE:
-            self.card.set_i(reg, value)
-        else:
-            if self._rl_current >= self._rl_size:
-                raise SpcmException(text="Commands list is full, please write to card.")
-            
-            self._register_list[self._rl_current].lReg = reg
-            self._register_list[self._rl_current].lType = TYPE_INT64
-            self._register_list[self._rl_current].llValue = value
-            self._rl_current += 1
 
-            if reg == SPC_DDS_CMD and (value & SPCM_DDS_CMD_WRITE_TO_CARD):
-                self.card.set_ptr(SPC_REGISTER_LIST, self._register_list, self._rl_current * ctypes.sizeof(ST_LIST_PARAM))
-                self._rl_current = 0
-            
-            if reg == SPC_DDS_CMD and (value & SPCM_DDS_CMD_RESET):
-                self._rl_current = 0
+        self.card.set_i(reg, value)
     
     def set_d(self, reg : int, value : float) -> None:
         """
@@ -434,13 +409,8 @@ class DDS(CardFunctionality):
         value : float
             the value to be set
         """
-        if self._dtm == SPCM_DDS_DTM_SINGLE:
-            self.card.set_d(reg, value)
-        else:
-            self._register_list[self._rl_current].lReg = reg
-            self._register_list[self._rl_current].lType = TYPE_DOUBLE
-            self._register_list[self._rl_current].dValue = value
-            self._rl_current += 1
+    
+        self.card.set_d(reg, value)
 
     def reset(self) -> None:
         """
@@ -502,8 +472,6 @@ class DDS(CardFunctionality):
         """
 
         self._dtm = mode
-        if mode == SPCM_DDS_DTM_DMA:
-            self.allocate_register_list()
         self.set_i(SPC_DDS_DATA_TRANSFER_MODE, mode)
     
     def get_data_transfer_mode(self) -> int:
@@ -522,13 +490,6 @@ class DDS(CardFunctionality):
 
         self._dtm = self.card.get_i(SPC_DDS_DATA_TRANSFER_MODE)
         return self._dtm
-    
-    def allocate_register_list(self) -> None:
-        """
-        allocate memory for the register list
-        """
-        elems = (ST_LIST_PARAM * self._rl_size)()
-        self._register_list = ctypes.cast(elems,ctypes.POINTER(ST_LIST_PARAM))
     
     def phase_behaviour(self, behaviour : int) -> None:
         """

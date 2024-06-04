@@ -58,7 +58,9 @@ Functionality classes handle specific functionality that is available to the car
 | `PulseGenerators`   | `CardFunctionality` | class for handling the pulse generator functionality                                          |
 | `PulseGenerator`    | (none)              | class for handling a single pulse generator a list of these objects resides inside `PulseGenerators` |
 | `DDS`               | `CardFunctionality` | class for handling DDS functionality                                                          |
-| `DDSCore`           | (none)              | class for handling a dds core, a list of these objects resides inside `DDS` |
+| `DDSCore`           | (none)              | class for handling a DDS core, a list of these objects resides inside a `DDS` object |
+| `DDSCommandList`    | `DDS`               | class for handling streaming DDS commands in blocks |
+| `DDSCommandQueue`   | `DDS`               | class for handling streaming DDS commands in queues, where commands are added to the queue and automatically written to the card |
 
 ### Diagram
 ```mermaid
@@ -73,6 +75,8 @@ classDiagram
   class DataTransfer
   class DDS
   class DDSCore
+  class DDSCommandList
+  class DDSCommandQueue
   class PulseGenerators
   class Multi
   class TimeStamp
@@ -94,6 +98,8 @@ classDiagram
   MultiPurposeIOs *-- MultiPurposeIO
   PulseGenerators *-- PulseGenerator
   DDS *-- DDSCore
+  DDS <-- DDSCommandList
+  DDSCommandList <-- DDSCommandQueue
 ```
 
 ## Exception classes
