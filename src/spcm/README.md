@@ -98,8 +98,8 @@ classDiagram
   MultiPurposeIOs *-- MultiPurposeIO
   PulseGenerators *-- PulseGenerator
   DDS *-- DDSCore
-  DDS <-- DDSCommandList
-  DDSCommandList <-- DDSCommandQueue
+  DDS <|-- DDSCommandList
+  DDSCommandList <|-- DDSCommandQueue
 ```
 
 ## Exception classes
