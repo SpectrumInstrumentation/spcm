@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-5_acq_single-cudafft.py
+3_acq_single_cuda_fft.py
 
 Shows a simple Standard mode example using only the few necessary commands, with the addition of a CUDA processing step to do an FFT on the GPU
 - connect a function generator that generates a sine wave with 1-100 MHz frequency (depending on the max sample rate of your card) and 1 V amplitude to channel 0

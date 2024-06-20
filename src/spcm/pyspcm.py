@@ -9,8 +9,10 @@ from .regs import *
 # load registers for easier access
 from .spcerr import *
 
-SPCM_DIR_PCTOCARD = 0
-SPCM_DIR_CARDTOPC = 1
+SPCM_DIR_PCTOCARD  = 0
+SPCM_DIR_CARDTOPC  = 1
+SPCM_DIR_CARDTOGPU = 2
+SPCM_DIR_GPUTOCARD = 3
 
 SPCM_BUF_DATA      = 1000 # main data buffer for acquired or generated samples
 SPCM_BUF_ABA       = 2000 # buffer for ABA data, holds the A-DATA (slow samples)

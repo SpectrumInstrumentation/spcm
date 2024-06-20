@@ -51,11 +51,12 @@ from .classes_dds_command_queue import DDSCommandQueue
 from .classes_pulse_generators import PulseGenerator, PulseGenerators
 from .classes_block_average import BlockAverage
 from .classes_boxcar import Boxcar
+from .classes_cuda import CUDA, CUDADevice, CUDAKernel, CUDATransfer, checkCudaErrors
 
 __all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
     "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", 
-    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmError",
+    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmError", "CUDA", "CUDADevice", "CUDAKernel", "CUDATransfer", "checkCudaErrors"
 ]
 
 # Versioning support using versioneer
