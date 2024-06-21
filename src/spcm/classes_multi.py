@@ -90,7 +90,7 @@ class Multi(DataTransfer):
         if self.bits_per_sample > 1 and not self._12bit_mode:
             self.buffer = self.buffer.reshape((self._num_segments, segment_samples, num_channels), order='C') # index definition: [segment, sample, channel] !
     
-    def time_data(self, total_num_samples : int = None) -> npt.NDArray[np.float_]:
+    def time_data(self, total_num_samples : int = None) -> npt.NDArray:
         """
         Get the time array for the data buffer
         

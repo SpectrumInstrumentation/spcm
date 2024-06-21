@@ -413,7 +413,7 @@ class DataTransfer(CardFunctionality):
             self.post_trigger(post_samples)
         return num_samples, post_samples
 
-    def time_data(self, total_num_samples : int = None) -> npt.NDArray[np.float_]:
+    def time_data(self, total_num_samples : int = None) -> npt.NDArray:
         """
         Get the time array for the data buffer
         
