@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-3_acq_single_cuda_fft.py
+1_cuda_acq_single_fft.py
 
 Shows a simple Standard mode example using only the few necessary commands, with the addition of a CUDA processing step to do an FFT on the GPU
 - connect a function generator that generates a sine wave with 1-100 MHz frequency (depending on the max sample rate of your card) and 1 V amplitude to channel 0
@@ -17,7 +17,7 @@ import spcm
 from spcm import units
 
 import numpy as np
-import cupy
+import cupy as cp
 import matplotlib.pyplot as plt
 
 
@@ -43,7 +43,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # we try to use the max samplerate
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(max = True, return_unit=(units.MHz)) # set to maximum sample rate
+    sample_rate = clock.sample_rate(max = True, return_unit = units.MHz) # set to maximum sample rate
     print(f"Used Sample Rate: {sample_rate}")
 
     # setup a data transfer buffer
@@ -73,29 +73,44 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # number of threads in one CUDA block
     num_thread_per_block = 1024
+    num_blocks = num_samples_magnitude // num_thread_per_block
 
     # copy data to GPU
-    data_raw_gpu = cupy.array(data_transfer.buffer)
+    data_raw_gpu = cp.array(data_transfer.buffer)
 
+    cp_dtype = data_transfer.numpy_type()
+    if cp_dtype == np.int16:
+        CupyKernelConvertSignalToVolt = cp.RawKernel(r'''
+            extern "C" __global__
+            void CudaKernelScale(const short* anSource, float* afDest, double dFactor) {
+                int i = blockDim.x * blockIdx.x + threadIdx.x;
+                afDest[i] = ((float)anSource[i]) * dFactor;
+            }
+            ''', 'CudaKernelScale')
+    elif cp_dtype == np.int8:
+        CupyKernelConvertSignalToVolt = cp.RawKernel(r'''
+            extern "C" __global__
+            void CudaKernelScale(const char* anSource, float* afDest, double dFactor) {
+                int i = blockDim.x * blockIdx.x + threadIdx.x;
+                afDest[i] = ((float)anSource[i]) * dFactor;
+            }
+            ''', 'CudaKernelScale')
+    else:
+        raise ValueError("Only 8-bit and 16-bit data types are supported.")
     # convert raw data to volt
-    CupyKernelConvertSignalToVolt = cupy.RawKernel(r'''
-        extern "C" __global__
-        void CudaKernelScale(const short* anSource, float* afDest, double dFactor) {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            afDest[i] = ((float)anSource[i]) * dFactor;
-        }
-        ''', 'CudaKernelScale')
-    data_volt_gpu = cupy.zeros(num_samples_magnitude, dtype = cupy.float32)
-    CupyKernelConvertSignalToVolt((num_samples_magnitude // num_thread_per_block,), (num_thread_per_block,), (data_raw_gpu, data_volt_gpu, amplitude.to(units.V).magnitude / max_value))
+    
+    data_volt_gpu = cp.zeros(num_samples_magnitude, dtype = cp.float32)
+    CupyKernelConvertSignalToVolt((num_blocks,), (num_thread_per_block,), (data_raw_gpu, data_volt_gpu, amplitude.to(units.V).magnitude / max_value))
 
     # calculate the FFT
-    fftdata_gpu = cupy.fft.fft(data_volt_gpu)
+    fftdata_gpu = cp.fft.fft(data_volt_gpu)
 
     # length of FFT result
     num_fft_samples = num_samples_magnitude // 2 + 1
+    num_fft_blocks = num_fft_samples // num_thread_per_block
 
     # scale the FFT result
-    CupyKernelScaleFFTResult = cupy.RawKernel(r'''
+    CupyKernelScaleFFTResult = cp.RawKernel(r'''
         extern "C" __global__
         void CudaScaleFFTResult (complex<float>* pcompDest, const complex<float>* pcompSource, int lLen) {
             int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -103,38 +118,36 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
             pcompDest[i].imag (pcompSource[i].imag() / (lLen / 2 + 1)); // divide by length of signal
         }
         ''', 'CudaScaleFFTResult', translate_cucomplex=True)
-    CupyKernelScaleFFTResult((num_samples_magnitude // num_thread_per_block,), (num_thread_per_block,), (fftdata_gpu, fftdata_gpu, num_samples_magnitude))
+    CupyKernelScaleFFTResult((num_blocks,), (num_thread_per_block,), (fftdata_gpu, fftdata_gpu, num_samples_magnitude))
 
     # calculate real spectrum from complex FFT result
-    CupyKernelFFTToSpectrum = cupy.RawKernel(r'''
+    CupyKernelFFTToSpectrum = cp.RawKernel(r'''
         extern "C" __global__
         void CudaKernelFFTToSpectrum (const complex<float>* pcompSource, float* pfDest) {
             int i = blockDim.x * blockIdx.x + threadIdx.x;
             pfDest[i] = sqrt (pcompSource[i].real() * pcompSource[i].real() + pcompSource[i].imag() * pcompSource[i].imag());
         }
         ''', 'CudaKernelFFTToSpectrum', translate_cucomplex=True)
-    spectrum_gpu = cupy.zeros(num_fft_samples, dtype = cupy.float32)
-    CupyKernelFFTToSpectrum((num_fft_samples // num_thread_per_block,), (num_thread_per_block,), (fftdata_gpu, spectrum_gpu))
+    spectrum_gpu = cp.zeros(num_fft_samples, dtype = cp.float32)
+    CupyKernelFFTToSpectrum((num_fft_blocks,), (num_thread_per_block,), (fftdata_gpu, spectrum_gpu))
 
     # convert to dBFS
-    CupyKernelSpectrumToDBFS = cupy.RawKernel(r'''
+    CupyKernelSpectrumToDBFS = cp.RawKernel(r'''
     extern "C" __global__
     void CudaKernelToDBFS (float* pfDest, const float* pfSource, int lIR_V) {
         int i = blockDim.x * blockIdx.x + threadIdx.x;
         pfDest[i] = 20. * log10f (pfSource[i] / lIR_V);
     }
     ''', 'CudaKernelToDBFS')
-    CupyKernelSpectrumToDBFS((num_fft_samples // num_thread_per_block,), (num_thread_per_block,), (spectrum_gpu, spectrum_gpu, 1))
-
-    spectrum_cpu = cupy.asnumpy(spectrum_gpu)  # copy FFT spectrum back to CPU
-    print("done\n")
+    CupyKernelSpectrumToDBFS((num_fft_blocks,), (num_thread_per_block,), (spectrum_gpu, spectrum_gpu, 1))
+    
+    spectrum_cpu = cp.asnumpy(spectrum_gpu)  # copy FFT spectrum back to CPU
 
     # plot FFT spectrum
     fig, ax = plt.subplots()
     freq = np.linspace(0, 1, spectrum_cpu.size - 1) * sample_rate / 2
-    ax.set_ylim([-70, 30])  # range of Y axis
+    ax.set_ylim([-120, 10])  # range of Y axis
     ax.plot(freq, spectrum_cpu[:-1])
-    # plt.xlabel("Frequency [Hz]")
     ax.xaxis.set_units(units.MHz)
     plt.show()
 

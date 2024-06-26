@@ -5,10 +5,8 @@ import numpy.typing as npt
 
 import h5py
 from pathlib import Path
-from enum import Enum
 
 from .constants import *
-
 from .pyspcm import c_void_p, spcm_dwDefTransfer_i64
 
 from .classes_functionality import CardFunctionality
@@ -18,6 +16,9 @@ from .classes_unit_conversion import UnitConversion
 from . import units
 
 from .classes_error_exception import SpcmException, SpcmTimeout
+
+
+
 
 class DataTransfer(CardFunctionality):
     """
@@ -53,10 +54,6 @@ class DataTransfer(CardFunctionality):
     buffer_size : int = 0
     notify_size : int = 0
 
-    class Direction(Enum):
-        Undefined = 0
-        Acquisition = 1
-        Generation = 2
     direction : Direction = Direction.Acquisition
 
     buffer_type : int
@@ -202,11 +199,11 @@ class DataTransfer(CardFunctionality):
 
         # Find out the direction of transfer
         if self.function_type == SPCM_TYPE_AI or self.function_type == SPCM_TYPE_DI:
-            self.direction = self.Direction.Acquisition
+            self.direction = Direction.Acquisition
         elif self.function_type == SPCM_TYPE_AO or self.function_type == SPCM_TYPE_DO:
-            self.direction = self.Direction.Generation
+            self.direction = Direction.Generation
         else:
-            self.direction = self.Direction.Undefined
+            self.direction = Direction.Undefined
 
     def _sample_rate(self) -> pint.Quantity:
         """
@@ -394,9 +391,9 @@ class DataTransfer(CardFunctionality):
         if buffer_type: 
             self.buffer_type = buffer_type
         if direction is None:
-            if self.direction == self.Direction.Acquisition:
+            if self.direction == Direction.Acquisition:
                 direction = SPCM_DIR_CARDTOPC
-            elif self.direction == self.Direction.Generation:
+            elif self.direction == Direction.Generation:
                 direction = SPCM_DIR_PCTOCARD
             else:
                 raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
@@ -852,16 +849,15 @@ class DataTransfer(CardFunctionality):
         self.iterator_index += 1
 
         fill_size = self.fill_size_promille()
-        # self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
-        self.card._print("Fill size: {}%  Pos:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
-
-        # user_len = self.avail_user_len()
 
         self._current_samples += self._notify_samples
         if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:
             raise StopIteration
 
         user_pos = self.avail_user_pos()
+        
+        # self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
+        self.card._print("Fill size: {}%  Pos:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
 
         # self.avail_card_len(self._notify_samples) # TODO this probably always a problem! Because the data is not read out yets
         

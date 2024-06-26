@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-1_scapp_acq_fifo_invert.py
+3_scapp_acq_fifo_invert.py
 
 Example that shows how to combine the CUDA DMA transfer with the acquisition of data. The example uses FIFO recording mode
 to acquire data then send the data through rdma to the GPU using the SCAPP add-on, which inverts the data and sends it back
@@ -20,7 +20,7 @@ from spcm import units
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import cupy as cp
 
 card : spcm.Card
 
@@ -40,6 +40,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     amplitude = channels[0].amp(1 * units.V, return_unit=units.V)
+    max_value = card.max_sample_value()
 
     # we try to use the max samplerate
     clock = spcm.Clock(card)
@@ -51,23 +52,35 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     notify_samples = spcm.KIBI(2)
     num_samples    = spcm.MEBI(8)
 
-    cuda_object   = spcm.CUDA(card, 0, scapp=True)
-    cuda_transfer = spcm.CUDATransfer(card, cuda_object, direction=spcm.CUDATransfer.Direction.Acquisition)
+    num_thread_per_block = 1024
+    num_blocks = notify_samples // num_thread_per_block
 
-    cuda_transfer.notify_samples = notify_samples
+    scapp_transfer = spcm.SCAPPTransfer(card, direction=spcm.Direction.Acquisition)
+    scapp_transfer.notify_samples(notify_samples)
+    scapp_transfer.allocate_buffer(num_samples)
+    scapp_transfer.start_buffer_transfer()
 
-    # CUDA kernel
-    CudaKernelInvert = cuda_object.create_kernel(function_name="CudaKernelInvert", src = '''\
-        #define int8 char
-        extern "C" __global__ void CudaKernelInvert (int8* pcIn, int8* pcOut) 
-            {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            pcOut[i] = -1 * pcIn[i]; 
-            }
-        ''')
-
-    cuda_transfer.allocate_buffer(num_samples)
-    cuda_transfer.start_buffer_transfer()
+    # invert data on GPU
+    cp_dtype = scapp_transfer.numpy_type()
+    if cp_dtype == np.int16:
+        CudaKernelInvert = cp.RawKernel(r'''
+            extern "C" __global__ void CudaKernelInvert (short* pcIn, short* pcOut) 
+                {
+                int i = blockDim.x * blockIdx.x + threadIdx.x;
+                pcOut[i] = -1 * pcIn[i]; 
+                }
+            ''', 'CudaKernelInvert')
+    elif cp_dtype == np.int8:
+        CudaKernelInvert = cp.RawKernel(r'''
+            extern "C" __global__ void CudaKernelInvert (char* pcIn, char* pcOut) 
+                {
+                int i = blockDim.x * blockIdx.x + threadIdx.x;
+                pcOut[i] = -1 * pcIn[i]; 
+                }
+            ''', 'CudaKernelInvert')
+    else:
+        raise ValueError("Only 8-bit and 16-bit data types are supported.")
+    data_processed_gpu = cp.zeros((notify_samples,), dtype = cp_dtype)
 
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER | spcm.M2CMD_DATA_STARTDMA)
     
@@ -76,28 +89,22 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     time_range = np.arange(notify_samples) / sample_rate
     line1, = ax.plot(time_range, np.zeros_like(time_range))
     line2, = ax.plot(time_range, np.zeros_like(time_range))
-    ax.set_ylim([-100, 100])  # range of Y axis
+    ax.set_ylim([-1.2*max_value, 1.2*max_value])  # range of Y axis
     ax.xaxis.set_units(units.us)
-    ax.yaxis.set_units(units.mV)
     plt.show(block=False)
     plt.draw()
 
-    for card_to_gpu, gpu_to_cpu in cuda_transfer:
+    for data_raw_gpu in scapp_transfer:
         # this is the point to do anything with the data on the GPU
-
-        # start kernel on the GPU to process the transfered data
-        threads_per_block = 1024
-        num_blocks = notify_samples // threads_per_block
-        kernel_arguments = (card_to_gpu, gpu_to_cpu)
-        CudaKernelInvert.launch(num_blocks, threads_per_block, kernel_arguments)
+        CudaKernelInvert((num_blocks,), (num_thread_per_block,), (data_raw_gpu, data_processed_gpu))
         
         # after kernel has finished we copy processed data from GPU to host
-        card_to_gpu.copy_to_host()
-        gpu_to_cpu.copy_to_host()
+        data_raw_cpu = cp.asnumpy(data_raw_gpu)
+        data_processed_cpu = cp.asnumpy(data_processed_gpu)
  
         # now the processed data is in the host memory
-        line1.set_ydata(card_to_gpu.view)
-        line2.set_ydata(gpu_to_cpu.view)
+        line1.set_ydata(data_raw_cpu)
+        line2.set_ydata(data_processed_cpu)
         fig.canvas.draw()
         fig.canvas.flush_events()
 

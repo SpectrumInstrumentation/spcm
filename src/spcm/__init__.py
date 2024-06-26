@@ -19,7 +19,7 @@ units.define("sample = 1 = Sa = Sample = Samples = S")
 units.define("promille = 0.001 = ‰ = permille = perthousand = perthousands = ppt")
 units.define("fraction = 1 = frac = Frac = Fracs = Fraction = Fractions = Frac = Fracs")
 units.highZ = np.inf * units.ohm
-units.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
+units.formatter.default_format = "~P" # see https://pint.readthedocs.io/en/stable/user/formatting.html
 if mpl:
     units.setup_matplotlib(mpl)
     units.mpl_formatter = "{:~P}" # see https://pint.readthedocs.io/en/stable/user/plotting.html
@@ -51,12 +51,12 @@ from .classes_dds_command_queue import DDSCommandQueue
 from .classes_pulse_generators import PulseGenerator, PulseGenerators
 from .classes_block_average import BlockAverage
 from .classes_boxcar import Boxcar
-from .classes_cuda import CUDA, CUDADevice, CUDAKernel, CUDATransfer, checkCudaErrors
+from .classes_scapp import SCAPPTransfer
 
 __all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
     "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", 
-    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmError", "CUDA", "CUDADevice", "CUDAKernel", "CUDATransfer", "checkCudaErrors"
+    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmError", "SCAPPTransfer"
 ]
 
 # Versioning support using versioneer
