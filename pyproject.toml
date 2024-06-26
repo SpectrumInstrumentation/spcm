@@ -34,6 +34,12 @@ dependencies = [
   "pint >= 0.23",
 ]
 
+[project.optional-dependencies]
+cuda = [
+  "cupy >= 13.2.0",
+  "cuda-python >= 12.5.0",
+]
+
 [project.urls]
 Homepage = "https://spectrum-instrumentation.com/"
 API = "https://spectruminstrumentation.github.io/spcm/spcm.html"

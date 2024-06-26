@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-3_scapp_gen_fifo_invert.py
+5_scapp_gen_fifo_invert.py
 
 Example that shows how to combine the CUDA DMA transfer with the generation of data. The example uses FIFO replay mode
 to generate data then send the data from the CPU to the GPU, which inverts the data and sends it to the card using RDMA
@@ -20,9 +20,6 @@ from spcm import units
 
 import numpy as np
 import matplotlib.pyplot as plt
-
-import time
-
 
 card : spcm.Card
 

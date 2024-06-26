@@ -2,12 +2,18 @@ import os
 import platform
 import sys
 from ctypes import *
+from enum import Enum
 
 # load registers for easier access
 from .regs import *
 
 # load registers for easier access
 from .spcerr import *
+
+class Direction(Enum):
+    Undefined = 0
+    Acquisition = 1
+    Generation = 2
 
 SPCM_DIR_PCTOCARD  = 0
 SPCM_DIR_CARDTOPC  = 1

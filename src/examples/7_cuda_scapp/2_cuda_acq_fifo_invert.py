@@ -20,7 +20,7 @@ from spcm import units
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import cupy as cp
 
 card : spcm.Card
 
@@ -40,34 +40,54 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     amplitude = channels[0].amp(1 * units.V, return_unit=units.V)
+    max_value = card.max_sample_value()
 
     # we try to use the max samplerate
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
     sample_rate = clock.sample_rate(10 * units.MHz, return_unit=(units.MHz))
     print(f"Used Sample Rate: {sample_rate}")
-    
-    # Setup a data transfer object with CUDA DMA
-    notify_samples = spcm.KIBI(2)
-    num_samples    = spcm.MEBI(8)
 
-    cuda_object   = spcm.CUDA(card, 0, scapp=False)
-    cuda_transfer = spcm.CUDATransfer(card, cuda_object)
-    cuda_transfer.notify_samples(notify_samples)
+    # setup a data transfer buffer
+    num_samples = 8 * units.MiS # KibiSamples = 1024 Samples
+    notify_samples = 64 * units.KiS
+    num_samples_magnitude = num_samples.to_base_units().magnitude
+    notify_samples_magnitude = notify_samples.to_base_units().magnitude
+    data_transfer = spcm.DataTransfer(card)
+    data_transfer.notify_samples(notify_samples)
+    data_transfer.allocate_buffer(num_samples)
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
-    # CUDA kernel
-    CudaKernelInvert = cuda_object.create_kernel(function_name="CudaKernelInvert", src = '''\
-        #define int8 char
-        extern "C" __global__ void CudaKernelInvert (int8* pcIn, int8* pcOut) 
-            {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            pcOut[i] = -1 * pcIn[i]; 
-            }
-        ''')
+    cp_dtype = data_transfer.numpy_type()
+    if cp_dtype == np.int16:
+        CudaKernelInvert = cp.RawKernel(r'''
+            extern "C" __global__ void CudaKernelInvert (short* pcIn, short* pcOut) 
+                {
+                int i = blockDim.x * blockIdx.x + threadIdx.x;
+                pcOut[i] = -1 * pcIn[i]; 
+                }
+            ''', 'CudaKernelInvert')
+    elif cp_dtype == np.int8:
+        CudaKernelInvert = cp.RawKernel(r'''
+            extern "C" __global__ void CudaKernelInvert (char* pcIn, char* pcOut) 
+                {
+                int i = blockDim.x * blockIdx.x + threadIdx.x;
+                pcOut[i] = -1 * pcIn[i]; 
+                }
+            ''', 'CudaKernelInvert')
+    else:
+        raise ValueError("Only 8-bit and 16-bit data types are supported.")
 
-    cuda_transfer.allocate_buffer(num_samples)
-    cuda_transfer.start_buffer_transfer()
 
+    # number of threads in one CUDA block
+    num_thread_per_block = 1024
+    num_blocks = notify_samples_magnitude // num_thread_per_block
+
+    # allocate memory on GPU
+    data_raw_gpu = cp.zeros(notify_samples_magnitude, dtype = cp_dtype)
+    data_processed_gpu = cp.zeros(notify_samples_magnitude, dtype = cp_dtype)
+
+    # start the card
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER | spcm.M2CMD_DATA_STARTDMA)
     
     # plot function
@@ -75,31 +95,25 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     time_range = np.arange(notify_samples) / sample_rate
     line1, = ax.plot(time_range, np.zeros_like(time_range))
     line2, = ax.plot(time_range, np.zeros_like(time_range))
-    ax.set_ylim([-100, 100])  # range of Y axis
+    ax.set_ylim([-1.2*max_value, 1.2*max_value]) 
     ax.xaxis.set_units(units.us)
-    ax.yaxis.set_units(units.mV)
     plt.show(block=False)
     plt.draw()
 
-    for card_to_cpu, cpu_to_gpu, gpu_to_cpu in cuda_transfer:
+    for data_block in data_transfer:
         # this is the point to do anything with the data on the GPU
-
-        cpu_to_gpu.array[:] = card_to_cpu[:]
-        cpu_to_gpu.copy_to_device()
+        data_raw_gpu = cp.asarray(data_block)
 
         # start kernel on the GPU to process the transfered data
-        threads_per_block = 1024
-        num_blocks = notify_samples // threads_per_block
-        kernel_arguments = (cpu_to_gpu, gpu_to_cpu)
-        CudaKernelInvert.launch(num_blocks, threads_per_block, kernel_arguments)
+        CudaKernelInvert((num_blocks,), (num_thread_per_block,), (data_raw_gpu, data_processed_gpu))
         
-        # after kernel has finished we copy processed data from GPU to host
-        cpu_to_gpu.copy_to_host()
-        gpu_to_cpu.copy_to_host()
+        # after kernel has finished we copy the processed data from GPU to host
+        data_raw_cpu = cp.asnumpy(data_raw_gpu)
+        data_processed_cpu = cp.asnumpy(data_processed_gpu)
  
         # now the processed data is in the host memory
-        line1.set_ydata(cpu_to_gpu.view)
-        line2.set_ydata(gpu_to_cpu.view)
+        line1.set_ydata(data_raw_cpu)
+        line2.set_ydata(data_processed_cpu)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
