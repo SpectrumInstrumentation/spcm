@@ -41,21 +41,26 @@ def checkCudaErrors(result):
     else:
         return result[1:]
     
-
-
     
 class SCAPPTransfer(DataTransfer):
+    """
+    Class for data transfer between the card and the host using the SCAPP API.
 
-    # scapp : bool = False
+    Parameters
+    ----------
+    direction : Direction = Direction.Acquisition
+        Direction of the data transfer.
+    """
+
+    direction : Direction = None
 
     def __init__(self, card : Card, direction : Direction = Direction.Acquisition):
         if not _cuda_support:
             raise ImportError("CUDA support is not available. Please install the cupy and cuda-python packages.")
         super().__init__(card)
-        # self.scapp = scapp
         self.direction = direction
 
-    def allocate_buffer(self, num_samples : int, no_reshape = False) -> None:
+    def allocate_buffer(self, num_samples : int) -> None:
         """
         Memory allocation for the buffer that is used for communicating with the card
 
@@ -63,8 +68,6 @@ class SCAPPTransfer(DataTransfer):
         ----------
         num_samples : int | pint.Quantity = None
             use the number of samples an get the number of active channels and bytes per samples directly from the card
-        no_reshape : bool = False
-            If True, the buffer will not be reshaped to the number of channels and bytes per sample
         """
         
         self.buffer_samples = UnitConversion.convert(num_samples, units.Sa, int)
@@ -72,7 +75,6 @@ class SCAPPTransfer(DataTransfer):
         self.buffer = cp.zeros((self.buffer_samples,), dtype = self.numpy_type())
         flag = 1
         checkCudaErrors(cuda.cuPointerSetAttribute(flag, cuda.CUpointer_attribute.CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, self.buffer.data.ptr))
-
     
     def start_buffer_transfer(self, *args, notify_samples = None, transfer_length = None) -> None:
         """
@@ -80,12 +82,12 @@ class SCAPPTransfer(DataTransfer):
 
         Parameters
         ----------
-        gpu_buffer : cuda.CUdeviceptr
-            GPU buffer to transfer data to.
-        direction : int
-            Direction of the transfer.
+        args : int
+            Additional commands that are send to the card.
         notify_samples : int
-            Size of the notification buffer.
+            Size of the part of the buffer that is used for notifications.
+        transfer_length : int
+            Total length of the transfer buffer.
         """
 
         self.notify_samples(notify_samples)
