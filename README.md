@@ -362,6 +362,12 @@ The user can then use polling to acquire time stamp data from the card.
 
 ## Additional functionality
 
+### SCAPP with CuPy (add-on option)
+
+For more information about the SCAPP option, please see the detailed information page: https://spectrum-instrumentation.com/products/drivers_examples/scapp_cuda_interface.php.
+
+Please see the folder `7_cuda_scapp` in the `examples` folder for several dedicated exampes.
+
 ### Pulse generator
 
 Please see the folder `4_pulse-generator` in the `examples` folder for several dedicated examples. In the following, there is a simple example for setting up a single pulse generator on x0.

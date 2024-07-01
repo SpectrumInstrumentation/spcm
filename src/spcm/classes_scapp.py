@@ -2,7 +2,6 @@
 
 from .classes_error_exception import SpcmTimeout
 from .classes_card import Card
-from .classes_channels import Channels
 from .classes_data_transfer import DataTransfer
 from .pyspcm import spcm_dwDefTransfer_i64, c_void_p
 from .constants import SPCM_BUF_DATA, SPCM_DIR_CARDTOGPU, SPCM_DIR_GPUTOCARD, Direction, MEBI
