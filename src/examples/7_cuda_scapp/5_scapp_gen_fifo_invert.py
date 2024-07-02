@@ -61,13 +61,16 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO, verbose=False) as card:            #
     num_blocks = notify_samples // num_threads_per_block
 
     # CUDA kernel
-    CudaKernelInvert = cp.RawKernel(r'''
-        extern "C" __global__ void CudaKernelInvert (short* pcIn, short* pcOut) 
-            {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            pcOut[i] = -1 * pcIn[i]; 
-            }
-        ''', 'CudaKernelInvert')
+    with open("cuda_kernels/invert.cu", "r") as f:
+        kernel_src = f.read()
+        name_exp = ['CudaKernelInvert<short>']
+    CudaKernelInvert = cp.RawKernel(code=kernel_src, name_expressions=name_exp)
+
+    cp_dtype = scapp_transfer.numpy_type()
+    if cp_dtype == cp.int16:
+        invert_function = CudaKernelInvert.get_function(name_exp[0])
+    else:
+        raise ValueError("Only 16-bit data types are supported.")
     
     time_range = cp.arange(notify_samples) / sample_rate.to_base_units().magnitude
     data_raw_gpu = cp.zeros_like(time_range, dtype=cp.int16)
