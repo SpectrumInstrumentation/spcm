@@ -58,6 +58,7 @@ class SCAPPTransfer(DataTransfer):
             raise ImportError("CUDA support is not available. Please install the cupy and cuda-python packages.")
         super().__init__(card)
         self.direction = direction
+        self.iterator_index = 0
 
     def allocate_buffer(self, num_samples : int) -> None:
         """
@@ -71,7 +72,7 @@ class SCAPPTransfer(DataTransfer):
         
         self.buffer_samples = UnitConversion.convert(num_samples, units.Sa, int)
         # Allocate RDMA buffer
-        self.buffer = cp.zeros((self.buffer_samples,), dtype = self.numpy_type())
+        self.buffer = cp.empty((self.num_channels, self.buffer_samples), dtype = self.numpy_type(), order='F')
         flag = 1
         checkCudaErrors(cuda.cuPointerSetAttribute(flag, cuda.CUpointer_attribute.CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, self.buffer.data.ptr))
     
@@ -106,7 +107,26 @@ class SCAPPTransfer(DataTransfer):
                 cmd |= arg
             self.card.cmd(cmd)
             self.card._print("... CUDA data transfer started")
-        
+    
+    _auto_avail_card_len = True
+    def auto_avail_card_len(self, value : bool = None) -> bool:
+        """
+        Enable or disable the automatic sending of the number of samples that the card can now use for sample data transfer again
+
+        Parameters
+        ----------
+        value : bool = None
+            True to enable, False to disable and None to get the current status
+
+        Returns
+        -------
+        bool
+            the current status
+        """
+        if value is not None:
+            self._auto_avail_card_len = value
+        return self._auto_avail_card_len
+
     def __next__(self) -> tuple:
         """
         This method is called when the next element is requested from the iterator
@@ -122,7 +142,7 @@ class SCAPPTransfer(DataTransfer):
         """
         timeout_counter = 0
 
-        if self.iterator_index != 0:
+        if self.iterator_index != 0 and self._auto_avail_card_len:
             self.avail_card_len(self._notify_samples)
 
         while True:
@@ -132,6 +152,7 @@ class SCAPPTransfer(DataTransfer):
                 self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
                 timeout_counter += 1
                 if timeout_counter > self._max_timeout:
+                    self.iterator_index = 0
                     raise StopIteration
             else:
                 break
@@ -140,6 +161,7 @@ class SCAPPTransfer(DataTransfer):
 
         self._current_samples += self._notify_samples
         if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:
+            self.iterator_index = 0
             raise StopIteration
 
         user_pos = self.avail_user_pos()
@@ -147,5 +169,5 @@ class SCAPPTransfer(DataTransfer):
         
         self.card._print("Fill size: {}%  Pos:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
         
-        return self.buffer[user_pos:user_pos+self._notify_samples]
+        return self.buffer[:, user_pos:user_pos+self._notify_samples]
 
