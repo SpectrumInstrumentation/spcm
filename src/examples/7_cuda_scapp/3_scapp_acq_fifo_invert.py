@@ -49,11 +49,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print(f"Used Sample Rate: {sample_rate}")
     
     # Setup a data transfer object with CUDA DMA
-    notify_samples = spcm.KIBI(2)
-    num_samples    = spcm.MEBI(8)
-
-    num_thread_per_block = 1024
-    num_blocks = notify_samples // num_thread_per_block
+    num_samples = 8 * units.MiS # KibiSamples = 1024 Samples
+    notify_samples = 64 * units.KiS
+    num_samples_magnitude = num_samples.to_base_units().magnitude
+    notify_samples_magnitude = notify_samples.to_base_units().magnitude
+    # notify_samples = spcm.KIBI(2)
+    # num_samples    = spcm.MEBI(8)
 
     scapp_transfer = spcm.SCAPPTransfer(card, direction=spcm.Direction.Acquisition)
     scapp_transfer.notify_samples(notify_samples)
@@ -61,32 +62,20 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     scapp_transfer.start_buffer_transfer()
 
     # invert data on GPU
-    cp_dtype = scapp_transfer.numpy_type()
-    if cp_dtype == np.int16:
-        CudaKernelInvert = cp.RawKernel(r'''
-            extern "C" __global__ void CudaKernelInvert (short* pcIn, short* pcOut) 
-                {
-                int i = blockDim.x * blockIdx.x + threadIdx.x;
-                pcOut[i] = -1 * pcIn[i]; 
-                }
-            ''', 'CudaKernelInvert')
-    elif cp_dtype == np.int8:
-        CudaKernelInvert = cp.RawKernel(r'''
-            extern "C" __global__ void CudaKernelInvert (char* pcIn, char* pcOut) 
-                {
-                int i = blockDim.x * blockIdx.x + threadIdx.x;
-                pcOut[i] = -1 * pcIn[i]; 
-                }
-            ''', 'CudaKernelInvert')
-    else:
-        raise ValueError("Only 8-bit and 16-bit data types are supported.")
-    data_processed_gpu = cp.zeros((notify_samples,), dtype = cp_dtype)
+    data_processed_gpu = cp.zeros((len(channels), notify_samples_magnitude), dtype = scapp_transfer.numpy_type())
+
+    # setup an elementwise inversion kernel
+    kernel_invert = cp.ElementwiseKernel(
+        'T x',
+        'T z',
+        'z = -x',
+        'invert')
 
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER | spcm.M2CMD_DATA_STARTDMA)
     
     # plot function
     fig, ax = plt.subplots()
-    time_range = np.arange(notify_samples) / sample_rate
+    time_range = np.arange(notify_samples, dtype=np.float32) / sample_rate
     line1, = ax.plot(time_range, np.zeros_like(time_range))
     line2, = ax.plot(time_range, np.zeros_like(time_range))
     ax.set_ylim([-1.2*max_value, 1.2*max_value])  # range of Y axis
@@ -96,7 +85,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     for data_raw_gpu in scapp_transfer:
         # this is the point to do anything with the data on the GPU
-        CudaKernelInvert((num_blocks,), (num_thread_per_block,), (data_raw_gpu, data_processed_gpu))
+        kernel_invert(data_raw_gpu, data_processed_gpu)
         
         # after kernel has finished we copy processed data from GPU to host
         data_raw_cpu = cp.asnumpy(data_raw_gpu)

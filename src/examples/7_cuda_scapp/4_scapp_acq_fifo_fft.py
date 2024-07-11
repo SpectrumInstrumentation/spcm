@@ -55,9 +55,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     notify_samples_magnitude = notify_samples.to_base_units().magnitude
     num_samples = 8 * units.MiS
 
-    num_thread_per_block = 1024
-    num_blocks = notify_samples_magnitude // num_thread_per_block
-
     scapp_transfer = spcm.SCAPPTransfer(card, direction=spcm.Direction.Acquisition)
     scapp_transfer.notify_samples(notify_samples)
     scapp_transfer.allocate_buffer(num_samples)
@@ -65,54 +62,32 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     
     # length of FFT result
     num_fft_samples = notify_samples_magnitude // 2 + 1
-    num_fft_blocks = num_fft_samples // num_thread_per_block
 
     # allocate memory on GPU
     data_volt_gpu = cp.zeros(notify_samples_magnitude, dtype = cp.float32)
     spectrum_gpu = cp.zeros(num_fft_samples, dtype = cp.float32)
 
-    # convert raw data to volt
-    CupyKernelConvertSignalToVolt = cp.RawKernel(r'''
-        extern "C" __global__
-        void CudaKernelScale(const short* anSource, float* afDest, double dFactor) {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            afDest[i] = ((float)anSource[i]) * dFactor;
-        }
-        ''', 'CudaKernelScale')
+    # transform data from integers to volts
+    kernel_signal_to_volt = cp.ElementwiseKernel(
+        'T x, float64 y',
+        'float32 z',
+        'z = x * y',
+        'signal_to_volt')
+    factor_signal_to_volt = amplitude.to(units.V).magnitude / max_value
 
-    # scale the FFT result
-    CupyKernelScaleFFTResult = cp.RawKernel(r'''
-        extern "C" __global__
-        void CudaScaleFFTResult (complex<float>* pcompDest, const complex<float>* pcompSource, int lLen) {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            pcompDest[i].real (pcompSource[i].real() / (lLen / 2 + 1)); // divide by length of signal
-            pcompDest[i].imag (pcompSource[i].imag() / (lLen / 2 + 1)); // divide by length of signal
-        }
-        ''', 'CudaScaleFFTResult', translate_cucomplex=True)
-
-    # calculate real spectrum from complex FFT result
-    CupyKernelFFTToSpectrum = cp.RawKernel(r'''
-        extern "C" __global__
-        void CudaKernelFFTToSpectrum (const complex<float>* pcompSource, float* pfDest) {
-            int i = blockDim.x * blockIdx.x + threadIdx.x;
-            pfDest[i] = sqrt (pcompSource[i].real() * pcompSource[i].real() + pcompSource[i].imag() * pcompSource[i].imag());
-        }
-        ''', 'CudaKernelFFTToSpectrum', translate_cucomplex=True)
-
-    # convert to dBFS
-    CupyKernelSpectrumToDBFS = cp.RawKernel(r'''
-    extern "C" __global__
-    void CudaKernelToDBFS (float* pfDest, const float* pfSource, int lIR_V) {
-        int i = blockDim.x * blockIdx.x + threadIdx.x;
-        pfDest[i] = 20. * log10f (pfSource[i] / lIR_V);
-    }
-    ''', 'CudaKernelToDBFS')
+    # create a dBFS spectrum from fft result
+    kernel_fft_to_spectrum = cp.ElementwiseKernel(
+        'complex64 x, int64 y, float32 k',
+        'float32 z',
+        'z = 20.0f * log10f ( abs(x / thrust::complex<float>(y / 2.0f + 1.0f, 0.0f)) / k)',
+        'fft_to_spectrum'
+    )
     
     # plot function
     fig, ax = plt.subplots()
-    freq = np.linspace(0, 1, num_fft_samples - 1) * sample_rate / 2
+    freq = np.fft.rfftfreq(notify_samples_magnitude, 1/sample_rate)
     line, = ax.plot(freq, np.zeros_like(freq))
-    ax.set_ylim([-140.0, 10.0])  # range of Y axis
+    ax.set_ylim([-120.0, 10.0])  # range of Y axis
     ax.xaxis.set_units(units.MHz)
     plt.show(block=False)
     plt.draw()
@@ -122,26 +97,19 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     counter = 0
     for data_raw_gpu in scapp_transfer:
         # this is the point to do anything with the data on the GPU
-        CupyKernelConvertSignalToVolt((num_blocks,), (num_thread_per_block,), (data_raw_gpu, data_volt_gpu, amplitude.to(units.V).magnitude / max_value))
+        kernel_signal_to_volt(data_raw_gpu, factor_signal_to_volt, data_volt_gpu)
         
         # calculate the FFT
-        fftdata_gpu = cp.fft.fft(data_volt_gpu)
+        fftdata_gpu = cp.fft.rfft(data_volt_gpu)
 
-        # scale the FFT result
-        CupyKernelScaleFFTResult((num_blocks,), (num_thread_per_block,), (fftdata_gpu, fftdata_gpu, num_fft_samples))
-
-        # calculate real spectrum from complex FFT result
-        CupyKernelFFTToSpectrum((num_fft_blocks,), (num_thread_per_block,), (fftdata_gpu, spectrum_gpu))
-
-        # convert to dBFS
-        CupyKernelSpectrumToDBFS((num_fft_blocks,), (num_thread_per_block,), (spectrum_gpu, spectrum_gpu, 1))
+        kernel_fft_to_spectrum(fftdata_gpu, notify_samples_magnitude, 1, spectrum_gpu)
 
         # after kernel has finished we copy processed data from GPU to host
         spectrum_cpu = cp.asnumpy(spectrum_gpu)
  
         # now the processed data is in the host memory
         if counter % plot_divider == 0:
-            line.set_ydata(spectrum_cpu[:-1])
+            line.set_ydata(spectrum_cpu)
             fig.canvas.draw()
             fig.canvas.flush_events()
         counter += 1

@@ -58,41 +58,22 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     data_transfer.allocate_buffer(num_samples)
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
-    cp_dtype = data_transfer.numpy_type()
-    if cp_dtype == np.int16:
-        CudaKernelInvert = cp.RawKernel(r'''
-            extern "C" __global__ void CudaKernelInvert (short* pcIn, short* pcOut) 
-                {
-                int i = blockDim.x * blockIdx.x + threadIdx.x;
-                pcOut[i] = -1 * pcIn[i]; 
-                }
-            ''', 'CudaKernelInvert')
-    elif cp_dtype == np.int8:
-        CudaKernelInvert = cp.RawKernel(r'''
-            extern "C" __global__ void CudaKernelInvert (char* pcIn, char* pcOut) 
-                {
-                int i = blockDim.x * blockIdx.x + threadIdx.x;
-                pcOut[i] = -1 * pcIn[i]; 
-                }
-            ''', 'CudaKernelInvert')
-    else:
-        raise ValueError("Only 8-bit and 16-bit data types are supported.")
-
-
-    # number of threads in one CUDA block
-    num_thread_per_block = 1024
-    num_blocks = notify_samples_magnitude // num_thread_per_block
+    # setup an elementwise inversion kernel
+    kernel_invert = cp.ElementwiseKernel(
+        'T x',
+        'T z',
+        'z = -x',
+        'invert')
 
     # allocate memory on GPU
-    data_raw_gpu = cp.zeros(notify_samples_magnitude, dtype = cp_dtype)
-    data_processed_gpu = cp.zeros(notify_samples_magnitude, dtype = cp_dtype)
+    data_processed_gpu = cp.empty((len(channels), notify_samples_magnitude), dtype = data_transfer.numpy_type())
 
     # start the card
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER | spcm.M2CMD_DATA_STARTDMA)
     
     # plot function
     fig, ax = plt.subplots()
-    time_range = np.arange(notify_samples) / sample_rate
+    time_range = np.arange(notify_samples, dtype=np.float32) / sample_rate
     line1, = ax.plot(time_range, np.zeros_like(time_range))
     line2, = ax.plot(time_range, np.zeros_like(time_range))
     ax.set_ylim([-1.2*max_value, 1.2*max_value]) 
@@ -105,7 +86,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
         data_raw_gpu = cp.asarray(data_block)
 
         # start kernel on the GPU to process the transfered data
-        CudaKernelInvert((num_blocks,), (num_thread_per_block,), (data_raw_gpu, data_processed_gpu))
+        kernel_invert(data_raw_gpu, data_processed_gpu)
         
         # after kernel has finished we copy the processed data from GPU to host
         data_raw_cpu = cp.asnumpy(data_raw_gpu)
