@@ -90,7 +90,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
         print(channel)
         print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
         print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
-        ax.plot(time_data_s, unit_data_V, label=f"{channel}")
+        ax.plot(time_data_s, unit_data_V, label=f"{channel.index}")
     ax.xaxis.set_units(units.ms)
     ax.yaxis.set_units(units.mV)
     ax.axvline(0, color='k', linestyle='--', label='Trigger')

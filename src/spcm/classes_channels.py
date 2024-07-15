@@ -17,15 +17,16 @@ import pint
 class Channel:
     """A class to represent a channel of a card only used inside the Channels class in the list of channels"""
 
-    card : Card
-    index : int
+    card : Card = None
+    index : int = 0
+    data_index : int = 0
 
     _conversion_amp : pint.Quantity = None
     _conversion_offset : pint.Quantity = None
     _output_load : pint.Quantity = None
     _series_impedance : pint.Quantity = None
 
-    def __init__(self, index : int, card : Card) -> None:
+    def __init__(self, index : int, data_index : int, card : Card) -> None:
         """
         Constructor of the Channel class
     
@@ -39,6 +40,7 @@ class Channel:
 
         self.card = card
         self.index = index
+        self.data_index = data_index
         self._conversion_amp = None
         self._conversion_offset = 0 * units.percent
         self._output_load = 50 * units.ohm
@@ -67,7 +69,7 @@ class Channel:
         int
             The index of the channel
         """
-        return self.index
+        return self.data_index
     __index__ = __int__
     
     def __add__(self, other):
@@ -569,6 +571,7 @@ class Channels:
             the channel at the specific index
         """
 
+        
         return self.channels[index]
     
     _channel_iterator_index = -1
@@ -616,21 +619,28 @@ class Channels:
             A list with items that indicate for each card the number of channels that are enabled, or True to enable all channels.
         """
 
+        self.channels = []
+        self.num_channels = []
+        num_channels = 0
+
         if enable_all:
             for card in self.cards:
                 num_channels = card.num_channels()
                 card.set_i(SPC_CHENABLE, (1 << num_channels) - 1)
+                num_channels = card.get_i(SPC_CHCOUNT)
+                self.num_channels.append(num_channels)
+                for i in range(num_channels):
+                    self.channels.append(Channel(i, i, card))
         elif enable_list is not None:
             for enable, card in zip(enable_list, self.cards):
                 card.set_i(SPC_CHENABLE, enable)
-        self.channels = []
-        self.num_channels = []
-        num_channels = 0
-        for card in self.cards:
-            num_channels = card.get_i(SPC_CHCOUNT)
-            self.num_channels.append(num_channels)
-            for i in range(num_channels):
-                self.channels.append(Channel(i, card))
+                num_channels = card.get_i(SPC_CHCOUNT)
+                self.num_channels.append(num_channels)
+                counter = 0
+                for i in range(len(bin(enable))):
+                    if (enable >> i) & 1:
+                        self.channels.append(Channel(i, counter, card))
+                        counter += 1
         return sum(self.num_channels)
         
     # def __getattribute__(self, name):

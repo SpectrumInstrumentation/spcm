@@ -42,7 +42,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     clock.sample_rate(200 * units.MHz)
 
     # setup channel 0
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL2)
     channels.amp(1 * units.V)
 
     # Channel triggering
@@ -73,14 +73,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
         for segment in range(data.shape[0]):
             print("Segment {}".format(segment))
             for channel in channels:
-                chan_data = channel.convert_data(data[segment, :, channel.index]) # index definition: [segment, sample, channel]
+                chan_data = channel.convert_data(data[segment, :, channel]) # index definition: [segment, sample, channel]
                 minimum = np.min(chan_data)
                 maximum = np.max(chan_data)
                 print(f"\t{channel}")
                 print(f"\t\tMinimum: {minimum}")
                 print(f"\t\tMaximum: {maximum}")
 
-                ax[segment].plot(time_data, chan_data, '.', label="{}, Seg {}".format(channel, segment))
+                ax[segment].plot(time_data, chan_data, '.', label="{}, Seg {}".format(channel.index, segment))
             ax[segment].set_title(f"Segment {segment}")
             ax[segment].yaxis.set_units(units.V)
             ax[segment].xaxis.set_units(units.us)

@@ -40,9 +40,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
     
     # setup the channels
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL2) # enable channel 0 and 2
     channels.amp(200 * units.mV)
-    channels[0].offset(0 * units.mV, return_unit=units.mV)
+    channels.offset(0 * units.mV)
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
 
@@ -66,7 +66,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     time_data_s = data_transfer.time_data()
     fig, ax = plt.subplots()
     for channel in channels:
-        unit_data_V = channel.convert_data(data_transfer.buffer[channel.index, :], units.V)
+        unit_data_V = channel.convert_data(data_transfer.buffer[channel, :], units.V)
         print(channel)
         print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
         print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
