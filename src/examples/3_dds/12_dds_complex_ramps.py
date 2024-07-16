@@ -64,6 +64,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds = spcm.DDS(card)
     dds.reset()
 
+    dds.data_transfer_mode(spcm.SPCM_DDS_DTM_DMA)
+
     # Start the DDS test
     num_cores = len(dds)
     # 20 Carriers from 90 to 110 MHz
