@@ -53,6 +53,7 @@ Functionality classes handle specific functionality that is available to the car
 | `Multi`             | `DataTransfer`      | special class for handling multiple recording and replay mode functionality                   |
 | `Sequence`          | `DataTransfer`      | special class for handling sequence mode functionality                                        |
 | `TimeStamp`         | `DataTransfer`      | special class for handling time stamped data                                                  |
+| `SCAPPTransfer`     | `DataTransfer`      | special class for handling direct card to GPU class using the SCAPP option                    |
 | `Boxcar`            | `Multi`             | special class for handling boxcar averaging                                                   |
 | `BlockAverage`      | `Multi`             | special class for handling block averaging functionality                                      |
 | `PulseGenerators`   | `CardFunctionality` | class for handling the pulse generator functionality                                          |
@@ -81,6 +82,7 @@ classDiagram
   class Multi
   class TimeStamp
   class Sequence
+  class SCAPPTransfer
   class Boxcar
   class BlockAverage
   CardFunctionality <|-- Clock
@@ -92,6 +94,7 @@ classDiagram
   DataTransfer <|-- Multi
   DataTransfer <|-- TimeStamp
   DataTransfer <|-- Sequence
+  DataTransfer <|-- SCAPPTransfer
   Multi <|-- Boxcar
   Multi <|-- BlockAverage
   Channels *-- Channel
