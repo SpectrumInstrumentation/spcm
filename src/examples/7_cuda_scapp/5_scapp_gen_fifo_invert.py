@@ -43,47 +43,45 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO, verbose=False) as card:            #
     # we try to use the max samplerate
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(625 * units.MHz, return_unit=(units.MHz))
+    sample_rate = clock.sample_rate(max=True, return_unit=(units.MHz))
+    sample_rate_magnitude = sample_rate.to_base_units().magnitude
     print(f"Used Sample Rate: {sample_rate}")
     max_value = card.max_sample_value()
     
     # Setup a data transfer object with CUDA DMA
-    notify_samples = spcm.MEBI(12)
-    num_samples    = 4 * notify_samples
-    gpu_samples    = 50 * notify_samples
+    num_samples    =  32 * units.MiS # MebiSamples = 1024 * 1024 Samples
+    notify_samples = 512 * units.KiS
+    notify_samples_magnitude = notify_samples.to_base_units().magnitude
 
     scapp_transfer = spcm.SCAPPTransfer(card, direction=spcm.Direction.Generation)
     scapp_transfer.notify_samples(notify_samples)
     scapp_transfer.allocate_buffer(num_samples)
     scapp_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
-    # setup an elementwise inversion kernel
-    kernel_invert = cp.ElementwiseKernel(
-        'T x',
-        'T z',
-        'z = -x',
-        'invert')
-
     cp_dtype = scapp_transfer.numpy_type()
     
-    time_range = cp.arange(gpu_samples, dtype=cp.float32) / sample_rate.to_base_units().magnitude
-    data_raw_gpu = cp.empty((2, gpu_samples), dtype=cp_dtype, order='F')
-    frequency = 1000 # Hz
+    output_divider = 10
+    time_range = cp.arange(notify_samples_magnitude, dtype=cp.float32) / sample_rate_magnitude
+    data_raw_gpu = cp.empty((len(channels), notify_samples_magnitude), dtype=cp_dtype, order='F')
+    frequency1 = 1000 # Hz
+    frequency2 = 1002 # Hz
+
     phase = 0
-    data_raw_gpu[:, :] = cp.sin(2*cp.pi*(time_range*frequency+phase)) * 0.5 * max_value
     
     started = False
     try:
         counter = 0
         for card_buffer in scapp_transfer:
-            # Generate sine wave data on the GPU
-            # phase += time_range[-1]*frequency
+            # waits for a memory block to become available for writing from the gpu memory to the card using scapp
 
-            # Invert the sine wave on channel 0
-            kernel_invert(data_raw_gpu[0,counter:(counter+notify_samples)], card_buffer[0,:])
-            card_buffer[1,:] = data_raw_gpu[1,counter:(counter+notify_samples)]
+            # ... this is the point where the data can be generated on the gpu
+
+            # Generate 2 sine waves with data on the gpu
+            card_buffer[0, :] = cp.sin(2*cp.pi*((time_range+phase)*frequency1)) * 0.5 * max_value
+            card_buffer[1, :] = cp.sin(2*cp.pi*((time_range+phase)*frequency2)) * 0.5 * max_value
+            phase += notify_samples_magnitude / sample_rate_magnitude
+
             fill_size = scapp_transfer.fill_size_promille()
-            print("Fillsize: {}".format(fill_size), end="\r")
 
             # Start the card when buffer is half-full
             if fill_size > 800 and not started:
@@ -91,9 +89,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO, verbose=False) as card:            #
                 print("\n\nCard started...\n")
                 started = True
             
-            counter += notify_samples
-            if counter >= gpu_samples:
-                counter = 0
+            # Check the filling of the on board memory
+            if counter % output_divider == 0:
+                print("Fill size: {}".format(fill_size), end="\r")
+            
+            counter += 1
 
     except KeyboardInterrupt:
         print("Ctrl+C pressed and generation stopped")

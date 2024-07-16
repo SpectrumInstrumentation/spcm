@@ -40,6 +40,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     amplitude = channels[0].amp(1 * units.V, return_unit=units.V)
+    amplitude_magnitude_V = amplitude.to(units.V).magnitude
     max_value = card.max_sample_value()
 
     # we try to use the max samplerate
@@ -47,8 +48,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock.mode(spcm.SPC_CM_INTPLL)
     sample_rate = clock.sample_rate(10 * units.MHz, return_unit=(units.MHz))
     print(f"Used Sample Rate: {sample_rate}")
-
-    plot_divider = 10 # plot 1 in 1 data blocks
     
     # Setup a data transfer object with CUDA DMA
     notify_samples = 64 * units.KiS
@@ -67,27 +66,28 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     data_volt_gpu = cp.zeros(notify_samples_magnitude, dtype = cp.float32)
     spectrum_gpu = cp.zeros(num_fft_samples, dtype = cp.float32)
 
-    # transform data from integers to volts
+    # elementwise kernel to convert the raw data to volts
     kernel_signal_to_volt = cp.ElementwiseKernel(
-        'T x, float64 y',
-        'float32 z',
-        'z = x * y',
-        'signal_to_volt')
+        'T rawData, float64 voltPerLSB', # two inputs: rawData is the integer data (template; can be int8, int16 and int32), voltPerLSB is the factor to convert to volts
+        'float32 convertedData', # output is a float32
+        'convertedData = rawData * voltPerLSB', # the conversion operation
+        'signal_to_volt') # name of the kernel
     factor_signal_to_volt = amplitude.to(units.V).magnitude / max_value
 
-    # create a dBFS spectrum from fft result
+    # elementwise kernel to convert the FFT data to a spectrum in dBFS
     kernel_fft_to_spectrum = cp.ElementwiseKernel(
-        'complex64 x, int64 y, float32 k',
-        'float32 z',
-        'z = 20.0f * log10f ( abs(x / thrust::complex<float>(y / 2.0f + 1.0f, 0.0f)) / k)',
-        'fft_to_spectrum'
+        'complex64 fftData, int64 numElem, float32 fIR_V', # 3 inputs: complex fft input data; number of samples; input voltage range
+        'float32 spectrumData', # output: the spectrum in dBFS
+        'spectrumData = 20.0f * log10f ( abs(fftData / thrust::complex<float>(numElem / 2.0f + 1.0f, 0.0f)) / fIR_V)', # the conversion
+        'fft_to_spectrum' # name of the conversion
     )
     
     # plot function
+    plot_divider = 10 # plot 1 in 10 data blocks
     fig, ax = plt.subplots()
     freq = np.fft.rfftfreq(notify_samples_magnitude, 1/sample_rate)
     line, = ax.plot(freq, np.zeros_like(freq))
-    ax.set_ylim([-120.0, 10.0])  # range of Y axis
+    ax.set_ylim([-160.0, 10.0])  # range of Y axis
     ax.xaxis.set_units(units.MHz)
     plt.show(block=False)
     plt.draw()
@@ -96,18 +96,23 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     counter = 0
     for data_raw_gpu in scapp_transfer:
-        # this is the point to do anything with the data on the GPU
+        # waits for a block to become available after the data is transferred from the card to the gpu memory using scapp
+
+        # ... this is the point to do anything with the data on the gpu
+
+        # start kernel on the gpu to process the transfered data
         kernel_signal_to_volt(data_raw_gpu, factor_signal_to_volt, data_volt_gpu)
         
         # calculate the FFT
         fftdata_gpu = cp.fft.rfft(data_volt_gpu)
 
-        kernel_fft_to_spectrum(fftdata_gpu, notify_samples_magnitude, 1, spectrum_gpu)
+        # scale the FFT result
+        kernel_fft_to_spectrum(fftdata_gpu, notify_samples_magnitude, amplitude_magnitude_V, spectrum_gpu)
 
-        # after kernel has finished we copy processed data from GPU to host
+        # after kernel has finished we copy processed data from the gpu to the host cpu
         spectrum_cpu = cp.asnumpy(spectrum_gpu)
  
-        # now the processed data is in the host memory
+        # now the processed data is in the host memory and can be used for plotting
         if counter % plot_divider == 0:
             line.set_ydata(spectrum_cpu)
             fig.canvas.draw()

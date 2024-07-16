@@ -39,6 +39,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     amplitude = channels[0].amp(1 * units.V, return_unit=units.V)
+    amplitude_magnitude_V = amplitude.to(units.V).magnitude
+    max_value = card.max_sample_value()
 
     # we try to use the max samplerate
     clock = spcm.Clock(card)
@@ -69,41 +71,40 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # e.g. calculate an FFT of the signal on a CUDA GPU
     print("Calculating FFT...")
 
-    max_value = card.max_sample_value()
-
     # copy data to GPU
     data_raw_gpu = cp.array(data_transfer.buffer)
 
+    # elementwise kernel to convert the raw data to volts
     kernel_signal_to_volt = cp.ElementwiseKernel(
-        'T x, float64 y',
-        'float32 z',
-        'z = x * y',
-        'signal_to_volt')
+        'T rawData, float64 voltPerLSB', # two inputs: rawData is the integer data (template; can be int8, int16 and int32), voltPerLSB is the factor to convert to volts
+        'float32 convertedData', # output is a float32
+        'convertedData = rawData * voltPerLSB', # the conversion operation
+        'signal_to_volt') # name of the kernel
     
     data_volt_gpu = cp.zeros_like(data_raw_gpu, dtype = cp.float32)
-    factor_signal_to_volt = amplitude.to(units.V).magnitude / max_value
-    kernel_signal_to_volt(data_raw_gpu, factor_signal_to_volt, data_volt_gpu)
+    volt_per_LSB = amplitude_magnitude_V / max_value
+    kernel_signal_to_volt(data_raw_gpu, volt_per_LSB, data_volt_gpu)
 
     # calculate the FFT
     fftdata_gpu = cp.fft.rfft(data_volt_gpu)
 
-    # length of FFT result
-    kernel_fft_to_spectrum = cp.ElementwiseKernel(
-        'complex64 x, int64 y, float32 k',
-        'float32 z',
-        'z = 20.0f * log10f ( abs(x / thrust::complex<float>(y / 2.0f + 1.0f, 0.0f)) / k)',
-        'fft_to_spectrum'
+    # elementwise kernel to convert the FFT data to a spectrum in dBFS
+    kernel_fft_to_spectrum = cp.ElementwiseKernel( 
+        'complex64 fftData, int64 numElem, float32 fIR_V', # 3 inputs: complex fft input data; number of samples; input voltage range
+        'float32 spectrumData', # output: the spectrum in dBFS
+        'spectrumData = 20.0f * log10f ( abs(fftData / thrust::complex<float>(numElem / 2.0f + 1.0f, 0.0f)) / fIR_V)', # the conversion
+        'fft_to_spectrum' # name of the conversion
     )
 
     # scale the FFT result
     spectrum_gpu = cp.empty_like(fftdata_gpu, dtype = cp.float32)
-    kernel_fft_to_spectrum(fftdata_gpu, num_samples_magnitude, 1, spectrum_gpu)
+    kernel_fft_to_spectrum(fftdata_gpu, num_samples_magnitude, amplitude_magnitude_V, spectrum_gpu)
     spectrum_cpu = cp.asnumpy(spectrum_gpu)  # copy FFT spectrum back to CPU
 
     # plot FFT spectrum
     fig, ax = plt.subplots()
     freq = np.fft.rfftfreq(num_samples_magnitude, 1/sample_rate)
-    ax.set_ylim([-120, 10])  # range of Y axis
+    ax.set_ylim([-160, 10])  # range of Y axis
     ax.plot(freq, spectrum_cpu[0,:], ".")
     ax.xaxis.set_units(units.MHz)
     plt.show()

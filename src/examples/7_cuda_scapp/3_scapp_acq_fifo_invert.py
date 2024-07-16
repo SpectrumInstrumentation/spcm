@@ -64,12 +64,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # invert data on GPU
     data_processed_gpu = cp.zeros((len(channels), notify_samples_magnitude), dtype = scapp_transfer.numpy_type())
 
-    # setup an elementwise inversion kernel
+    # elementwise kernel to invert the data
     kernel_invert = cp.ElementwiseKernel(
-        'T x',
-        'T z',
-        'z = -x',
-        'invert')
+        'T rawData', # input data can be any integer
+        'T processedData', # output data of the same type as the input
+        'processedData = -rawData', # the inversion
+        'invert') # name of the kernel
 
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER | spcm.M2CMD_DATA_STARTDMA)
     
@@ -84,14 +84,18 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     plt.draw()
 
     for data_raw_gpu in scapp_transfer:
-        # this is the point to do anything with the data on the GPU
+        # waits for a block to become available after the data is transferred from the card to the gpu memory using scapp
+
+        # ... this is the point to do anything with the data on the gpu
+
+        # start kernel on the gpu to process the transfered data
         kernel_invert(data_raw_gpu, data_processed_gpu)
         
-        # after kernel has finished we copy processed data from GPU to host
-        data_raw_cpu = cp.asnumpy(data_raw_gpu)
+        # after kernel has finished we copy processed data from the gpu to the host cpu
+        data_raw_cpu       = cp.asnumpy(data_raw_gpu)
         data_processed_cpu = cp.asnumpy(data_processed_gpu)
  
-        # now the processed data is in the host memory
+        # now the processed data is availablle to the host cpu and can be used for plotting
         line1.set_ydata(data_raw_cpu)
         line2.set_ydata(data_processed_cpu)
         fig.canvas.draw()

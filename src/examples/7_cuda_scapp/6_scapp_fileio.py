@@ -21,7 +21,6 @@ from spcm import units
 
 import os
 import kvikio
-from kvikio import defaults
 
 card : spcm.Card
 
@@ -50,8 +49,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print(f"Used Sample Rate: {sample_rate}")
     
     # Setup a data transfer object with CUDA DMA
-    num_samples = 64 * units.MiS # KibiSamples = 1024 Samples
-    notify_samples = 8 * units.MiS
+    num_samples    =    1 * units.GiS # MebiSamples = 1024*1024 Samples
+    notify_samples =  128 * units.MiS # KibiSamples = 1024 Samples
     notify_samples_magnitude = notify_samples.to_base_units().magnitude
 
     scapp_transfer = spcm.SCAPPTransfer(card, direction=spcm.Direction.Acquisition)
@@ -61,19 +60,17 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     scapp_transfer.start_buffer_transfer()
     
     num_threads = 8
-    # os.environ["KVIKIO_NTHREADS"]  = "{}".format(num_threads)
-    # os.environ["KVIKIO_TASK_SIZE"] = "{}".format(notify_samples_magnitude)
 
-    # Path to file on a highspeed RAID0 system. 
-    # With the M5i.33xx working at 6.4GS/s, the data rate is 12.8GB/s and the disk(s) need to be able to handle this!
-    path = "/mnt/highpoint-raid1/kvikio/kvikio-test.bin"
+    # Path to a file 
+    # Make sure that the file is located on a disk that is fast enough to keep up with the data rate
+    path = "scapp_fileio_test.bin"
 
     with kvikio.CuFile(path, "w") as f:
         try:
             print("Starting card...")
             counter = 0
             offset = 0
-            num_prints = 200
+            output_divider = 200 # print memory fill every 200 data blocks
             futures = []
 
             card.start(spcm.M2CMD_CARD_ENABLETRIGGER | spcm.M2CMD_DATA_STARTDMA)
@@ -86,7 +83,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
                     scapp_transfer.avail_card_len(notify_samples_magnitude)
                     futures[counter % num_threads] = f.pwrite(data_raw_gpu, file_offset=offset)
                 offset += notify_samples_magnitude
-                if counter % num_prints == 0:
+                if counter % output_divider == 0:
                     print("fill size: {:>4d} promille".format(scapp_transfer.fill_size_promille()), end="\r")
                 counter += 1
         except KeyboardInterrupt:

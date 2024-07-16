@@ -49,21 +49,21 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print(f"Used Sample Rate: {sample_rate}")
 
     # setup a data transfer buffer
-    num_samples = 8 * units.MiS # KibiSamples = 1024 Samples
-    notify_samples = 64 * units.KiS
-    num_samples_magnitude = num_samples.to_base_units().magnitude
+    num_samples    =  8 * units.MiS # MebiSamples = 1024 * 1024 Samples
+    notify_samples = 64 * units.KiS # KibiSamples = 1024 Samples
+    num_samples_magnitude    = num_samples.to_base_units().magnitude
     notify_samples_magnitude = notify_samples.to_base_units().magnitude
     data_transfer = spcm.DataTransfer(card)
     data_transfer.notify_samples(notify_samples)
     data_transfer.allocate_buffer(num_samples)
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
-    # setup an elementwise inversion kernel
+    # elementwise kernel to invert the data
     kernel_invert = cp.ElementwiseKernel(
-        'T x',
-        'T z',
-        'z = -x',
-        'invert')
+        'T rawData', # input data can be any integer
+        'T processedData', # output data of the same type as the input
+        'processedData = -rawData', # the inversion
+        'invert') # name of the kernel
 
     # allocate memory on GPU
     data_processed_gpu = cp.empty((len(channels), notify_samples_magnitude), dtype = data_transfer.numpy_type())
@@ -82,17 +82,21 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     plt.draw()
 
     for data_block in data_transfer:
-        # this is the point to do anything with the data on the GPU
+        # waits for a block to become available after the data is transferred from the card to the host cpu
+
+        # write data from the host cpu to the gpu
         data_raw_gpu = cp.asarray(data_block)
 
-        # start kernel on the GPU to process the transfered data
+        # ... this is the point to do anything with the data on the gpu
+
+        # start kernel on the gpu to process the transfered data
         kernel_invert(data_raw_gpu, data_processed_gpu)
         
-        # after kernel has finished we copy the processed data from GPU to host
-        data_raw_cpu = cp.asnumpy(data_raw_gpu)
+        # after kernel has finished we copy the processed data from the gpu back to host cpu
+        data_raw_cpu       = cp.asnumpy(data_raw_gpu)
         data_processed_cpu = cp.asnumpy(data_processed_gpu)
  
-        # now the processed data is in the host memory
+        # now the processed data is availablle to the host cpu and can be used for plotting
         line1.set_ydata(data_raw_cpu)
         line2.set_ydata(data_processed_cpu)
         fig.canvas.draw()
