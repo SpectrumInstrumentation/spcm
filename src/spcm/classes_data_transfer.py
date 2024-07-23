@@ -107,15 +107,58 @@ class DataTransfer(CardFunctionality):
         if value is not None:
             self._buffer_samples = value
 
-            if self.bits_per_sample > 1:
-                self.buffer_size = int(self._buffer_samples * self.bytes_per_sample * self.num_channels)
-            else:
-                self.buffer_size = int(self._buffer_samples * self.num_channels // 8)
+            self.buffer_size = self.samples_to_bytes(self._buffer_samples)
+
+            # if self.bits_per_sample > 1:
+            #     self.buffer_size = int(self._buffer_samples * self.bytes_per_sample * self.num_channels)
+            # else:
+            #     self.buffer_size = int(self._buffer_samples * self.num_channels // 8)
     
     @buffer_samples.deleter
     def buffer_samples(self) -> None:
         del self._buffer_samples
     
+    def bytes_to_samples(self, num_bytes : int) -> int:
+        """
+        Convert bytes to samples
+        
+        Parameters
+        ----------
+        bytes : int
+            the number of bytes
+        
+        Returns
+        -------
+        int
+            the number of samples
+        """
+
+        if self.bits_per_sample > 1:
+            num_samples = num_bytes // self.bytes_per_sample // self.num_channels
+        else:
+            num_samples = num_bytes // self.num_channels * 8
+        return num_samples
+    
+    def samples_to_bytes(self, num_samples : int) -> int:
+        """
+        Convert samples to bytes
+        
+        Parameters
+        ----------
+        num_samples : int
+            the number of samples
+        
+        Returns
+        -------
+        int
+            the number of bytes
+        """
+
+        if self.bits_per_sample > 1:
+            num_bytes = num_samples * self.bytes_per_sample * self.num_channels
+        else:
+            num_bytes = num_samples * self.num_channels // 8
+        return num_bytes
 
     # @property
     # def notify_samples(self) -> int:
@@ -143,7 +186,8 @@ class DataTransfer(CardFunctionality):
         if notify_samples is not None:
             notify_samples = UnitConversion.convert(notify_samples, units.Sa, int)
             self._notify_samples = notify_samples
-            self.notify_size = int(self._notify_samples * self.bytes_per_sample * self.num_channels)
+            self.notify_size = self.samples_to_bytes(self._notify_samples)
+            # self.notify_size = int(self._notify_samples * self.bytes_per_sample * self.num_channels)
         return self._notify_samples
     
     # @notify_samples.deleter
@@ -232,6 +276,22 @@ class DataTransfer(CardFunctionality):
             self.card.set_i(SPC_MEMSIZE, memory_size)
         self._memory_size = self.card.get_i(SPC_MEMSIZE)
         return self._memory_size
+    
+    def output_buffer_size(self, buffer_samples : int = None) -> int:
+        """
+        Set the size of the output buffer (see register `SPC_DATA_OUTBUFSIZE` in the manual)
+        
+        Parameters
+        ----------
+        buffer_samples : int | pint.Quantity
+            the size of the output buffer in Bytes
+        """
+
+        if buffer_samples is not None:
+            buffer_samples = UnitConversion.convert(buffer_samples, units.B, int)
+            buffer_size = self.samples_to_bytes(buffer_size)
+            self.card.set_i(SPC_DATA_OUTBUFSIZE, buffer_size)
+        return self.card.get_i(SPC_DATA_OUTBUFSIZE)
     
     def loops(self, loops : int = None) -> int:
         """
@@ -339,11 +399,6 @@ class DataTransfer(CardFunctionality):
 
         sample_type = self.numpy_type()
 
-        # if self.bits_per_sample > 1:
-        #     self.buffer_size = int(self._buffer_samples * self.bytes_per_sample * self.num_channels)
-        # else:
-        #     self.buffer_size = int(self._buffer_samples * self.num_channels // 8)
-
         dwMask = self._buffer_alignment - 1
 
         item_size = sample_type(0).itemsize
@@ -398,26 +453,16 @@ class DataTransfer(CardFunctionality):
             else:
                 raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
         
-        # notify_size = 0
-        # if notify_samples: 
-        #     self._notify_samples = notify_samples
-        # if self._notify_samples: 
-        #     notify_size = int(self._notify_samples * self.bytes_per_sample * self.num_channels)
-        # if notify_samples: self.notify_samples(notify_samples)
-        
         if self._notify_samples != 0 and np.remainder(self.buffer_samples, self._notify_samples) and exception_num_samples:
             raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
 
         if transfer_offset:
-            transfer_offset_bytes = transfer_offset * self.bytes_per_sample * self.num_channels
+            transfer_offset_bytes = self.samples_to_bytes(transfer_offset)
+            # transfer_offset_bytes = transfer_offset * self.bytes_per_sample * self.num_channels
         else:
             transfer_offset_bytes = 0
 
         self.buffer_samples = transfer_length
-        # if transfer_length is not None: 
-        #     transfer_length_bytes = transfer_length * self.bytes_per_sample * self.num_channels
-        # else:
-        #     transfer_length_bytes = self.buffer_size
         
         # we define the buffer for transfer and start the DMA transfer
         self.card._print("Starting the DMA transfer and waiting until data is in board memory")
@@ -485,6 +530,11 @@ class DataTransfer(CardFunctionality):
     def time_data(self, total_num_samples : int = None) -> npt.NDArray:
         """
         Get the time array for the data buffer
+
+        Parameters
+        ----------
+        total_num_samples : int | pint.Quantity
+            the total number of samples
         
         Returns
         -------
@@ -641,7 +691,8 @@ class DataTransfer(CardFunctionality):
 
         available_samples = UnitConversion.convert(available_samples, units.Sa, int)
         # print(available_samples, self.bytes_per_sample, self.num_channels)
-        self.card.set_i(SPC_DATA_AVAIL_CARD_LEN, available_samples * self.bytes_per_sample * self.num_channels)
+        available_bytes = self.samples_to_bytes(available_samples)
+        self.card.set_i(SPC_DATA_AVAIL_CARD_LEN, available_bytes)
     
     def avail_user_pos(self, in_bytes : bool = False) -> int:
         """
@@ -660,7 +711,7 @@ class DataTransfer(CardFunctionality):
 
         self.current_user_pos = self.card.get_i(SPC_DATA_AVAIL_USER_POS)
         if not in_bytes:
-            self.current_user_pos = self.current_user_pos // self.bytes_per_sample // self.num_channels
+            self.current_user_pos = self.bytes_to_samples(self.current_user_pos)
         return self.current_user_pos
     
     def avail_user_len(self, in_bytes : bool = False) -> int:
@@ -680,7 +731,7 @@ class DataTransfer(CardFunctionality):
 
         user_len = self.card.get_i(SPC_DATA_AVAIL_USER_LEN)
         if not in_bytes:
-            user_len = user_len // self.bytes_per_sample // self.num_channels
+            user_len = self.bytes_to_samples(user_len)
         return user_len
     
     def fill_size_promille(self, return_unit = None) -> int:
