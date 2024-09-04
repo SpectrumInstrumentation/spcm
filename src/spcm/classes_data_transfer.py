@@ -294,19 +294,7 @@ class DataTransfer(CardFunctionality):
         return self.card.get_i(SPC_DATA_OUTBUFSIZE)
     
     def loops(self, loops : int = None) -> int:
-        """
-        Set the number of times the memory is replayed. If set to zero the generation will run continuously until it is 
-        stopped by the user.  (see register `SPC_LOOPS` in the manual)
-        
-        Parameters
-        ----------
-        loops : int
-            the number of loops that the card should perform
-        """
-
-        if loops is not None:
-            self.card.set_i(SPC_LOOPS, loops)
-        return self.card.get_i(SPC_LOOPS)
+        return self.card.loops(loops)
 
     def _bits_per_sample(self) -> int:
         """

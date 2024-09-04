@@ -1,10 +1,10 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-1_gen_single.py
+2_gen_single_2ch.py
 
 Shows a simple standard mode example using only the few necessary commands.
-- There will be a saw-tooth signal generated on channel 0.
+- There will be a saw-tooth signal generated on channel 0 and the inverse on channel 1.
 - This signal will have an amplitude of 1 V.
 
 Example for analog replay cards (AWG) for the the M2p, M4i, M4x and M5i card-families.
@@ -31,7 +31,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
     card.loops(0) # 0 = loop endless; >0 = n times
 
     # enable the first channel and setup output amplitude
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
     channels.enable(True)
     channels.output_load(units.highZ)
     channels.amp(1 * units.V)
@@ -56,7 +56,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
     # generate output data (or alternatively load data from file)
     samples = num_samples.to_base_units().magnitude
     # simple ramp for analog output cards
-    data_transfer.buffer[:] = np.arange(-samples//2, samples//2).astype(np.int16) # saw-tooth signal
+    data_transfer.buffer[channels[0], :] = np.arange(-samples//2, samples//2).astype(np.int16) # saw-tooth signal
+    data_transfer.buffer[channels[1], :] = - np.arange(-samples//2, samples//2).astype(np.int16) # inverted saw-tooth signal
 
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA) # Wait until the writing to buffer has been done
 

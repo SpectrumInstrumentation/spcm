@@ -41,11 +41,12 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
 
         # set up the mode
         card.card_mode(spcm.SPC_REP_STD_CONTINUOUS)
+        card.loops(0) # loop continuously
 
         # setup the clock
         clock = spcm.Clock(card)
         sample_rate = clock.sample_rate(spcm.MEGA(50))
-        clock.output(0)
+        clock.clock_output(False)
 
         # setup the trigger mode
         trigger = spcm.Trigger(card)
@@ -63,12 +64,10 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
 
     # do a simple setup in CONTINUOUS replay mode for each card
     num_samples = spcm.KIBI(64)
-    loops = 0  # loop continuously
     for i, card in enumerate(stack.cards):
         # setup software buffer
         data_transfer = spcm.DataTransfer(card)
         data_transfer.memory_size(num_samples)
-        data_transfer.loops(loops)
         data_transfer.allocate_buffer(num_samples)
 
         card_channels = spcm.Channels(card)

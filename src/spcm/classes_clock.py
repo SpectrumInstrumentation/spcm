@@ -61,13 +61,13 @@ class Clock(CardFunctionality):
         if return_unit is not None: max_sr = UnitConversion.to_unit(max_sr * units.Hz, return_unit)
         return max_sr
 
-    def sample_rate(self, sample_rate : int = 0, max : bool = False, return_unit = None) -> int:
+    def sample_rate(self, sample_rate = 0, max : bool = False, return_unit = None) -> int:
         """
         Sets or gets the current sample rate of the handled card (see register `SPC_SAMPLERATE` in the manual)
 
         Parameters
         ----------
-        sample_rate : int = 0
+        sample_rate : int | pint.Quantity = 0
             if the parameter sample_rate is given with the function call, then the card's sample rate is set to that value
         max : bool = False
             if max is True, the method sets the maximum sample rate of the card
@@ -82,6 +82,9 @@ class Clock(CardFunctionality):
         
         if max: sample_rate = self.max_sample_rate()
         if sample_rate:
+            if isinstance(sample_rate, units.Quantity) and sample_rate.check("[]"):
+                max_sr = self.max_sample_rate()
+                sample_rate = sample_rate.to_base_units().magnitude * max_sr
             sample_rate = UnitConversion.convert(sample_rate, units.Hz, int)
             self.card.set_i(SPC_SAMPLERATE, int(sample_rate))
         return_value = self.card.get_i(SPC_SAMPLERATE)
@@ -104,7 +107,7 @@ class Clock(CardFunctionality):
         """
         
         if clock_output is not None:
-            self.card.set_i(SPC_CLOCKOUT, clock_output)
+            self.card.set_i(SPC_CLOCKOUT, int(clock_output))
         return self.card.get_i(SPC_CLOCKOUT)
     output = clock_output
     

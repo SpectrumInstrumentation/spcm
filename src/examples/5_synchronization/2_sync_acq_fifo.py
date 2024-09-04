@@ -69,7 +69,7 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         clock = spcm.Clock(card)
         clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
         sample_rate = clock.sample_rate(20 * units.MHz)
-        clock.output(0) # no clock output
+        clock.clock_output(False)
 
         # define the data buffer
         num_samples = spcm.MEBI(2)

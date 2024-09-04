@@ -324,3 +324,18 @@ class Card(Device):
         """
 
         return self._max_sample_value
+    
+    def loops(self, loops : int = None) -> int:
+        """
+        Set the number of times the memory is replayed. If set to zero the generation will run continuously until it is 
+        stopped by the user.  (see register `SPC_LOOPS` in the manual)
+        
+        Parameters
+        ----------
+        loops : int
+            the number of loops that the card should perform
+        """
+
+        if loops is not None:
+            self.set_i(SPC_LOOPS, loops)
+        return self.get_i(SPC_LOOPS)

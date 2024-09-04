@@ -28,6 +28,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_FIFO_MULTI) # multiple recording FIFO mode
+    card.loops(0)
     card.timeout(5 * units.s)
 
     # setup clock engine
@@ -46,7 +47,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.amp(1 * units.V)
     channels.termination(1)
-    # max_sample_value = card.max_sample_value()
 
     # settings for the FIFO mode buffer handling
     total_samples = 96 * units.KiB # set this to zero to record forever
@@ -58,7 +58,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     num_samples_in_segment = 4 * units.KiB
     num_segments = num_samples // num_samples_in_segment
     multiple_recording = spcm.Multi(card)
-    multiple_recording.loops(0)
     multiple_recording.memory_size(num_samples)
     multiple_recording.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
     multiple_recording.to_transfer_samples(total_samples)

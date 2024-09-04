@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-4_gen_multi.py
+3_gen_multi.py
 
 Shows a simple standard mode multiple replay example.
 - There are 4 segments.
@@ -10,7 +10,7 @@ Shows a simple standard mode multiple replay example.
 - The segments are played in a loop.
 - The card is triggered by an external trigger on ext0 of 1 Vdc
 
-Example for analog replay cards (AWG) for the the M2p, M4i and M4x card-families.
+Example for analog replay cards (AWG) for the the M2p, M4i, M4x and M5i card-families.
 
 See the README file in the parent folder of this examples directory for information about how to use this example.
 
@@ -27,10 +27,11 @@ card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
-with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want to open the first card of a specific type
+with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to open the first card of a specific type
     
     # setup card
     card.card_mode(spcm.SPC_REP_STD_MULTI)
+    card.loops(0) # 0 = loop endless; >0 = n times
     max_value = card.max_sample_value()
 
     # Enable all the channels and setup amplitude
@@ -41,18 +42,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # Setup the clock
     clock = spcm.Clock(card)
-    series = card.series()
-    # set samplerate to 50 MHz (M4i) or 1 MHz (otherwise), no clock output
-    if (series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES, spcm.TYP_M5IEXPSERIES]):
-        clock.sample_rate(50 * units.MHz)
-    else:
-        clock.sample_rate(1 * units.MHz)
-    clock.clock_output(0)
+    clock.sample_rate(10 * units.percent) # 10% of the maximum sample rate
+    clock.clock_output(False)
 
     num_segments = 4
     num_samples = 512 * units.KiS
     num_samples_per_segment = num_samples // num_segments
-
 
     # setup the trigger mode
     trigger = spcm.Trigger(card)
@@ -66,7 +61,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     multiple_replay.memory_size(num_samples)
     multiple_replay.allocate_buffer(num_samples_per_segment, num_segments)
-    multiple_replay.loops(0) # loop continuously
 
     num_samples_magnitude = num_samples.to_base_units().magnitude
     num_samples_per_segment_magnitude = num_samples_per_segment.to_base_units().magnitude

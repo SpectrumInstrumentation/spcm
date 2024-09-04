@@ -1,15 +1,15 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-2_gen_fifo.py
+4_gen_fifo.py
 
 Shows a simple FIFO mode example using only the few necessary commands
 - output on channel 0 and 1
-- sampling rate of the card 50 MHz (M4i/x) or 1 MHz (otherwise)
+- 10% of maximum sample rate of the card
 - channel 0: sine wave with 40 kHz frequency and 1 V amplitude
 - channel 1: sine wave with 20 kHz frequency and 1 V amplitude
 
-Example for analog replay cards (AWG) for the the M2p, M4i and M4x card-families.
+Example for analog replay cards (AWG) for the the M2p, M4i, M4x and M5i card-families.
 
 See the README file in the parent folder of this examples directory for information about how to use this example.
 
@@ -23,7 +23,7 @@ import numpy as np
 
 # to speed up the calculation of new data we pre-calculate the signals
 # to simplify that we use special frequencies
-signal_frequency = np.array([ 40000, 20000, 10000, 5000, 2500, 1250, 625, 312.5 ]) * units.Hz
+signal_frequency = np.array([ 40000, 20000 ]) * units.Hz
 
 card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
@@ -34,20 +34,16 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     # set up the mode
     card.card_mode(spcm.SPC_REP_FIFO_SINGLE)
 
-    # setup all channels
+    # setup channels 0 and 1
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
     channels.enable(True)
     channels.output_load(units.highZ)
     channels.amp(1 * units.V)
 
-    # set samplerate to 50 MHz (M4i) or 1 MHz (otherwise), no clock output
+    # set samplerate to 10% of the maximum, no clock output
     clock = spcm.Clock(card)
-    series = card.series()
-    if (series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES]):
-        sample_rate = clock.sample_rate(50 * units.MHz, return_unit=units.MHz)
-    else:
-        sample_rate = clock.sample_rate(1 * units.MHz, return_unit=units.MHz)
-    clock.clock_output(0)
+    sample_rate = clock.sample_rate(10 * units.percent, return_unit=units.MHz) # 10% of the maximum sample rate and returns the sampling rate in MHz
+    clock.clock_output(False)
 
     # setup the trigger mode
     trigger = spcm.Trigger(card)
@@ -58,8 +54,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     notify_samples = 512 * units.KiS
 
     data_transfer = spcm.DataTransfer(card)
-    data_transfer.memory_size(num_samples)
-    data_transfer.allocate_buffer(num_samples)
+    data_transfer.memory_size(num_samples) # size of memory on the card
+    data_transfer.allocate_buffer(num_samples) # size of buffer in pc RAM
     data_transfer.pre_trigger(1024 * units.S)
     data_transfer.notify_samples(notify_samples)
 
@@ -81,7 +77,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     notify_samples_mag = int(notify_samples.to(units.S).magnitude)
 
     # we define the buffer for transfer and start the DMA transfer
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, direction=spcm.SPCM_DIR_PCTOCARD)
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     data_transfer.avail_card_len(num_samples)
 
     # pre-fill the data buffer
@@ -89,7 +85,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
         data_indices = np.mod(np.arange(current_sample_position, current_sample_position + notify_samples_mag), num_data)
         data_block[:] = data_matrix[:, data_indices] # !!! data_block is a numpy ndarray and you need to write into that array, hence the [:]
         current_sample_position += notify_samples_mag
-        if data_transfer.fill_size_promille() == 1000:
+        fill_size = data_transfer.fill_size_promille()
+        print("Fill size: {}".format(fill_size), end="\r")
+        if fill_size == 1000:
             break
     print("... data has been transferred to board memory")
 

@@ -1,12 +1,11 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-3_gen_sequence.py
+5_gen_sequence.py
 
 Shows a simple sequence mode example using only the few necessary commands.
 - output on channel 0
-- sampling rate of the card 50 MHz (M4i/x) or 1 MHz (otherwise)
-- signal period 70 us (M4i/x) or 3.5 ms (otherwise)
+- 10% of the maximum sampling rate of the card
 
 Example for analog replay cards (AWG) for the the M2p, M4i and M4x card-families.
 
@@ -239,7 +238,7 @@ card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
-with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want to open the first card of a specific type
+with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to open the first card of a specific type
     
     # setup card mode
     card.card_mode(spcm.SPC_REP_STD_SEQUENCE)
@@ -262,12 +261,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # Setup the clock
     clock = spcm.Clock(card)
-    series = card.series()
-    if (series in [spcm.TYP_M4IEXPSERIES, spcm.TYP_M4XEXPSERIES]):
-        sample_rate = clock.sample_rate(50 * units.MHz, return_unit=units.MHz)
-    else:
-        sample_rate = clock.sample_rate(1 * units.MHz, return_unit=units.MHz)
-    clock.clock_output(0)
+    clock.sample_rate(10 * units.percent)  # 10% of the maximum sample rate
+    clock.clock_output(False)
 
     # generate the data and transfer it to the card
     vDoDataCalculation(sequence)
@@ -278,7 +273,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     print("... sequence configured")
 
     # We'll start and wait until all sequences are replayed.
-    card.timeout(0 * units.s)
+    card.timeout(0) # no timeout
     print("Starting the card")
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
 

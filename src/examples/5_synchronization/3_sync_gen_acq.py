@@ -62,6 +62,7 @@ def setupCardDA(card : spcm.Card):
     num_samples = spcm.KIBI(64)
 
     card.card_mode(spcm.SPC_REP_STD_CONTINUOUS)
+    card.loops(0)
 
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
@@ -73,7 +74,7 @@ def setupCardDA(card : spcm.Card):
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
     clock.sample_rate(5 * units.MHz)
-    clock.output(0)
+    clock.clock_output(False)
 
     # setup trigger
     trigger = spcm.Trigger(card)
@@ -83,7 +84,6 @@ def setupCardDA(card : spcm.Card):
     # setup buffer
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
-    data_transfer.loops(0)
     data_transfer.allocate_buffer(num_samples)
 
     # calculate sine waveform
