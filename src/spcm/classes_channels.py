@@ -263,11 +263,11 @@ class Channel:
     
         Parameters
         ----------
-        value : int
+        value : int | bool
             The termination of the specific channel
         """
 
-        self.card.set_i(SPC_50OHM0 + (SPC_50OHM1 - SPC_50OHM0) * self.index, value)
+        self.card.set_i(SPC_50OHM0 + (SPC_50OHM1 - SPC_50OHM0) * self.index, int(value))
 
     def get_termination(self) -> int:
         """

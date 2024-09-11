@@ -7,6 +7,8 @@ from . import units
 from .classes_functionality import CardFunctionality 
 from .classes_unit_conversion import UnitConversion
 
+import pint
+
 class Clock(CardFunctionality):
     """a higher-level abstraction of the CardFunctionality class to implement the Card's clock engine"""
     
@@ -130,3 +132,103 @@ class Clock(CardFunctionality):
             reference_clock = UnitConversion.convert(reference_clock, units.Hz, int)
             self.card.set_i(SPC_REFERENCECLOCK, reference_clock)
         return self.card.get_i(SPC_REFERENCECLOCK)
+    
+    def termination(self, termination : int = None) -> int:
+        """
+        Set the termination for the clock input of the card (see register `SPC_CLOCK50OHM` in the manual)
+        
+        Parameters
+        ----------
+        termination : int | bool
+            the termination of the card
+        
+        Returns
+        -------
+        int
+            the termination of the card
+        """
+        
+        if termination is not None:
+            self.card.set_i(SPC_CLOCK50OHM, int(termination))
+        return self.card.get_i(SPC_CLOCK50OHM)
+    
+    def threshold(self, value : int = None, return_unit = None) -> int:
+        """
+        Set the clock threshold of the card (see register `SPC_CLOCKTHRESHOLD` in the manual)
+        
+        Parameters
+        ----------
+        value : int
+            the clock threshold of the card
+        return_unit : pint.Unit = None
+            the unit of the clock threshold
+        
+        Returns
+        -------
+        int | pint.Quantity
+            the clock threshold of the card
+        """
+        
+        if value is not None:
+            value = UnitConversion.convert(value, units.mV, int)
+            self.card.set_i(SPC_CLOCK_THRESHOLD, int(value))
+        value = self.card.get_i(SPC_CLOCK_THRESHOLD)
+        value = UnitConversion.to_unit(value * units.mV, return_unit)
+        return value
+    
+    def threshold_min(self, return_unit = None) -> int:
+        """
+        Returns the minimum clock threshold of the card (see register `SPC_CLOCK_AVAILTHRESHOLD_MIN` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the return clock threshold
+        
+        Returns
+        -------
+        int
+            the minimum clock threshold of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCK_AVAILTHRESHOLD_MIN)
+        value = UnitConversion.to_unit(value * units.mV, return_unit)
+        return value
+    
+    def threshold_max(self, return_unit = None) -> int:
+        """
+        Returns the maximum clock threshold of the card (see register `SPC_CLOCK_AVAILTHRESHOLD_MAX` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the return clock threshold
+        
+        Returns
+        -------
+        int
+            the maximum clock threshold of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCK_AVAILTHRESHOLD_MAX)
+        value = UnitConversion.to_unit(value * units.mV, return_unit)
+        return value
+    
+    def threshold_step(self, return_unit = None) -> int:
+        """
+        Returns the step of the clock threshold of the card (see register `SPC_CLOCK_AVAILTHRESHOLD_STEP` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the return clock threshold
+        
+        Returns
+        -------
+        int
+            the step of the clock threshold of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCK_AVAILTHRESHOLD_STEP)
+        value = UnitConversion.to_unit(value * units.mV, return_unit)
+        return value
