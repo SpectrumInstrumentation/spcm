@@ -4,9 +4,9 @@ import ctypes
 import platform
 from typing import Union
 
-from .constants import *
+from spcm_core import spcm_dwGetParam_i64, spcm_hOpen, spcm_vClose
+from spcm_core.constants import *
 
-from .pyspcm import spcm_dwGetParam_i64, spcm_hOpen, spcm_vClose
 from .classes_device import Device
 
 from .classes_error_exception import SpcmException

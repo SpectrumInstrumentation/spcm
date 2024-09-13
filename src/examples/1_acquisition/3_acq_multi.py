@@ -39,7 +39,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     # setup clock engine
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    clock.sample_rate(200 * units.MHz)
+    clock.sample_rate(max=True)
 
     # setup channel 0
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL2)

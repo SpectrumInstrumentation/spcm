@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from .constants import *
+from spcm_core.constants import *
 
 from .classes_functionality import CardFunctionality
 from .classes_card import Card

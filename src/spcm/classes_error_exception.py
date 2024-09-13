@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
-
-from .pyspcm import uint32, int32,\
+from spcm_core import uint32, int32,\
     create_string_buffer,\
     spcm_dwGetErrorInfo_i32,\
     byref
+from spcm_core.constants import *
 
 class SpcmError():
     """a container class for handling driver level errors

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
+from spcm_core.constants import *
 
 from .classes_card import Card
 from .classes_functionality import CardFunctionality 

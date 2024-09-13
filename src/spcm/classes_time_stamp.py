@@ -3,9 +3,8 @@
 import numpy as np
 import numpy.typing as npt
 
-from .constants import *
-
-from .pyspcm import c_void_p, spcm_dwDefTransfer_i64
+from spcm_core.constants import *
+from spcm_core import c_void_p, spcm_dwDefTransfer_i64
 
 from .classes_data_transfer import DataTransfer
 

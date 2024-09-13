@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
+from spcm_core.constants import *
 
 import numpy as np
 import numpy.typing as npt

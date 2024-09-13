@@ -6,8 +6,8 @@ import numpy.typing as npt
 import h5py
 from pathlib import Path
 
-from .constants import *
-from .pyspcm import c_void_p, spcm_dwDefTransfer_i64
+from spcm_core import c_void_p, spcm_dwDefTransfer_i64
+from spcm_core.constants import *
 
 from .classes_functionality import CardFunctionality
 
@@ -16,8 +16,6 @@ from .classes_unit_conversion import UnitConversion
 from . import units
 
 from .classes_error_exception import SpcmException, SpcmTimeout
-
-
 
 
 class DataTransfer(CardFunctionality):

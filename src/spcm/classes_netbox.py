@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
+from spcm_core.constants import *
 
 from .classes_card_stack import CardStack
 from .classes_card import Card
-from .classes_error_exception import SpcmException
-from . import pyspcm
 
 class Netbox(CardStack):
     """

@@ -5,13 +5,12 @@ import types
 from typing import List, Dict, Union
 import ctypes
 
-from .constants import *
-
-from .pyspcm import (int64, c_double, c_void_p, create_string_buffer, spcm_hOpen, spcm_vClose, 
+from spcm_core import (int64, c_double, c_void_p, create_string_buffer, spcm_hOpen, spcm_vClose, 
                      spcm_dwGetParam_i64, spcm_dwSetParam_i64, 
                      spcm_dwGetParam_d64, spcm_dwSetParam_d64,
                      spcm_dwGetParam_ptr, spcm_dwSetParam_ptr,
                     byref)
+from spcm_core.constants import *
 
 from .classes_error_exception import SpcmError, SpcmException, SpcmTimeout
 from .classes_unit_conversion import UnitConversion

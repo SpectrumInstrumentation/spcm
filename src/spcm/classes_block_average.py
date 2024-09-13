@@ -3,7 +3,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from .constants import *
+from spcm_core.constants import *
 
 from .classes_multi import Multi
 

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
+from spcm_core.constants import *
 
 from . import units
 
 from .classes_functionality import CardFunctionality 
 from .classes_unit_conversion import UnitConversion
 
-import pint
 
 class Clock(CardFunctionality):
     """a higher-level abstraction of the CardFunctionality class to implement the Card's clock engine"""

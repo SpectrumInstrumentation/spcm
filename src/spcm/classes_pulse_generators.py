@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# TODO: implement units here and test that!
-
-from .constants import *
+from spcm_core.constants import *
 
 import numpy as np
 

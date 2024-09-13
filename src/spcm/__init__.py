@@ -26,7 +26,7 @@ if mpl:
 __all__ = ["units"]
 
 # Import all registery entries and spectrum card errors into the module's name space
-from .constants import *
+from spcm_core import *
 
 # Import all the public classes into the module's namespace
 from .classes_device import Device
@@ -65,7 +65,6 @@ __version__ = _version.get_versions()['version']
 
 # Writing spcm package version to log file
 try:
-    from .pyspcm import spcm_dwGetParam_i64, spcm_dwSetParam_ptr, create_string_buffer, byref, int64
     driver_version = int64(0)
     spcm_dwGetParam_i64(None, SPC_GETDRVVERSION, byref(driver_version))
     version_hex = driver_version.value

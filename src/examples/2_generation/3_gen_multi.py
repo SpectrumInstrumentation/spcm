@@ -72,7 +72,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
     multiple_replay.buffer[0, :, 0] = np.arange(-num_samples_per_segment_magnitude//2, num_samples_per_segment_magnitude//2).astype(np.int16) # saw-tooth signal
     multiple_replay.buffer[1, :, 0] = +(max_value-1)*np.ones((num_samples_per_segment_magnitude,)).astype(np.int16) # maximum
     multiple_replay.buffer[2, :, 0] = -(max_value-1)*np.ones((num_samples_per_segment_magnitude,)).astype(np.int16) # minimum
-    multiple_replay.buffer[3, :, 0] = (max_value-1)*np.sin(2*np.pi*frequency*time_range) # sine wave
+    multiple_replay.buffer[3, :, 0] = ((max_value-1)*np.sin(2*np.pi*frequency*time_range).magnitude).astype(np.int16) # sine wave
 
     multiple_replay.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA) # Wait for the writing to buffer being done
 

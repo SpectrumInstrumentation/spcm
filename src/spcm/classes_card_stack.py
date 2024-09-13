@@ -2,13 +2,12 @@
 
 from contextlib import ExitStack
 
-from .constants import *
+import spcm_core
+from spcm_core.constants import *
 
 from .classes_card import Card
 from .classes_sync import Sync
 from .classes_error_exception import SpcmException
-
-from . import pyspcm
 
 class CardStack(ExitStack):
     """
@@ -217,16 +216,16 @@ class CardStack(ExitStack):
             No Spectrum devices found
         """
 
-        visa = (pyspcm.c_char_p * max_num_remote_cards)()
+        visa = (spcm_core.c_char_p * max_num_remote_cards)()
         for i in range(max_num_remote_cards):
-            visa[i] = pyspcm.cast(pyspcm.create_string_buffer(max_visa_string_len), pyspcm.c_char_p)
-        pyspcm.spcm_dwDiscovery (visa, pyspcm.uint32(max_num_remote_cards), pyspcm.uint32(max_visa_string_len), pyspcm.uint32(timeout_ms))
+            visa[i] = spcm_core.cast(spcm_core.create_string_buffer(max_visa_string_len), spcm_core.c_char_p)
+        spcm_core.spcm_dwDiscovery (visa, spcm_core.uint32(max_num_remote_cards), spcm_core.uint32(max_visa_string_len), spcm_core.uint32(timeout_ms))
 
         # ----- check from which manufacturer the devices are -----
-        idn = (pyspcm.c_char_p * max_num_remote_cards)()
+        idn = (spcm_core.c_char_p * max_num_remote_cards)()
         for i in range(max_num_remote_cards):
-            idn[i] = pyspcm.cast(pyspcm.create_string_buffer(max_idn_string_len), pyspcm.c_char_p)
-        pyspcm.spcm_dwSendIDNRequest (idn, pyspcm.uint32(max_num_remote_cards), pyspcm.uint32(max_idn_string_len))
+            idn[i] = spcm_core.cast(spcm_core.create_string_buffer(max_idn_string_len), spcm_core.c_char_p)
+        spcm_core.spcm_dwSendIDNRequest (idn, spcm_core.uint32(max_num_remote_cards), spcm_core.uint32(max_idn_string_len))
 
         # ----- store VISA strings for all discovered cards and open them afterwards -----
         list_spectrum_devices = {}

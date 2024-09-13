@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
+from spcm_core.constants import *
 
 from .classes_data_transfer import DataTransfer
 

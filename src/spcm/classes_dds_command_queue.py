@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .constants import *
+from spcm_core.constants import *
 
 from .classes_dds_command_list import DDSCommandList
 
