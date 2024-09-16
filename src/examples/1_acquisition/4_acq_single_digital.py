@@ -40,7 +40,7 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
     # setup clock engine
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    clock.sample_rate(125 * units.MHz)
+    clock.sample_rate(max=True)
 
     # define the data buffer
     num_samples = 1 * units.KiS # KibiSamples = 1024 Samples

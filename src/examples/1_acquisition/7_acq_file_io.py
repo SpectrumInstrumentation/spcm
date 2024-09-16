@@ -57,7 +57,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
     time_data = data_transfer.time_data()
     for channel in channels:
         data = channel.convert_data(data_transfer.buffer[channel], units.V)
-        ax.plot(time_data, data, label=f"{channel.index}")
+        ax.plot(time_data, data, label=f"{channel}")
     ax.xaxis.set_units(units.ms)
     ax.yaxis.set_units(units.mV)
     ax.legend()

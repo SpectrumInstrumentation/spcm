@@ -44,7 +44,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels.amp(200 * units.mV)
     channels.offset(0 * units.mV)
     channels.termination(1)
-    channels.coupling(spcm.COUPLING_DC)
+    # channels.coupling(spcm.COUPLING_DC)
 
     # Channel triggering
     trigger.ch_or_mask0(channels[0].ch_mask())
