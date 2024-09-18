@@ -63,8 +63,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     num_fft_samples = notify_samples_magnitude // 2 + 1
 
     # allocate memory on GPU
-    data_volt_gpu = cp.zeros(notify_samples_magnitude, dtype = cp.float32)
-    spectrum_gpu = cp.zeros(num_fft_samples, dtype = cp.float32)
+    data_volt_gpu = cp.zeros((len(channels), notify_samples_magnitude), dtype = cp.float32)
+    spectrum_gpu = cp.zeros((len(channels), num_fft_samples), dtype = cp.float32)
 
     # elementwise kernel to convert the raw data to volts
     kernel_signal_to_volt = cp.ElementwiseKernel(
