@@ -70,10 +70,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     num_cores = len(dds)
     # 20 Carriers from 90 to 110 MHz
     first_init_freq_Hz  = 90 * units.MHz
-    delta_init_freq_Hz  =  1 * units.MHz
+    delta_init_freq_Hz  = 20*1/num_cores * units.MHz
     # to 20 Carriers from 95 to 105 MHz
     first_final_freq_Hz = 95  * units.MHz
-    delta_final_freq_Hz = 500 * units.kHz 
+    delta_final_freq_Hz = 10*1/num_cores * units.MHz 
     
     # Ramp settings
     num_segments = 16
@@ -81,7 +81,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     ramp_type = 'cosine' # 'cosine' or 'square' or '3rd-order'
 
     # STEP 0 - Initialize frequencies
-    dds.trg_timer(2.0 * units.s)
+    dds.freq_ramp_stepsize(1000)
+    dds.trg_timer(15.0 * units.s)
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     for core in dds:
         core.amp(45 * units.percent / num_cores)
