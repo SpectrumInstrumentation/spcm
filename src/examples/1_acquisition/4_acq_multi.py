@@ -80,7 +80,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
                 print(f"\t\tMinimum: {minimum}")
                 print(f"\t\tMaximum: {maximum}")
 
-                ax[segment].plot(time_data, chan_data, '.', label="{}, Seg {}".format(channel.index, segment))
+                ax[segment].plot(time_data, chan_data, '.', label="{}, Seg {}".format(channel, segment))
             ax[segment].set_title(f"Segment {segment}")
             ax[segment].yaxis.set_units(units.V)
             ax[segment].xaxis.set_units(units.us)

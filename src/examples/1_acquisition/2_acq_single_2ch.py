@@ -40,16 +40,17 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
     
     # setup the channels
-    channel0 = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
-    channel0.amp(200 * units.mV)
-    channel0.offset(0 * units.mV)
-    channel0.termination(1)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channel 0 and 1
+    channels[0].amp(200 * units.mV) # for channel 0
+    channels[1].amp(500 * units.mV) # for channel 1
+    channels.offset(0 * units.mV) # set for both channels
+    channels.termination(1) # set for both channels
     # channels.coupling(spcm.COUPLING_DC)
 
     # Channel triggering
-    trigger.ch_or_mask0(channel0.ch_mask())
-    trigger.ch_mode(channel0, spcm.SPC_TM_POS)
-    trigger.ch_level0(channel0, 0 * units.mV, return_unit=units.mV)
+    trigger.ch_or_mask0(channels[0].ch_mask())
+    trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
+    trigger.ch_level0(channels[0], 0 * units.mV, return_unit=units.mV)
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)
@@ -65,11 +66,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # Plot the acquired data
     time_data_s = data_transfer.time_data()
     fig, ax = plt.subplots()
-    unit_data_V = channel0.convert_data(data_transfer.buffer[channel0, :], units.V)
-    print(channel0)
-    print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
-    print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
-    ax.plot(time_data_s, unit_data_V, label=f"{channel0}")
+    for channel in channels:
+        unit_data_V = channel.convert_data(data_transfer.buffer[channel, :], units.V)
+        print(channel)
+        print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
+        print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
+        ax.plot(time_data_s, unit_data_V, label=f"{channel}")
     ax.yaxis.set_units(units.mV)
     ax.xaxis.set_units(units.us)
     ax.axvline(0, color='k', linestyle='--', label='Trigger')

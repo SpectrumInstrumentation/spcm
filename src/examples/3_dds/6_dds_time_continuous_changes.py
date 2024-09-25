@@ -76,25 +76,30 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.write_to_card()
 
     # Start the card
+    print("Card started. Press Ctrl+C to stop.")
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
 
     # STEP 1b - Streaming data points
     fill_count = dds.queue_cmd_count()
     fill_check = fill_maximum - fill_number
-    while True: # infinitely long streaming
-        while True:
-            fill_count = dds.queue_cmd_count()
-            if fill_count < fill_check: break
-        print("Adding a block of commands to buffer")
-        for i in range(fill_number):
-            freq_Hz = freq_list[column % num_freq]
-            dds[0].freq(freq_Hz)
-            dds.exec_at_trg()
-            column += 1
-            column %= num_freq
-        dds.write_to_card()
-        status = dds.status()
-        if status & spcm.SPCM_DDS_STAT_QUEUE_UNDERRUN:
-            break
-
-    print("ERROR: Buffer underrun")
+    try:
+        while True: # infinitely long streaming
+            while True:
+                fill_count = dds.queue_cmd_count()
+                if fill_count < fill_check: break
+            print("Adding a block of commands to buffer")
+            for i in range(fill_number):
+                freq_Hz = freq_list[column % num_freq]
+                dds[0].freq(freq_Hz)
+                dds.exec_at_trg()
+                column += 1
+                column %= num_freq
+            dds.write_to_card()
+            status = dds.status()
+            if status & spcm.SPCM_DDS_STAT_QUEUE_UNDERRUN:
+                break
+            
+        print("ERROR: Buffer underrun")
+    except KeyboardInterrupt:
+        print("Interrupted by the user")
+    
