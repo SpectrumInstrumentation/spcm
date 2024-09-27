@@ -1,7 +1,5 @@
 spcm
 numpy
 psutil
-cuda-python
-cupy-cuda12x
 matplotlib
 PyQt5

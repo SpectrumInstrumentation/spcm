@@ -39,6 +39,13 @@ $ pip install -r requirements.txt
 
 you're all setup to run the examples!
 
+## Special case: CUDA and SCAPP
+If you'd like to use CUDA (for example in combination with the SCAPP option), there is an additional requirements.txt file in the `7_cuda_scapp` folder. Please install this requirements file, when trying to use CUDA.
+```bash
+$ source venv/Scripts/activate
+$ pip install -r ../7_cuda_scapp/requirements.txt
+```
+
 ## Running the examples
 
 In the virtual environement, execute the following command to run one of the examples:

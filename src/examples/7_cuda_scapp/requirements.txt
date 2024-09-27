@@ -1,0 +1,3 @@
+-r ../requirements.txt
+cuda-python
+cupy-cuda12x
