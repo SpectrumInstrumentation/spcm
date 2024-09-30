@@ -54,7 +54,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     notify_samples = 512 * units.KiS
 
     data_transfer = spcm.DataTransfer(card)
-    data_transfer.memory_size(num_samples) # size of memory on the card
+    # data_transfer.memory_size(num_samples) # size of memory on the card
     data_transfer.allocate_buffer(num_samples) # size of buffer in pc RAM
     data_transfer.pre_trigger(1024 * units.S)
     data_transfer.notify_samples(notify_samples)
@@ -78,7 +78,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # we define the buffer for transfer and start the DMA transfer
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
-    data_transfer.avail_card_len(num_samples)
 
     # pre-fill the data buffer
     for data_block in data_transfer:
@@ -94,7 +93,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     ############################
     print("Starting the card...")
     print("press Ctrl+C to stop the generation of the signals")
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
     # We'll start the replay and run until a timeout occurs or user interrupts the program
     try:
         for data_block in data_transfer:
