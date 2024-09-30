@@ -42,7 +42,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     clock.sample_rate(max=True)
 
     # setup channel 0
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL2)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.amp(1 * units.V)
 
     # Channel triggering
