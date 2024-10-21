@@ -31,7 +31,6 @@ classifiers = [
 dependencies = [
   "spcm_core >= 0.0.4",
   "numpy >= 1.25.2",
-  "h5py >= 3.10.0",
   "pint >= 0.23",
 ]
 
@@ -39,6 +38,7 @@ dependencies = [
 cuda = [
   "cupy >= 13.2.0",
   "cuda-python >= 12.5.0",
+  "h5py >= 3.10.0",
 ]
 
 [project.urls]

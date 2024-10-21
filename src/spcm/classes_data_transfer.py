@@ -3,7 +3,6 @@
 import numpy as np
 import numpy.typing as npt
 
-import h5py
 from pathlib import Path
 
 from spcm_core import c_void_p, spcm_dwDefTransfer_i64
@@ -616,6 +615,7 @@ class DataTransfer(CardFunctionality):
         elif file_path.suffix == '.txt':
             np.savetxt(file_path, self.buffer, fmt='%d')
         elif file_path.suffix == '.h5' or file_path.suffix == '.hdf5':
+            import h5py
             with h5py.File(file_path, 'w') as f:
                 f.create_dataset('data', data=self.buffer)
         else:
@@ -660,6 +660,7 @@ class DataTransfer(CardFunctionality):
         elif file_path.suffix == '.txt':
             self.buffer[:] = np.loadtxt(file_path)
         elif file_path.suffix == '.h5' or file_path.suffix == '.hdf5':
+            import h5py
             with h5py.File(file_path, 'r') as f:
                 self.buffer[:] = f['data'][()]
         else:
