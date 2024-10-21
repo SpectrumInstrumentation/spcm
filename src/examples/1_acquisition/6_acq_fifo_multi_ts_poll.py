@@ -49,13 +49,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels.termination(1)
 
     # settings for the FIFO mode buffer handling
-    total_samples = 96 * units.KiB # set this to zero to record forever
-    num_samples = 48 * units.KiB
-    notify_samples = 12 * units.KiB
+    total_samples = 96 * units.KiS # set this to zero to record forever
+    num_samples = 48 * units.KiS
+    notify_samples = 12 * units.KiS
     num_timestamps = spcm.KIBI(8)
     
     # setup data transfer buffer
-    num_samples_in_segment = 4 * units.KiB
+    num_samples_in_segment = 4 * units.KiS
     num_segments = num_samples // num_samples_in_segment
     multiple_recording = spcm.Multi(card)
     multiple_recording.memory_size(num_samples)
