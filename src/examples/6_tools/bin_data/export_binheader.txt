@@ -1,0 +1,84 @@
+FileType = 16
+HeaderFileVersion = 2
+NumAChannels = 4
+NumDChannels = 0
+FileFlags = 0
+DataEncoding = 0
+ChannelSorting = 0
+TSSize = 16
+RawDataFormat = 268567571
+
+StoreDate = 132647445
+StoreTime = 734977
+[Ch0]
+Name = AI-Ch0
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 1.000000
+MinRange = -1.000000
+OrigMaxRange = 1000
+OrigMinRange = -1000
+UserOffset = 0
+ID = 13624815422027510984
+
+[Ch1]
+Name = AI-Ch1
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 1.000000
+MinRange = -1.000000
+OrigMaxRange = 1000
+OrigMinRange = -1000
+UserOffset = 0
+ID = 3966789293901310152
+
+[Ch2]
+Name = AI-Ch2
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 1.000000
+MinRange = -1.000000
+OrigMaxRange = 1000
+OrigMinRange = -1000
+UserOffset = 0
+ID = 4458596616794672304
+
+[Ch3]
+Name = AI-Ch3
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 1.000000
+MinRange = -1.000000
+OrigMaxRange = 1000
+OrigMinRange = -1000
+UserOffset = 0
+ID = 12981591498057748456
+
+LenH = 0
+LenL = 16384
+PostH = 0
+PostL = 8192
+SegmentH = 0
+SegmentL = 4096
+Resolution = 14
+Samplerate = 500000000
+TrigPosH = 0
+TrigPosL = 8192
+TrigDelayH = 0
+TrigDelayL = 0
+OffsetH = 0
+OffsetL = 0
+Flags = 268435456
+ABADivider = 4992
+SlowABALenH = 0
+SlowABALenL = 0
+MaxADCValue = 8192
+TSRefClock = 1
+OversamplingFactor = 1
+TSSamplerate = 500000000
+Pretrigger = 8192
+GateLengthAlignment = 0

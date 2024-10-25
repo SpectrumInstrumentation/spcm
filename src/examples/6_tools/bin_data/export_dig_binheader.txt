@@ -1,0 +1,420 @@
+FileType = 16
+HeaderFileVersion = 2
+NumAChannels = 0
+NumDChannels = 32
+FileFlags = 0
+DataEncoding = 0
+ChannelSorting = 0
+TSSize = 16
+RawDataFormat = 268574726
+
+StoreDate = 132647446
+StoreTime = 726025
+[Ch0]
+Name = DI-Ch00
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 2747276707271202130
+
+[Ch1]
+Name = DI-Ch01
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 12127230412763484331
+
+[Ch2]
+Name = DI-Ch02
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 10219863992801137957
+
+[Ch3]
+Name = DI-Ch03
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 4050049794241050211
+
+[Ch4]
+Name = DI-Ch04
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 6366735059172632969
+
+[Ch5]
+Name = DI-Ch05
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 4545183944422627634
+
+[Ch6]
+Name = DI-Ch06
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 10482315378828750169
+
+[Ch7]
+Name = DI-Ch07
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 3632432747051495602
+
+[Ch8]
+Name = DI-Ch08
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 14071017283718642096
+
+[Ch9]
+Name = DI-Ch09
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 6853043915525640461
+
+[Ch10]
+Name = DI-Ch10
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 3519483010678105785
+
+[Ch11]
+Name = DI-Ch11
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 16930387363545791540
+
+[Ch12]
+Name = DI-Ch12
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 1940954867933519895
+
+[Ch13]
+Name = DI-Ch13
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 2856867346529828283
+
+[Ch14]
+Name = DI-Ch14
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 15899549506511091024
+
+[Ch15]
+Name = DI-Ch15
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 2918248775069041417
+
+[Ch16]
+Name = DI-Ch16
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 6970801302187792794
+
+[Ch17]
+Name = DI-Ch17
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 3387434133696122252
+
+[Ch18]
+Name = DI-Ch18
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 18214719859221326224
+
+[Ch19]
+Name = DI-Ch19
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 10458210773248545735
+
+[Ch20]
+Name = DI-Ch20
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 17517000835942849286
+
+[Ch21]
+Name = DI-Ch21
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 17740529032124998972
+
+[Ch22]
+Name = DI-Ch22
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 15979371524351434167
+
+[Ch23]
+Name = DI-Ch23
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 4410632336489407307
+
+[Ch24]
+Name = DI-Ch24
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 4423606729576702159
+
+[Ch25]
+Name = DI-Ch25
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 12260794198953003945
+
+[Ch26]
+Name = DI-Ch26
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 16781873536224301876
+
+[Ch27]
+Name = DI-Ch27
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 17130469502866544643
+
+[Ch28]
+Name = DI-Ch28
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 6397162226938476122
+
+[Ch29]
+Name = DI-Ch29
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 14701032321367203586
+
+[Ch30]
+Name = DI-Ch30
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 14799492748948146781
+
+[Ch31]
+Name = DI-Ch31
+XUnit = s
+YUnit = V
+Description = 
+MaxRange = 3.000000
+MinRange = 0.000000
+OrigMaxRange = 3000
+OrigMinRange = 0
+UserOffset = 0
+ID = 17684153075290422692
+
+LenH = 0
+LenL = 1024
+PostH = 0
+PostL = 512
+SegmentH = 0
+SegmentL = 4096
+Resolution = 1
+Samplerate = 125000000
+TrigPosH = 0
+TrigPosL = 512
+TrigDelayH = 0
+TrigDelayL = 0
+OffsetH = 0
+OffsetL = 0
+Flags = 268435456
+ABADivider = 0
+SlowABALenH = 0
+SlowABALenL = 0
+MaxADCValue = 0
+TSRefClock = 1
+OversamplingFactor = 1
+TSSamplerate = 125000000
+Pretrigger = 8192
+GateLengthAlignment = 0
