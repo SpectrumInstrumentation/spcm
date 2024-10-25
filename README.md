@@ -22,11 +22,17 @@ See the [SUPPORTED_DEVICES.md](https://github.com/SpectrumInstrumentation/spcm/b
 # Requirements
 [![Static Badge](https://img.shields.io/badge/Python-3.9+-blue)](https://www.python.org/)
 [![Static Badge](https://img.shields.io/badge/NumPy-1.25+-green)](https://numpy.org/)
-[![Static Badge](https://img.shields.io/badge/h5py-3.10+-orange)](https://www.h5py.org/)
 [![Static Badge](https://img.shields.io/badge/pint-0.23+-teal)](https://pint.readthedocs.io/en/stable/)
 
 `spcm` requires the Spectrum Instrumentation [driver](https://spectrum-instrumentation.com/support/downloads.php) which is available for Windows and Linux. 
 Please have a look in the manual of your product for more information about installing the driver on the different plattforms.
+
+## Optional Requirements
+[![Static Badge](https://img.shields.io/badge/cuda--python-12.6+-green)](https://developer.nvidia.com/cuda-python)
+[![Static Badge](https://img.shields.io/badge/cupy--cuda12x-13.3+-green)](https://cupy.dev/)
+[![Static Badge](https://img.shields.io/badge/h5py-3.10+-orange)](https://www.h5py.org/)
+
+These are dependencies that the `spcm` package uses, when they are installed. See the `src/examples` folder for specific use cases.
 
 # Installation and dependencies
 [![Pip Package](https://img.shields.io/pypi/v/spcm?logo=PyPI)](https://pypi.org/project/spcm)
