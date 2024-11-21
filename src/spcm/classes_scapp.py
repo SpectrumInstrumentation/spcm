@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import time
 from .classes_error_exception import SpcmTimeout
 from .classes_card import Card
 from .classes_data_transfer import DataTransfer
@@ -91,7 +92,13 @@ class SCAPPTransfer(DataTransfer):
             Total length of the transfer buffer.
         """
 
-        self.notify_samples(notify_samples)
+        # self.notify_samples(notify_samples)
+        # only change this locally
+        if notify_samples is not None:
+            notify_size = notify_samples * self.num_channels * self.bytes_per_sample
+        else:
+            notify_size = self.notify_size
+        # print("Notify size: ", self.notify_size)
         self.buffer_samples = transfer_length
 
         # Define transfer CUDA buffers
@@ -99,7 +106,7 @@ class SCAPPTransfer(DataTransfer):
             direction = SPCM_DIR_CARDTOGPU
         else:
             direction = SPCM_DIR_GPUTOCARD
-        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, SPCM_BUF_DATA, direction, self.notify_size, c_void_p(self.buffer.data.ptr), 0, self.buffer_size))
+        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, SPCM_BUF_DATA, direction, notify_size, c_void_p(self.buffer.data.ptr), 0, self.buffer_size))
 
         # Execute additional commands if available
         if args:
@@ -148,7 +155,13 @@ class SCAPPTransfer(DataTransfer):
 
         while True:
             try:
-                self.wait_dma()
+                if not self._polling:
+                    self.wait_dma()
+                else:
+                    user_len = self.avail_user_len()
+                    if user_len >= self._notify_samples:
+                        break
+                    time.sleep(0.01)
             except SpcmTimeout:
                 self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
                 timeout_counter += 1
@@ -156,7 +169,8 @@ class SCAPPTransfer(DataTransfer):
                     self.iterator_index = 0
                     raise StopIteration
             else:
-                break
+                if not self._polling:
+                    break
         
         self.iterator_index += 1
 

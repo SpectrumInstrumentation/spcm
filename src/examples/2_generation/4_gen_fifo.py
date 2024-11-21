@@ -42,7 +42,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # set samplerate to 10% of the maximum, no clock output
     clock = spcm.Clock(card)
-    sample_rate = clock.sample_rate(10 * units.percent, return_unit=units.MHz) # 10% of the maximum sample rate and returns the sampling rate in MHz
+    sample_rate = clock.sample_rate(100 * units.MHz, return_unit=units.MHz) # 10% of the maximum sample rate and returns the sampling rate in MHz
+    print("Sample rate: {}".format(sample_rate))
     clock.clock_output(False)
 
     # setup the trigger mode

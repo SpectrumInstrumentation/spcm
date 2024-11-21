@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import time
 import numpy as np
 import numpy.typing as npt
 
@@ -59,6 +59,9 @@ class DataTransfer(CardFunctionality):
     bits_per_sample : int = 0
 
     current_user_pos : int = 0
+
+    _polling = False
+    _pollng_timer = 0
 
     # private
     _buffer_samples : int = 0
@@ -854,6 +857,21 @@ class DataTransfer(CardFunctionality):
         self.iterator_index = 0
         return self
     
+    def polling(self, polling : bool = True, timer : float = 0.01) -> None:
+        """
+        Set the polling mode for the data transfer otherwise wait_dma() is used
+
+        Parameters
+        ----------
+        polling : bool
+            True to enable polling, False to disable polling
+        timer : float | pint.Quantity
+            the polling timer in seconds
+        """
+
+        self._polling = polling
+        self._pollng_timer = UnitConversion.convert(timer, units.s, float)
+    
     def __next__(self) -> npt.ArrayLike:
         """
         This method is called when the next element is requested from the iterator
@@ -875,14 +893,21 @@ class DataTransfer(CardFunctionality):
         while True:
             try:
                 # print(self.card.status())
-                self.wait_dma()
+                if not self._polling:
+                    self.wait_dma()
+                else:
+                    user_len = self.avail_user_len()
+                    if user_len >= self._notify_samples:
+                        break
+                    time.sleep(0.01)
             except SpcmTimeout:
                 self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
                 timeout_counter += 1
                 if timeout_counter > self._max_timeout:
                     raise StopIteration
             else:
-                break
+                if not self._polling:
+                    break
         
         self.iterator_index += 1
 
