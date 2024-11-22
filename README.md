@@ -214,7 +214,7 @@ Each of these functionalities typically corresponds to a chapter in your device 
 The Channels functionality allows the user to setup individual channels on a Card or a CardStack. The channels object is also a Python iterator, hence if a channels object is used it a for-loop, each iteration provides a Channel object:
 
 ```python
-channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | CHANNEL1)
+channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
 for channel in channels:
     # do something with each channel
 ```
@@ -222,7 +222,7 @@ for channel in channels:
 In addition, the user can define the output load connected to the channel (standard value 50 Ohm), to any resistor value or high impedance (`units.highZ`). With this output load, the amplitude setting is done with repect to this output load:
 
 ```python
-channels = Channels(card, card_enable=spcm.CHANNEL0 | CHANNEL1)
+channels = Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
 channels[0].output_load(units.highZ)
 channels[0].amp(1 * units.V)
 # or for all channels
