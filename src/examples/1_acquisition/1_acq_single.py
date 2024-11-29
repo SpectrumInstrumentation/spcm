@@ -40,7 +40,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
     
     # setup the channels
-    channel0 = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
     channel0.amp(200 * units.mV)
     channel0.offset(0 * units.mV)
     channel0.termination(1)
