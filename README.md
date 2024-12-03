@@ -22,7 +22,7 @@ See the [SUPPORTED_DEVICES.md](https://github.com/SpectrumInstrumentation/spcm/b
 # Requirements
 [![Static Badge](https://img.shields.io/badge/Python-3.9+-blue)](https://www.python.org/)
 [![Static Badge](https://img.shields.io/badge/NumPy-1.25+-green)](https://numpy.org/)
-[![Static Badge](https://img.shields.io/badge/pint-0.23+-teal)](https://pint.readthedocs.io/en/stable/)
+[![Static Badge](https://img.shields.io/badge/pint-0.24+-teal)](https://pint.readthedocs.io/en/stable/)
 
 `spcm` requires the Spectrum Instrumentation [driver](https://spectrum-instrumentation.com/support/downloads.php) which is available for Windows and Linux. 
 Please have a look in the manual of your product for more information about installing the driver on the different plattforms.
