@@ -72,6 +72,7 @@ class Card(Device):
         self._function_type = self.get_i(SPC_FNCTYPE)
         self._card_type = self.get_i(SPC_PCITYP)
         self._features = self.get_i(SPC_PCIFEATURES)
+        self._ext_features = self.get_i(SPC_PCIEXTFEATURES)
         self._max_sample_value = self.get_i(SPC_MIINST_MAXADCVALUE)
         
         return self
@@ -186,6 +187,18 @@ class Card(Device):
         """
 
         return self._features
+    
+    def ext_features(self) -> int:
+        """
+        Get the extended features of the card (see register `SPC_PCIEXTFEATURES` in the manual)
+    
+        Returns
+        -------
+        int
+            The extended features of the card
+        """
+
+        return self._ext_features
     
     def starhub_card(self) -> bool:
         """
