@@ -294,14 +294,22 @@ class DDS(CardFunctionality):
     cores : list[DDSCore] = []
     channels : Channels = None
 
+    check_features : bool = False
+
     _current_core : int = -1
     _channel_from_core : dict[int, int] = {}
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.channels = kwargs.get("channels", None)
+        self.check_features = kwargs.get("check_features", False)
         self.cores = []
         self.load_cores()
+        # Check if DDS feature is installed
+        if self.check_features:
+            features = self.card.ext_features()
+            if not ((features & SPCM_FEAT_EXTFW_DDS20) or (features & SPCM_FEAT_EXTFW_DDS50)):
+                raise SpcmException("The DDS feature is not installed on the card")
     
     def load_cores(self):
         """
