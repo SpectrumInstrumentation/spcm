@@ -151,3 +151,7 @@ class SpcmException(Exception):
 class SpcmTimeout(Exception):
     """a container class for handling specific timeout exceptions"""
     pass
+
+class SpcmDeviceNotFound(SpcmException):
+    """a container class for handling specific device not found exceptions"""
+    pass

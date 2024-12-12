@@ -31,7 +31,7 @@ from spcm_core import *
 # Import all the public classes into the module's namespace
 from .classes_device import Device
 from .classes_card import Card
-from .classes_error_exception import SpcmError, SpcmException, SpcmTimeout
+from .classes_error_exception import SpcmError, SpcmException, SpcmTimeout, SpcmDeviceNotFound
 from .classes_sync import Sync
 from .classes_card_stack import CardStack
 from .classes_netbox import Netbox
@@ -56,7 +56,7 @@ from .classes_scapp import SCAPPTransfer
 __all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
     "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", 
-    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmError", "SCAPPTransfer"
+    "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmDeviceNotFound", "SpcmError", "SCAPPTransfer"
 ]
 
 # Versioning support using versioneer

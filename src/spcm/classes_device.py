@@ -12,7 +12,7 @@ from spcm_core import (int64, c_double, c_void_p, create_string_buffer, spcm_hOp
                     byref)
 from spcm_core.constants import *
 
-from .classes_error_exception import SpcmError, SpcmException, SpcmTimeout
+from .classes_error_exception import SpcmError, SpcmException, SpcmTimeout, SpcmDeviceNotFound
 from .classes_unit_conversion import UnitConversion
 from . import units
 
@@ -48,7 +48,7 @@ class Device():
     _reraise : bool = False
     _throw_error : bool = True
     _verbose : bool = False
-    _closed : bool = False
+    _closed : bool = True
     """the indicator that indicated whether a connection is opened or closed is set to open (False)"""
 
 
@@ -73,10 +73,10 @@ class Device():
     
     def __del__(self) -> None:
         """Destructor that closes the connection associated with the handle"""
-        if not self._closed:
+        if not self._closed and self._handle:
             self.stop()
-            self._closed = True
             self.close(self._handle)
+        self._closed = True
 
     def __enter__(self) -> object:
         """
@@ -91,12 +91,36 @@ class Device():
         ------
         SpcmException
         """
+        return self.open()
 
+    def open(self, device_identifier : str = None) -> object:
+        """
+        Opens a connection to the card and creates a handle, when no with statement is used
+
+        Parameters
+        ----------
+        device_identifier : str
+            The card identifier string (e.g. '/dev/spcm0' for a local device
+            NOTE: this is to keep the API consistent with a previous version. The original open()
+            method is now in _open()
+
+        Returns
+        -------
+        object
+            This Card object
+        """
+            
+        if device_identifier: # this is to keep the API consistent
+            return self._open(device_identifier)
+        # This used to be in enter. It is now split up to allow for the open method
+        # to be used when no with statement is used
         if self.device_identifier and not self._handle:
-            self.open(self.device_identifier)
+            self._open(self.device_identifier)
             if not self._handle and self._throw_error:
                 error = SpcmError(text="{} not found...".format(self.device_identifier))
-                raise SpcmException(error)
+                raise SpcmDeviceNotFound(error)
+            if self._handle:
+                self._closed = False
         return self
     
     def __exit__(self, exception : SpcmException = None, error_value : str = None, trace : types.TracebackType = None) -> None:
@@ -544,9 +568,9 @@ class Device():
         if self._verbose or verbose:
             print(text, **kwargs)
 
-    def open(self, device_identifier : str) -> None:
+    def _open(self, device_identifier : str) -> None:
         """
-        Open a connection to the card and return the handle (see the user manual of your specific device on how to find out the device_identifier string)
+        Open a connection to the card and create a handle (see the user manual of your specific device on how to find out the device_identifier string)
     
         Parameters
         ----------
