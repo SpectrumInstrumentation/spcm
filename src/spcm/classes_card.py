@@ -40,7 +40,29 @@ class Card(Device):
         ------
         SpcmException
         """
-        super().__enter__()
+        return super().__enter__()
+
+    def open(self, device_identifier : str = None) -> 'Card':
+        """
+        Open a connection to the card
+
+        Parameters
+        ----------
+        device_identifier : str = ""
+            The device identifier of the card that needs to be opened
+
+        Returns
+        -------
+        Card
+            The card object
+
+        Raises
+        ------
+        SpcmException
+        """
+
+        if device_identifier is not None:
+            return super().open(device_identifier=device_identifier)
 
         # keyword arguments
         card_type = self._kwargs.get("card_type", 0)
@@ -54,6 +76,8 @@ class Card(Device):
                     raise SpcmException(text="No card found of right type")
                 elif serial_number:
                     raise SpcmException(text="No card found with serial number: {}".format(serial_number))
+            else:
+                self._closed = False
         elif self._handle:
             if card_type != 0 and self.function_type() != card_type:
                 raise SpcmException(text="The card with the given device identifier is not the correct type")
