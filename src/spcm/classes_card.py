@@ -63,6 +63,8 @@ class Card(Device):
 
         if device_identifier is not None:
             return super().open(device_identifier=device_identifier)
+        
+        super().open()
 
         # keyword arguments
         card_type = self._kwargs.get("card_type", 0)
