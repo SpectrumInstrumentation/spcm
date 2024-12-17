@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-2_acq_fifo.py
+3_acq_fifo.py
 
 Shows a simple FIFO mode example using only the few necessary commands
 - connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0
