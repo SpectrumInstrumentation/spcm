@@ -50,7 +50,7 @@ class MultiPurposeIO:
             The available modes of the digital input/output
         """
 
-        return self.get_i(SPCM_X0_AVAILMODES + self.x_index)
+        return self.card.get_i(SPCM_X0_AVAILMODES + self.x_index)
 
     def x_mode(self, mode : int = None) -> int:
         """
