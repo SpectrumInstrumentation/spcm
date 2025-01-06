@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-6_acq_fifo_multi_ts_poll.py
+7_acq_fifo_multi_ts_poll.py
 
 Shows an example for FIFO multiple-recording mode with timestamp polling. 
 - Please connect a trigger signal (3.3 V) to the trigger input EXT0.

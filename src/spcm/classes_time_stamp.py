@@ -105,7 +105,7 @@ class TimeStamp(DataTransfer):
         sample_type = np.int64
         item_size = sample_type(0).itemsize
         # allocate a buffer (numpy array) for DMA transfer: a little bigger one to have room for address alignment
-        databuffer_unaligned = np.empty(((self._buffer_alignment + self.buffer_size) // item_size, ), dtype = sample_type)   # half byte count at int16 sample (// = integer division)
+        databuffer_unaligned = np.zeros(((self._buffer_alignment + self.buffer_size) // item_size, ), dtype = sample_type)   # half byte count at int16 sample (// = integer division)
         # two numpy-arrays may share the same memory: skip the begin up to the alignment boundary (ArrayVariable[SKIP_VALUE:])
         # Address of data-memory from numpy-array: ArrayVariable.__array_interface__['data'][0]
         start_pos_samples = ((self._buffer_alignment - (databuffer_unaligned.__array_interface__['data'][0] & dwMask)) // item_size)

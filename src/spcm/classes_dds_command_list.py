@@ -138,6 +138,8 @@ class DDSCommandList(DDS):
     def avail_user_len(self) -> int:
         """
         get the available space for commands in the hardware queue
+
+        TODO: check if this correct. Probably we should use fillsize_promille here
         """
 
         if self._dtm == SPCM_DDS_DTM_SINGLE:

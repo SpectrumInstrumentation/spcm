@@ -42,6 +42,7 @@ from .classes_clock import Clock
 from .classes_trigger import Trigger
 from .classes_multi_purpose_ios import MultiPurposeIO, MultiPurposeIOs
 from .classes_data_transfer import DataTransfer
+from .classes_gated import Gated
 from .classes_multi import Multi
 from .classes_time_stamp import TimeStamp
 from .classes_sequence import Sequence
@@ -55,7 +56,7 @@ from .classes_scapp import SCAPPTransfer
 
 __all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
-    "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "TimeStamp", "Sequence", 
+    "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "Gated", "TimeStamp", "Sequence", 
     "BlockAverage", "Boxcar", "SpcmException", "SpcmTimeout", "SpcmDeviceNotFound", "SpcmError", "SCAPPTransfer"
 ]
 
