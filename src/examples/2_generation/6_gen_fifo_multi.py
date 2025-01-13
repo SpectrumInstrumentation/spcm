@@ -75,22 +75,33 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
     data[2, :] = -(max_value-1)*np.ones((num_samples_per_segment_magnitude,)).astype(np.int16) # minimum
     data[3, :] = ((max_value-1)*np.sin(2*np.pi*frequency*time_range).magnitude).astype(np.int16) # sine wave
 
+    # Initialize the buffer
+    multiple_replay.buffer[:4, :, 0] = data
+    multiple_replay.buffer[4:8, :, 0] = data
+    multiple_replay.buffer[8:12, :, 0] = data
+
+    # Define the buffer and do a first transfer
     multiple_replay.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
+    # Continue loading the buffer
     for data_block in multiple_replay:
-        data_block[:,:,0] = data
+        # Check the filling of the buffer
         fill_size = multiple_replay.fill_size_promille()
-        print("Fill size: {}".format(fill_size), end="\r")
+        print("Filling: {}%".format(fill_size/10), end="\r")
         if fill_size == 1000:
+            multiple_replay.flush()
             break
+        data_block[:,:,0] = data
+
     print("... data has been transferred to board memory")
 
     # We'll start
     print("Starting the card and waiting for external trigger. Press Ctrl+C to stop the card.")
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
 
     try:
         for data_block in multiple_replay:
+            print("Filling: {}%".format(multiple_replay.fill_size_promille()/10), end="\r")
             data_block[:,:,0] = data
     except spcm.SpcmException as exception:
         # Probably a buffer underrun has happened, capure the event here

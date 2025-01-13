@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import numpy.typing as npt
 
@@ -7,10 +6,9 @@ from spcm_core.constants import *
 
 from .classes_data_transfer import DataTransfer
 
+import pint
 from .classes_unit_conversion import UnitConversion
 from . import units
-
-from .classes_error_exception import SpcmTimeout
 
 class Multi(DataTransfer):
     """a high-level class to control Multiple Recording and Replay functionality on Spectrum Instrumentation cards
@@ -89,10 +87,15 @@ class Multi(DataTransfer):
         num_channels = self.card.active_channels()
         if self.bits_per_sample > 1 and not self._12bit_mode:
             self.buffer = self.buffer.reshape((self._num_segments, segment_samples, num_channels), order='C') # index definition: [segment, sample, channel] !
-    
+
     def time_data(self, total_num_samples : int = None) -> npt.NDArray:
         """
         Get the time array for the data buffer
+
+        Parameters
+        ----------
+        total_num_samples : int | pint.Quantity
+            the total number of samples
         
         Returns
         -------
@@ -104,18 +107,24 @@ class Multi(DataTransfer):
         if total_num_samples is None:
             total_num_samples = self._buffer_samples // self._num_segments
         total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
-        return (np.arange(total_num_samples) - self._pre_trigger) / sample_rate
+        pre_trigger = UnitConversion.convert(self._pre_trigger, units.Sa, int)
+        return ((np.arange(total_num_samples) - pre_trigger) / sample_rate).to_base_units()
 
-    def unpack_12bit_buffer(self) -> npt.NDArray[np.int_]:
+    def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
         Unpacks the 12-bit packed data to 16-bit data
 
+        Parameters
+        ----------
+        data : numpy array
+            the packed data
+
         Returns
         -------
-        npt.NDArray[np.int_]
-            the unpacked data
+        numpy array
+            the unpacked 16bit buffer
         """
-        buffer_12bit = super().unpack_12bit_buffer()
+        buffer_12bit = super().unpack_12bit_buffer(data)
         return buffer_12bit.reshape((self._num_segments, self.num_channels, self._segment_size), order='C')
 
     
@@ -132,37 +141,13 @@ class Multi(DataTransfer):
         ------
         StopIteration
         """
-        
-        timeout_counter = 0
-        # notify the card that data is available or read, but only after the first block
-        if self._current_samples >= self._notify_samples:
-            self.avail_card_len(self._notify_samples)
-        while True:
-            try:
-                self.wait_dma()
-            except SpcmTimeout:
-                self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
-                timeout_counter += 1
-                if timeout_counter > self._max_timeout:
-                    raise StopIteration
-            else:
-                user_len = self.avail_user_len()
-                user_pos = self.avail_user_pos()
+        super().__next__()
+        user_pos = self.avail_user_pos()
+        current_segment = user_pos // self._segment_size
+        current_pos_in_segment = user_pos % self._segment_size
+        final_segment = ((user_pos+self._notify_samples) // self._segment_size)
+        final_pos_in_segment = (user_pos+self._notify_samples) % self._segment_size
 
-                current_segment = user_pos // self._segment_size
-                current_pos_in_segment = user_pos % self._segment_size
-                final_segment = ((user_pos+self._notify_samples) // self._segment_size)
-                final_pos_in_segment = (user_pos+self._notify_samples) % self._segment_size
+        self.card._print("NumSamples = {}, CurrentSegment = {}, CurrentPos = {},  FinalSegment = {}, FinalPos = {}".format(self._notify_samples, current_segment, current_pos_in_segment, final_segment, final_pos_in_segment))
 
-                self.card._print("NumSamples = {}, CurrentSegment = {}, CurrentPos = {},  FinalSegment = {}, FinalPos = {}, UserLen = {}".format(self._notify_samples, current_segment, current_pos_in_segment, final_segment, final_pos_in_segment, user_len))
-
-                self._current_samples += self._notify_samples
-                if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:
-                    raise StopIteration
-
-                fill_size = self.fill_size_promille()
-                self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r')
-
-                return self.buffer[current_segment:final_segment, :, :]
-
-    
+        return self.buffer[current_segment:final_segment, :, :]
