@@ -45,6 +45,8 @@ class DataTransfer(CardFunctionality):
         defines the number of bytes per sample
     `bits_per_sample`: int
         defines the number of bits per sample
+    `direction` : Direction = Direction.Acquisition
+        Direction of the data transfer.
 
     """
     # public
@@ -446,7 +448,6 @@ class DataTransfer(CardFunctionality):
 
         if transfer_offset:
             transfer_offset_bytes = self.samples_to_bytes(transfer_offset)
-            # transfer_offset_bytes = transfer_offset * self.bytes_per_sample * self.num_channels
         else:
             transfer_offset_bytes = 0
 
@@ -515,7 +516,7 @@ class DataTransfer(CardFunctionality):
             self.post_trigger(post_samples)
         return num_samples, post_samples
 
-    def time_data(self, total_num_samples : int = None) -> npt.NDArray:
+    def time_data(self, total_num_samples : int = None, return_units = units.s) -> npt.NDArray:
         """
         Get the time array for the data buffer
 
@@ -530,16 +531,40 @@ class DataTransfer(CardFunctionality):
             the time array
         """
 
-        sample_rate = self._sample_rate()
         if total_num_samples is None:
             total_num_samples = self._buffer_samples
         total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
         pre_trigger = UnitConversion.convert(self._pre_trigger, units.Sa, int)
-        return ((np.arange(total_num_samples) - pre_trigger) / sample_rate).to_base_units()
+        return self.convert_time((np.arange(total_num_samples) - pre_trigger)).to(return_units)
     
+    def convert_time(self, time, return_units = units.s):
+        """
+        Convert a time to the units of the card sample rate
+        
+        Parameters
+        ----------
+        time : numpy array
+            the time array with integers that should be converted
+        return_units : numpy array with pint.Quantity
+            the units that the time should be converted to
+        
+        Returns
+        -------
+        pint.Quantity
+            the converted time
+        """
+
+        sample_rate = self._sample_rate()
+        return (time / sample_rate).to(return_units)
+
     def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
-        Unpack the 12bit buffer to a 16bit buffer
+        Unpacks the 12-bit packed data to 16-bit data
+        
+        Parameters
+        ----------
+        data : numpy array
+            the packed data
 
         Returns
         -------
@@ -886,13 +911,12 @@ class DataTransfer(CardFunctionality):
         StopIteration
         """
         timeout_counter = 0
-
+        # notify the card that data is available or read, but only after the first block
         if self.iterator_index != 0:
-            self.avail_card_len(self._notify_samples)
+            self.flush()
 
         while True:
             try:
-                # print(self.card.status())
                 if not self._polling:
                     self.wait_dma()
                 else:
@@ -904,6 +928,7 @@ class DataTransfer(CardFunctionality):
                 self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
                 timeout_counter += 1
                 if timeout_counter > self._max_timeout:
+                    self.iterator_index = 0
                     raise StopIteration
             else:
                 if not self._polling:
@@ -911,17 +936,20 @@ class DataTransfer(CardFunctionality):
         
         self.iterator_index += 1
 
-        fill_size = self.fill_size_promille()
-
         self._current_samples += self._notify_samples
         if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:
+            self.iterator_index = 0
             raise StopIteration
 
         user_pos = self.avail_user_pos()
+        fill_size = self.fill_size_promille()
         
-        # self.card._print("Fill size: {}%  Pos:{:08x} Len:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, user_len, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
         self.card._print("Fill size: {}%  Pos:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
-
-        # self.avail_card_len(self._notify_samples) # TODO this probably always a problem! Because the data is not read out yets
         
         return self.buffer[:, user_pos:user_pos+self._notify_samples]
+    
+    def flush(self):
+        """
+        This method is used to tell the card that a notify size of data is freed up after reading (acquisition) or written to (generation)
+        """
+        self.avail_card_len(self._notify_samples)

@@ -17,7 +17,6 @@ See the LICENSE file for the conditions under which this software may be used an
 import spcm
 from spcm import units # spcm uses the pint library for unit handling (units is a UnitRegistry object)
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -42,64 +41,50 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
+    clock.sample_rate(max=True)
     
     # setup the channels
-    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
-    channel0.amp(1000 * units.mV)
-    channel0.offset(0 * units.mV)
-    channel0.termination(1)
-    channel0.coupling(spcm.COUPLING_DC)
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channel 0
+    channels.amp(1000 * units.mV)
+    channels.offset(0 * units.mV)
+    channels.termination(1)
+    channels.coupling(spcm.COUPLING_DC)
 
-    num_samples = 128 * units.KiSa
-    pre_trigger = 128
-    post_trigger = 32
+    num_samples = 128 * units.KiS
+    max_num_gates = 128 # the maximum number of gates to be acquired
+
+    pre_trigger = 8 * units.KiS
+    post_trigger = 8 * units.KiS
     # define the data buffer
-    data_transfer = spcm.Gated(card)
-    data_transfer.memory_size(num_samples)
-    data_transfer.pre_trigger(pre_trigger)
-    data_transfer.post_trigger(post_trigger)
-    data_transfer.allocate_buffer(num_samples)
-
-    num_timestamps = 16
-    # setup timestamps
-    ts = spcm.TimeStamp(card)
-    ts.mode(spcm.SPC_TSMODE_STARTRESET, spcm.SPC_TSCNT_INTERNAL)
-    ts.allocate_buffer(num_timestamps)
-
-    # Create second buffer
-    ts.start_buffer_transfer(spcm.M2CMD_EXTRA_STARTDMA)
+    gated_transfer = spcm.Gated(card, max_num_gates=max_num_gates)
+    gated_transfer.memory_size(num_samples)
+    gated_transfer.pre_trigger(pre_trigger)
+    gated_transfer.post_trigger(post_trigger)
+    gated_transfer.allocate_buffer(num_samples)
 
     # Start DMA transfer
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
+    gated_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     
     # start card
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA, spcm.M2CMD_EXTRA_WAITDMA)
 
-    # Get the number of gates acquired
-    num_gates = 4 # + trigger.trigger_counter()
-    print(f"Num gates: {num_gates}")
-
     print("Finished acquiring...")
 
+    # Get the actual number of gates acquired
+    num_gates = gated_transfer.gate_counter()
+    print(f"Detected number of gates: {num_gates}")
+
     # Plot the acquired data
-    time_data_s = data_transfer.time_data()
     fig, ax = plt.subplots()
-    unit_data_V = channel0.convert_data(data_transfer.buffer[channel0, :], units.V)
-    print(channel0)
-    print("\tMinimum: {:.3~P}".format(np.min(unit_data_V)))
-    print("\tMaximum: {:.3~P}".format(np.max(unit_data_V)))
-    start = 0
-    for i in range(num_gates):
-        ax.axvline(ts.buffer[2*i,   0], color='r', linestyle='--', label='Gate')
-        ax.axvline(ts.buffer[2*i+1, 0], color='g', linestyle='--', label='Gate')
-        start_t = ts.buffer[2*i, 0] - pre_trigger
-        end_t   = ts.buffer[2*i+1, 0] + post_trigger
-        end = start + end_t - start_t
-        x_range = np.arange(start_t, end_t)
-        ax.plot(x_range, unit_data_V[start:end], '.', label=f"{channel0}")
-        start = end
-    # ax.legend()
+    for gate in gated_transfer:
+        time_range = gated_transfer.current_time_range(return_unit=units.us)
+        gate_start, gate_end = gated_transfer.current_timestamps(return_unit=units.us)
+        print(f"Gate {gated_transfer.iterator_index}: {gate_start} to {gate_end}")
+        for channel in channels:
+            unit_data_V = channel.convert_data(gate[channel, :], units.V)
+            ax.plot(time_range, unit_data_V, '.', label=f"{channel}")
+        ax.axvline(gate_start, color='b', linestyle='-', alpha=0.7, label='Gate')
+        ax.axvline(gate_end, color='b', linestyle='-', alpha=0.7, label='Gate')
+        ax.axvspan(gate_start, gate_end, alpha=0.1, color='b')
     ax.yaxis.set_units(units.mV)
-    ax.xaxis.set_units(units.us)
     plt.show()
