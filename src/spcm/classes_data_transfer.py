@@ -453,17 +453,18 @@ class DataTransfer(CardFunctionality):
 
         self.buffer_samples = transfer_length
         
-        # we define the buffer for transfer and start the DMA transfer
+        # we define the buffer for transfer
         self.card._print("Starting the DMA transfer and waiting until data is in board memory")
         self._c_buffer = self.buffer.ctypes.data_as(c_void_p)
         self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, direction, self.notify_size, self._c_buffer, transfer_offset_bytes, self.buffer_size))
         
         # Execute additional commands if available
-        cmd = 0
-        for arg in args:
-            cmd |= arg
-        self.card.cmd(cmd)
-        self.card._print("... data transfer started")
+        if args:
+            cmd = 0
+            for arg in args:
+                cmd |= arg
+            self.card.cmd(cmd)
+            self.card._print("... data transfer started")
 
     def duration(self, duration : pint.Quantity, pre_trigger_duration : pint.Quantity = None, post_trigger_duration : pint.Quantity = None) -> None:
         """
@@ -897,6 +898,25 @@ class DataTransfer(CardFunctionality):
         self._polling = polling
         self._pollng_timer = UnitConversion.convert(timer, units.s, float)
     
+    _auto_avail_card_len = True
+    def auto_avail_card_len(self, value : bool = None) -> bool:
+        """
+        Enable or disable the automatic sending of the number of samples that the card can now use for sample data transfer again
+
+        Parameters
+        ----------
+        value : bool = None
+            True to enable, False to disable and None to get the current status
+
+        Returns
+        -------
+        bool
+            the current status
+        """
+        if value is not None:
+            self._auto_avail_card_len = value
+        return self._auto_avail_card_len
+
     def __next__(self) -> npt.ArrayLike:
         """
         This method is called when the next element is requested from the iterator
@@ -912,7 +932,7 @@ class DataTransfer(CardFunctionality):
         """
         timeout_counter = 0
         # notify the card that data is available or read, but only after the first block
-        if self.iterator_index != 0:
+        if self.iterator_index != 0 and self._auto_avail_card_len:
             self.flush()
 
         while True:

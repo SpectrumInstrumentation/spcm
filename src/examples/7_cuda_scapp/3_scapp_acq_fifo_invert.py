@@ -49,12 +49,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print(f"Used Sample Rate: {sample_rate}")
     
     # Setup a data transfer object with CUDA DMA
-    num_samples = 8 * units.MiS # KibiSamples = 1024 Samples
+    num_samples = 8 * units.MiS
     notify_samples = 64 * units.KiS
     num_samples_magnitude = num_samples.to_base_units().magnitude
     notify_samples_magnitude = notify_samples.to_base_units().magnitude
-    # notify_samples = spcm.KIBI(2)
-    # num_samples    = spcm.MEBI(8)
 
     scapp_transfer = spcm.SCAPPTransfer(card, direction=spcm.Direction.Acquisition)
     scapp_transfer.notify_samples(notify_samples)

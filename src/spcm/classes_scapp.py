@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
-
 import time
-from .classes_error_exception import SpcmTimeout
+import numpy as np
+
 from .classes_card import Card
 from .classes_data_transfer import DataTransfer
 
 from spcm_core import spcm_dwDefTransfer_i64, c_void_p
 from spcm_core.constants import *
+
+from .classes_unit_conversion import UnitConversion
+from . import units
+
+from .classes_error_exception import SpcmException
 
 _cuda_support = False
 try:
@@ -46,11 +51,6 @@ def checkCudaErrors(result):
 class SCAPPTransfer(DataTransfer):
     """
     Class for data transfer between the card and the host using the SCAPP API.
-
-    Parameters
-    ----------
-    direction : Direction = Direction.Acquisition
-        Direction of the data transfer.
     """
 
     direction : Direction = None
@@ -78,35 +78,57 @@ class SCAPPTransfer(DataTransfer):
         flag = 1
         checkCudaErrors(cuda.cuPointerSetAttribute(flag, cuda.CUpointer_attribute.CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, self.buffer.data.ptr))
     
-    def start_buffer_transfer(self, *args, notify_samples = None, transfer_length = None) -> None:
+    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
         """
         Setup an RDMA transfer.
 
         Parameters
         ----------
-        args : int
+        *args : list
             Additional commands that are send to the card.
+        direction : int
+            the direction of the transfer
         notify_samples : int
             Size of the part of the buffer that is used for notifications.
+        transfer_offset : int
+            the offset of the transfer
         transfer_length : int
             Total length of the transfer buffer.
         """
 
-        # self.notify_samples(notify_samples)
         # only change this locally
         if notify_samples is not None:
             notify_size = notify_samples * self.num_channels * self.bytes_per_sample
         else:
             notify_size = self.notify_size
-        # print("Notify size: ", self.notify_size)
+        transfer_offset = UnitConversion.convert(transfer_offset, units.Sa, int)
+        transfer_length = UnitConversion.convert(transfer_length, units.Sa, int)
+
+        if self.buffer is None: 
+            raise SpcmException(text="No buffer defined for transfer")
+        if buffer_type: 
+            self.buffer_type = buffer_type
+        if direction is None:
+            if self.direction == Direction.Acquisition:
+                direction = SPCM_DIR_CARDTOGPU
+            elif self.direction == Direction.Generation:
+                direction = SPCM_DIR_GPUTOCARD
+            else:
+                raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOGPU or SPCM_DIR_GPUTOCARD)")
+        
+        if self._notify_samples != 0 and np.remainder(self.buffer_samples, self._notify_samples) and exception_num_samples:
+            raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
+
+        if transfer_offset:
+            transfer_offset_bytes = self.samples_to_bytes(transfer_offset)
+        else:
+            transfer_offset_bytes = 0
+
         self.buffer_samples = transfer_length
 
-        # Define transfer CUDA buffers
-        if self.direction == Direction.Acquisition:
-            direction = SPCM_DIR_CARDTOGPU
-        else:
-            direction = SPCM_DIR_GPUTOCARD
-        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, SPCM_BUF_DATA, direction, notify_size, c_void_p(self.buffer.data.ptr), 0, self.buffer_size))
+        # we define the buffer for transfer
+        self.card._print("Starting the DMA transfer and waiting until data is in board memory")
+        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, direction, notify_size, c_void_p(self.buffer.data.ptr), transfer_offset_bytes, self.buffer_size))
 
         # Execute additional commands if available
         if args:
@@ -114,75 +136,5 @@ class SCAPPTransfer(DataTransfer):
             for arg in args:
                 cmd |= arg
             self.card.cmd(cmd)
-            self.card._print("... CUDA data transfer started")
+            self.card._print("... SCAPP data transfer started")
     
-    _auto_avail_card_len = True
-    def auto_avail_card_len(self, value : bool = None) -> bool:
-        """
-        Enable or disable the automatic sending of the number of samples that the card can now use for sample data transfer again
-
-        Parameters
-        ----------
-        value : bool = None
-            True to enable, False to disable and None to get the current status
-
-        Returns
-        -------
-        bool
-            the current status
-        """
-        if value is not None:
-            self._auto_avail_card_len = value
-        return self._auto_avail_card_len
-
-    def __next__(self) -> tuple:
-        """
-        This method is called when the next element is requested from the iterator
-
-        Returns
-        -------
-        npt.ArrayLike
-            the next data block
-        
-        Raises
-        ------
-        StopIteration
-        """
-        timeout_counter = 0
-
-        if self.iterator_index != 0 and self._auto_avail_card_len:
-            self.avail_card_len(self._notify_samples)
-
-        while True:
-            try:
-                if not self._polling:
-                    self.wait_dma()
-                else:
-                    user_len = self.avail_user_len()
-                    if user_len >= self._notify_samples:
-                        break
-                    time.sleep(0.01)
-            except SpcmTimeout:
-                self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
-                timeout_counter += 1
-                if timeout_counter > self._max_timeout:
-                    self.iterator_index = 0
-                    raise StopIteration
-            else:
-                if not self._polling:
-                    break
-        
-        self.iterator_index += 1
-
-        self._current_samples += self._notify_samples
-        if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:
-            self.iterator_index = 0
-            raise StopIteration
-
-        user_pos = self.avail_user_pos()
-        fill_size = self.fill_size_promille()
-        
-        self.card._print("Fill size: {}%  Pos:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
-        
-        return self.buffer[:, user_pos:user_pos+self._notify_samples]
-
