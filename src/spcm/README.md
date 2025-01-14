@@ -51,6 +51,7 @@ Functionality classes handle specific functionality that is available to the car
 | `MultiPurposeIO`    | (none)              | class for handling a single multi purpose i/o line a list of these objects resides inside `MultiPurposeIOs` |
 | `DataTransfer`      | `CardFunctionality` | special class for handling data transfer functionality                                        |
 | `Multi`             | `DataTransfer`      | special class for handling multiple recording and replay mode functionality                   |
+| `Gated`             | `DataTransfer`      | special class for handling gated recording and replay functionality                           |
 | `Sequence`          | `DataTransfer`      | special class for handling sequence mode functionality                                        |
 | `TimeStamp`         | `DataTransfer`      | special class for handling time stamped data                                                  |
 | `SCAPPTransfer`     | `DataTransfer`      | special class for handling direct card to GPU class using the SCAPP option                    |
@@ -80,6 +81,7 @@ classDiagram
   class DDSCommandQueue
   class PulseGenerators
   class Multi
+  class Gated
   class TimeStamp
   class Sequence
   class SCAPPTransfer
@@ -92,6 +94,7 @@ classDiagram
   CardFunctionality <|-- DDS
   CardFunctionality <|-- PulseGenerators
   DataTransfer <|-- Multi
+  DataTransfer <|-- Gated
   DataTransfer <|-- TimeStamp
   DataTransfer <|-- Sequence
   DataTransfer <|-- SCAPPTransfer
@@ -113,6 +116,7 @@ When an error in the driver occures, the user is notified with an exception that
 |-----------------|-----------------|---------------------------------------------------------------------------------------------------------------|
 | `SpcmException` | (none)          | the main class to control exceptions that are raised due to errors that are raised by the low-level driver.   |
 | `SpcmTimeout`   | `SpcmException` | when an timeout of the device occurs a special exception is raised of type SpcmTimeout                        |
+| `SpcmDeviceNotFound` | `SpcmException` | when a device is not found this is not necessarily an error, hence handling this is special              |
 
 ### Diagram
 ```mermaid
@@ -121,6 +125,7 @@ classDiagram
   class SpcmTimeout
   class SpcmException
   SpcmException <|-- SpcmTimeout
+  SpcmException <|-- SpcmDeviceNotFound
 
 ```
 
@@ -142,7 +147,7 @@ classDiagram
 
 # Notes
 
-* See the files `regs.py` and `spcerr.py` for an extensive list of all the register names and errors that are handled by the driver. 
+* See the package `spcm-core` for an extensive list of all the register names and errors that are handled by the driver. 
 * For more information, please have a look at our hardware specific user manuals.
 
 # See also
