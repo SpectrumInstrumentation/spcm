@@ -316,7 +316,7 @@ class Device():
             timeout = UnitConversion.convert(timeout, units.ms, int)
             self.set_i(SPC_TIMEOUT, timeout)
         return_value = self.get_i(SPC_TIMEOUT)
-        if return_unit is not None: return_value = UnitConversion.to_unit(return_value, return_unit)
+        return_value = UnitConversion.to_unit(return_value * units.ms, return_unit)
         return return_value
     
     def start(self, *args) -> None:
