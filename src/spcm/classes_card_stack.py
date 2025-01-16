@@ -33,7 +33,7 @@ class CardStack(ExitStack):
     sync_id : int = -1
     is_synced : bool = False
 
-    def __init__(self, card_identifiers : list[str] = [], sync_identifier : str = "", find_sync_card : bool = False) -> None:
+    def __init__(self, card_identifiers : list[str] = [], sync_identifier : str = "", find_sync : bool = False) -> None:
         """
         Initialize the CardStack object with a list of card identifiers and a sync identifier
 
@@ -50,14 +50,14 @@ class CardStack(ExitStack):
         super().__init__()
         # Handle card objects
         self.cards = [self.enter_context(Card(identifier)) for identifier in card_identifiers]
-        if find_sync_card:
+        if find_sync:
             for id, card in enumerate(self.cards):
                 if card.starhub_card():
                     self.sync_card = card
                     self.sync_id = id
                     self.is_synced = True
                     break
-        if sync_identifier and (not find_sync_card or self.is_synced):
+        if sync_identifier and (not find_sync or self.is_synced):
             self.sync = self.enter_context(Sync(sync_identifier))
             self.is_synced = bool(self.sync)
     

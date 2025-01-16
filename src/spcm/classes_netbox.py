@@ -72,6 +72,7 @@ class Netbox(CardStack):
         netbox_type = self.type()
         netbox_str = "DN{series:x}.{family:x}{speed:x}-{channel:d}".format(**netbox_type)
         return f"Netbox: {netbox_str} at {self.ip()} sn {self.sn():05d}"
+    __repr__ = __str__
         
     def type(self) -> dict[int, int, int, int]:
         """
@@ -173,16 +174,16 @@ class Netbox(CardStack):
         """
         return self.netbox_card.get_i(SPC_NETBOX_CUSTOM)
 
-    def wake_on_lan(self, mac : int):
-        """
-        Set the wake on lan for the Netbox (see register 'SPC_NETBOX_WAKEONLAN' in chapter `Netbox` in the manual)
+    # def wake_on_lan(self, mac : int):
+    #     """
+    #     Set the wake on lan for the Netbox (see register 'SPC_NETBOX_WAKEONLAN' in chapter `Netbox` in the manual)
 
-        Parameters
-        ----------
-        mac : int
-            The mac addresse of the Netbox to wake on lan
-        """
-        self.netbox_card.set_i(SPC_NETBOX_WAKEONLAN, mac)
+    #     Parameters
+    #     ----------
+    #     mac : int
+    #         The mac addresse of the Netbox to wake on lan
+    #     """
+    #     self.netbox_card.set_i(SPC_NETBOX_WAKEONLAN, mac)
 
     def mac_address(self) -> int:
         """
