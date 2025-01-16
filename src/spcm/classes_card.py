@@ -125,6 +125,11 @@ class Card(Device):
             The function type of the card that needs to be found
         serial_number : int = 0
             The serial number of the card that needs to be found
+        
+        Returns
+        -------
+        Union[bool, int]
+            False if no card is found, otherwise the handle of the card
 
         """
         for nr in range(self._max_cards):
