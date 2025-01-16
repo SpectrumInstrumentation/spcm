@@ -71,7 +71,7 @@ class CardStack(ExitStack):
     def synched(self):
         """Checks if the sync card is connected
         """
-        return bool(self.is_synched)
+        return bool(self.is_synced)
     
     def start(self, *args) -> None:
         """
