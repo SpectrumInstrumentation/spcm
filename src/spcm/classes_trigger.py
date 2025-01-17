@@ -247,7 +247,7 @@ class Trigger(CardFunctionality):
         return self.card.get_i(SPC_TRIG_CH_ANDMASK0)
     
     # Delay
-    def delay(self, delay : int = None, return_unit : pint.Unit = None) -> int:
+    def delay(self, delay = None, return_unit : pint.Unit = None) -> int:
         """
         Set the delay for the trigger input lines in number of sample clocks (see register 'SPC_TRIG_DELAY' in chapter `Trigger` in the manual)
         
@@ -277,8 +277,7 @@ class Trigger(CardFunctionality):
                 delay = np.rint(int(delay * sr) / delay_step).astype(np.int64) * delay_step
             self.card.set_i(SPC_TRIG_DELAY, delay)
         return_value = self.card.get_i(SPC_TRIG_DELAY)
-        if return_unit is not None: 
-            return_value = UnitConversion.to_unit(return_value / sr, return_unit)
+        if isinstance(return_unit, pint.Unit): return_value = UnitConversion.to_unit(return_value / sr, return_unit)
         return return_value
     
     def trigger_counter(self) -> int:
@@ -397,8 +396,7 @@ class Trigger(CardFunctionality):
             level = UnitConversion.convert(level, units.mV, int)
             self.card.set_i(SPC_TRIG_EXT0_LEVEL0, level)
         return_value = self.card.get_i(SPC_TRIG_EXT0_LEVEL0)
-        if return_unit is not None: return UnitConversion.to_unit(return_value * units.mV, return_unit)
-        return return_value
+        return UnitConversion.to_unit(return_value * units.mV, return_unit)
     
     def ext0_level1(self, level = None, return_unit = None) -> int:
         """
@@ -421,8 +419,7 @@ class Trigger(CardFunctionality):
             level = UnitConversion.convert(level, units.mV, int)
             self.card.set_i(SPC_TRIG_EXT0_LEVEL1, level)
         return_value = self.card.get_i(SPC_TRIG_EXT0_LEVEL1)
-        if return_unit is not None: return UnitConversion.to_unit(return_value * units.mV, return_unit)
-        return return_value
+        return UnitConversion.to_unit(return_value * units.mV, return_unit)
     
     def ext1_level0(self, level = None, return_unit = None) -> int:
         """
@@ -445,5 +442,4 @@ class Trigger(CardFunctionality):
             level = UnitConversion.convert(level, units.mV, int)
             self.card.set_i(SPC_TRIG_EXT1_LEVEL0, level)
         return_value = self.card.get_i(SPC_TRIG_EXT1_LEVEL0)
-        if return_unit is not None: return UnitConversion.to_unit(return_value * units.mV, return_unit)
-        return return_value
+        return UnitConversion.to_unit(return_value * units.mV, return_unit)
