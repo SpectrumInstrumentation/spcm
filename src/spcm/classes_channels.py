@@ -482,7 +482,7 @@ class Channel:
             return_value = (np.power(self._conversion_amp * fraction, 2) / self._output_load / 2).to(return_unit)
             # U_pk = U_rms * sqrt(2)
         elif isinstance(return_unit, units.Unit) and (1*return_unit).check("[electric_potential]"):
-            return_value = (self._conversion_amp * fraction / 100).to(return_unit)
+            return_value = (self._conversion_amp * fraction / (100 * units.percent)).to(return_unit)
             # value in U_pk
             # value = self.voltage_conversion(value) / self._conversion_amp * 100 * units.percent
         elif isinstance(return_unit, units.Unit) and (1*return_unit).check("[]"):
@@ -600,7 +600,8 @@ class Channels:
     
     def write_setup(self) -> None:
         """Write the setup to the card"""
-        self.card.write_setup()
+        for card in self.cards:
+            card.write_setup()
     
     def channels_enable(self, enable_list : list[int] = None, enable_all : bool = False) -> int:
         """
