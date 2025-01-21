@@ -35,7 +35,7 @@ class BlockAverage(Multi):
             self.card.set_i(SPC_AVERAGES, num_averages)
         return self.card.get_i(SPC_AVERAGES)
     
-    def bits_per_sample(self) -> int:
+    def _bits_per_sample(self) -> int:
         """
         Get the number of bits per sample
 
@@ -44,9 +44,10 @@ class BlockAverage(Multi):
         int
             number of bits per sample
         """
-        return super().bits_per_sample * 2
+        self.bits_per_sample = super()._bits_per_sample() * 2
+        return self.bits_per_sample
     
-    def bytes_per_sample(self) -> int:
+    def _bytes_per_sample(self) -> int:
         """
         Get the number of bytes per sample
 
@@ -55,7 +56,8 @@ class BlockAverage(Multi):
         int
             number of bytes per sample
         """
-        return super().bytes_per_sample * 2
+        self.bytes_per_sample = super()._bytes_per_sample() * 2
+        return self.bytes_per_sample
 
     def numpy_type(self) -> npt.NDArray[np.int_]:
         """
@@ -66,7 +68,7 @@ class BlockAverage(Multi):
         numpy data type
             the type of data that is used by the card
         """
-        if self.bytes_per_sample == 2:
+        if self._bytes_per_sample == 2:
             return np.int16
         return np.int32
     

@@ -143,7 +143,7 @@ class DDSCommandList(DDS):
         """
 
         if self._dtm == SPCM_DDS_DTM_SINGLE:
-            return self._command_max - self.card.get_i(SPC_DDS_QUEUE_CMD_COUNT)
+            return self.list_size - self.card.get_i(SPC_DDS_QUEUE_CMD_COUNT)
         elif self._dtm == SPCM_DDS_DTM_DMA:
             return self.card.get_i(SPC_DATA_AVAIL_USER_LEN)
         else:

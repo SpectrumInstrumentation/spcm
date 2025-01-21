@@ -35,7 +35,7 @@ class Boxcar(Multi):
             self.card.set_i(SPC_BOX_AVERAGES, num_averages)
         return self.card.get_i(SPC_BOX_AVERAGES)
     
-    def bits_per_sample(self) -> int:
+    def _bits_per_sample(self) -> int:
         """
         Get the number of bits per sample
 
@@ -44,9 +44,10 @@ class Boxcar(Multi):
         int
             number of bits per sample
         """
-        return 32
+        self.bits_per_sample = 32
+        return self.bits_per_sample
     
-    def bytes_per_sample(self) -> int:
+    def _bytes_per_sample(self) -> int:
         """
         Get the number of bytes per sample
 
@@ -55,7 +56,8 @@ class Boxcar(Multi):
         int
             number of bytes per sample
         """
-        return 4
+        self.bytes_per_sample = 4
+        return self.bytes_per_sample
 
     def numpy_type(self) -> npt.NDArray[np.int_]:
         """

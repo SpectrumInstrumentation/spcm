@@ -63,7 +63,7 @@ class DataTransfer(CardFunctionality):
     current_user_pos : int = 0
 
     _polling = False
-    _pollng_timer = 0
+    _polling_timer = 0
 
     # private
     _buffer_samples : int = 0
@@ -262,20 +262,25 @@ class DataTransfer(CardFunctionality):
         """
         return self.card.get_i(SPC_SAMPLERATE) * units.Hz
 
-    def memory_size(self, memory_size : int = None) -> int:
+    def memory_size(self, memory_samples : int = None) -> int:
         """
         Sets the memory size in samples per channel. The memory size setting must be set before transferring 
         data to the card. (see register `SPC_MEMSIZE` in the manual)
         
         Parameters
         ----------
-        memory_size : int | pint.Quantity
-            the size of the memory in Bytes
+        memory_samples : int | pint.Quantity
+            the size of the memory in samples
+        
+        Returns
+        -------
+        int
+            the size of the memory in samples
         """
 
-        if memory_size is not None:
-            memory_size = UnitConversion.convert(memory_size, units.Sa, int)
-            self.card.set_i(SPC_MEMSIZE, memory_size)
+        if memory_samples is not None:
+            memory_samples = UnitConversion.convert(memory_samples, units.Sa, int)
+            self.card.set_i(SPC_MEMSIZE, memory_samples)
         self._memory_size = self.card.get_i(SPC_MEMSIZE)
         return self._memory_size
     
@@ -287,13 +292,18 @@ class DataTransfer(CardFunctionality):
         ----------
         buffer_samples : int | pint.Quantity
             the size of the output buffer in Bytes
+        
+        Returns
+        -------
+        int
+            the size of the output buffer in Samples
         """
 
         if buffer_samples is not None:
             buffer_samples = UnitConversion.convert(buffer_samples, units.B, int)
-            buffer_size = self.samples_to_bytes(buffer_size)
+            buffer_size = self.samples_to_bytes(buffer_samples)
             self.card.set_i(SPC_DATA_OUTBUFSIZE, buffer_size)
-        return self.card.get_i(SPC_DATA_OUTBUFSIZE)
+        return self.bytes_to_samples(self.card.get_i(SPC_DATA_OUTBUFSIZE))
     
     def loops(self, loops : int = None) -> int:
         return self.card.loops(loops)
@@ -313,6 +323,7 @@ class DataTransfer(CardFunctionality):
             self.bits_per_sample = 12        
         else:
             self.bits_per_sample = self.card.bits_per_sample()
+        return self.bits_per_sample
     
     def _bytes_per_sample(self) -> int:
         """
@@ -329,6 +340,7 @@ class DataTransfer(CardFunctionality):
             self.bytes_per_sample = 1.5
         else:
             self.bytes_per_sample = self.card.bytes_per_sample()
+        return self.bytes_per_sample
     
     def pre_trigger(self, num_samples : int = None) -> int:
         """
@@ -367,7 +379,7 @@ class DataTransfer(CardFunctionality):
         """
 
         if self._memory_size < num_samples:
-            raise ValueError("The number of post trigger samples needs to be smaller than the total number of samples")
+            raise ValueError(f"The number of post trigger samples needs to be smaller than the total number of samples: {self._memory_size} < {num_samples}")
         if num_samples is not None:
             num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_POSTTRIGGER, num_samples)
@@ -392,6 +404,7 @@ class DataTransfer(CardFunctionality):
         dwMask = self._buffer_alignment - 1
 
         item_size = sample_type(0).itemsize
+        # print(f"Item size: {item_size}")
         # allocate a buffer (numpy array) for DMA transfer: a little bigger one to have room for address alignment
         databuffer_unaligned = np.empty(((self._buffer_alignment + self.buffer_size) // item_size, ), dtype = sample_type)   # byte count to sample (// = integer division)
         # two numpy-arrays may share the same memory: skip the begin up to the alignment boundary (ArrayVariable[SKIP_VALUE:])
@@ -525,6 +538,8 @@ class DataTransfer(CardFunctionality):
         ----------
         total_num_samples : int | pint.Quantity
             the total number of samples
+        return_units : pint.Quantity
+            the units that the time should be converted to
         
         Returns
         -------
@@ -592,23 +607,30 @@ class DataTransfer(CardFunctionality):
         data_int12 = data_int12.reshape((self.num_channels, self._buffer_samples), order='F')
         return data_int12
     
-    def unpackbits(self):
+    def unpackbits(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
         Unpack the buffer to bits
+
+        Parameters
+        ----------
+        data : numpy array | None = None
+            the packed data
 
         Returns
         -------
         numpy array
             the unpacked buffer
         """
-        data = self.buffer
+
+        if data is None:
+            data = self.buffer
         dshape = list(data.shape)
         return_data = data.reshape([-1, 1])
         num_bits = return_data.dtype.itemsize * 8
         mask = 2**np.arange(num_bits, dtype=return_data.dtype).reshape([1, num_bits])
         return (return_data & mask).astype(bool).astype(int).reshape(dshape + [num_bits])
 
-    def tofile(self, filename : str, **kwargs) -> None:
+    def tofile(self, filename : str, buffer = None, **kwargs) -> None:
         """
         Export the buffer to a file. The file format is determined by the file extension
         Supported file formats are: 
@@ -630,27 +652,28 @@ class DataTransfer(CardFunctionality):
             if the file format is not supported
         """
 
+        if buffer is None:
+            buffer = self.buffer
         file_path = Path(filename)
         if file_path.suffix == '.bin':
-            dtype = kwargs.get('dtype', self.numpy_type())
-            self.buffer.tofile(file_path, dtype=dtype)
+            buffer.tofile(file_path)
         elif file_path.suffix == '.csv':
             delimiter = kwargs.get('delimiter', ',')
-            np.savetxt(file_path, self.buffer, delimiter=delimiter)
+            np.savetxt(file_path, buffer, delimiter=delimiter)
         elif file_path.suffix == '.npy':
-            np.save(file_path, self.buffer)
+            np.save(file_path, buffer)
         elif file_path.suffix == '.npz':
-            np.savez_compressed(file_path, self.buffer)
+            np.savez_compressed(file_path, buffer)
         elif file_path.suffix == '.txt':
-            np.savetxt(file_path, self.buffer, fmt='%d')
+            np.savetxt(file_path, buffer, fmt='%d')
         elif file_path.suffix == '.h5' or file_path.suffix == '.hdf5':
             import h5py
             with h5py.File(file_path, 'w') as f:
-                f.create_dataset('data', data=self.buffer)
+                f.create_dataset('data', data=buffer)
         else:
             raise ImportError("File format not supported")
         
-    def fromfile(self, filename : str, **kwargs) -> None:
+    def fromfile(self, filename : str, in_buffer : bool = True, **kwargs) -> npt.NDArray[np.int_]:
         """
         Import the buffer from a file. The file format is determined by the file extension
         Supported file formats are: 
@@ -677,23 +700,28 @@ class DataTransfer(CardFunctionality):
             dtype = kwargs.get('dtype', self.numpy_type())
             shape = kwargs.get('shape', (self.num_channels, self.buffer_size // self.num_channels))
             buffer = np.fromfile(file_path, dtype=dtype)
-            self.buffer[:] = buffer.reshape(shape, order='C')
+            loaded_data = buffer.reshape(shape, order='C')
         elif file_path.suffix == '.csv':
             delimiter = kwargs.get('delimiter', ',')
-            self.buffer[:] = np.loadtxt(file_path, delimiter=delimiter)
+            loaded_data = np.loadtxt(file_path, delimiter=delimiter)
         elif file_path.suffix == '.npy':
-            self.buffer[:] = np.load(file_path)
+            loaded_data = np.load(file_path)
         elif file_path.suffix == '.npz':
             data = np.load(file_path)
-            self.buffer[:] = data['arr_0']
+            loaded_data = data['arr_0']
         elif file_path.suffix == '.txt':
-            self.buffer[:] = np.loadtxt(file_path)
+            loaded_data = np.loadtxt(file_path)
         elif file_path.suffix == '.h5' or file_path.suffix == '.hdf5':
             import h5py
             with h5py.File(file_path, 'r') as f:
-                self.buffer[:] = f['data'][()]
+                loaded_data = f['data'][()]
         else:
             raise ImportError("File format not supported")
+        
+        if in_buffer:
+            self.buffer[:] = loaded_data
+        return loaded_data
+
 
     def avail_card_len(self, available_samples : int = 0) -> None:
         """
@@ -896,7 +924,7 @@ class DataTransfer(CardFunctionality):
         """
 
         self._polling = polling
-        self._pollng_timer = UnitConversion.convert(timer, units.s, float)
+        self._polling_timer = UnitConversion.convert(timer, units.s, float, rounding=None)
     
     _auto_avail_card_len = True
     def auto_avail_card_len(self, value : bool = None) -> bool:

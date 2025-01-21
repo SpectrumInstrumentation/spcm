@@ -690,7 +690,7 @@ class PulseGenerators(CardFunctionality):
         StopIteration
         """
         self._generator_iterator_index += 1
-        if self._generator_iterator_index >= len(self.channels):
+        if self._generator_iterator_index >= self.num_generators:
             self._generator_iterator_index = -1
             raise StopIteration
         return self.generators[self._generator_iterator_index]
@@ -698,10 +698,6 @@ class PulseGenerators(CardFunctionality):
     def __len__(self) -> int:
         """Returns the number of available pulse generators"""
         return len(self.generators)
-    
-    def write_setup(self) -> None:
-        """Write the setup to the card"""
-        self.card.write_setup()
 
     # The pulse generator can be enabled or disabled
     def enable(self, enable : int = None) -> int:

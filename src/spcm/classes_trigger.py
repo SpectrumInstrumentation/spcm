@@ -273,12 +273,37 @@ class Trigger(CardFunctionality):
         sr = self.card.get_i(SPC_SAMPLERATE) * units.Hz
         if delay is not None:
             if isinstance(delay, units.Quantity):
-                delay_step = self.card.get_i(SPC_TRIG_AVAILDELAY_STEP)
+                delay_step = self.avail_delay_step()
                 delay = np.rint(int(delay * sr) / delay_step).astype(np.int64) * delay_step
             self.card.set_i(SPC_TRIG_DELAY, delay)
         return_value = self.card.get_i(SPC_TRIG_DELAY)
         if isinstance(return_unit, pint.Unit): return_value = UnitConversion.to_unit(return_value / sr, return_unit)
         return return_value
+    
+    def avail_delay_max(self) -> int:
+        """
+        Get the maximum delay for the trigger input lines in number of sample clocks (see register 'SPC_TRIG_AVAILDELAY' in chapter `Trigger` in the manual)
+        
+        Returns
+        -------
+        int
+            The maximum delay for the trigger input lines
+        """
+
+        return self.card.get_i(SPC_TRIG_AVAILDELAY)
+    
+    def avail_delay_step(self) -> int:
+        """
+        Get the step size for the delay for the trigger input lines in number of sample clocks (see register 'SPC_TRIG_AVAILDELAY_STEP' in chapter `Trigger` in the manual)
+        
+        Returns
+        -------
+        int
+            The step size for the delay for the trigger input lines
+        """
+
+        return self.card.get_i(SPC_TRIG_AVAILDELAY_STEP)
+
     
     def trigger_counter(self) -> int:
         """

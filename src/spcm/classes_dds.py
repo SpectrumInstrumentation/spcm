@@ -1264,6 +1264,11 @@ class DDS(CardFunctionality):
     def write_to_card(self, flags=0) -> None:
         """
         send a list of all the commands that came after the last write_list and send them to the card (see register `SPC_DDS_CMD` in the manual)
+
+        Parameters
+        ----------
+        flags : int = 0
+            the flags that can be set with the write_to_card command
         """
         
         self.cmd(SPCM_DDS_CMD_WRITE_TO_CARD | flags)
@@ -1292,7 +1297,7 @@ class DDS(CardFunctionality):
         
         mask = 0
         for keyword, value in kwargs.items():
-            bit = int(keyword[len(prefix)+1:])
+            bit = int(keyword[len(prefix):])
             if value:
                 mask |= 1 << bit
             else:

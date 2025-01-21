@@ -24,7 +24,7 @@ class Multi(DataTransfer):
 
     def __init__(self, card, *args, **kwargs) -> None:
         super().__init__(card, *args, **kwargs)
-        self.pre_trigger = None
+        self._pre_trigger = None
         self._segment_size = 0
         self._num_segments = 0
 
@@ -88,7 +88,7 @@ class Multi(DataTransfer):
         if self.bits_per_sample > 1 and not self._12bit_mode:
             self.buffer = self.buffer.reshape((self._num_segments, segment_samples, num_channels), order='C') # index definition: [segment, sample, channel] !
 
-    def time_data(self, total_num_samples : int = None) -> npt.NDArray:
+    def time_data(self, total_num_samples : int = None, return_units = units.s) -> npt.NDArray:
         """
         Get the time array for the data buffer
 
@@ -96,6 +96,8 @@ class Multi(DataTransfer):
         ----------
         total_num_samples : int | pint.Quantity
             the total number of samples
+        return_units : pint.Unit
+            the units of the time array
         
         Returns
         -------
@@ -103,12 +105,9 @@ class Multi(DataTransfer):
             the time array
         """
 
-        sample_rate = self._sample_rate()
         if total_num_samples is None:
             total_num_samples = self._buffer_samples // self._num_segments
-        total_num_samples = UnitConversion.convert(total_num_samples, units.Sa, int)
-        pre_trigger = UnitConversion.convert(self._pre_trigger, units.Sa, int)
-        return ((np.arange(total_num_samples) - pre_trigger) / sample_rate).to_base_units()
+        return super().time_data(total_num_samples, return_units)
 
     def unpack_12bit_buffer(self, data : npt.NDArray[np.int_] = None) -> npt.NDArray[np.int_]:
         """
