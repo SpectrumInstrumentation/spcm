@@ -141,3 +141,19 @@ class DDSCommandQueue(DDSCommandList):
         """
 
         self.set_d(SPC_DDS_CORE0_AMP_SLOPE + core_index, slope)
+
+    def trg_timer(self, period : float) -> None:
+        """
+        set the period at which the timer should raise DDS trigger events. (see register `SPC_DDS_TRG_TIMER` in the manual)
+
+        NOTE
+        ----
+        only used in conjecture with the trigger source set to SPCM_DDS_TRG_SRC_TIMER ---
+
+        Parameters
+        ----------
+        period : float
+            the time between DDS trigger events in seconds
+        """
+
+        self.set_d(SPC_DDS_TRG_TIMER, float(period))
