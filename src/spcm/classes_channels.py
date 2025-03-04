@@ -110,7 +110,9 @@ class Channel:
     
     def path(self, value : int = None) -> int:
         """
-        Sets the input path of the channel of the card (see register `SPC_PATH0` in the manual)
+        Sets the input path of the channel of the card (see register `SPC_PATH0` in the manual).
+        To make the read back of the coupling offset compensation setting possible, we also set 
+        the register `SPC_READAIPATH` to the same value.
     
         Parameters
         ----------
@@ -125,6 +127,7 @@ class Channel:
 
         if value is not None:
             self.card.set_i(SPC_PATH0 + (SPC_PATH1 - SPC_PATH0) * self.index, value)
+            self.card.set_i(SPC_READAIPATH, value)
         return self.card.get_i(SPC_PATH0 + (SPC_PATH1 - SPC_PATH0) * self.index)
     
     def amp(self, value : int = None, return_unit = None) -> int:
