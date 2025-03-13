@@ -59,6 +59,9 @@ class SCAPPTransfer(DataTransfer):
         if not _cuda_support:
             raise ImportError("CUDA support is not available. Please install the cupy and cuda-python packages.")
         super().__init__(card)
+        scapp_feature = bool(self.card._features & SPCM_FEAT_SCAPP)
+        if not scapp_feature:
+            raise SpcmException(text="The card does not have the SCAPP option installed. SCAPP is a add-on feature that needs to be bought separately, please contact info@spec.de and ask for the SCAPP option for the card with serial number {}".format(self.card.sn()))
         self.direction = direction
         self.iterator_index = 0
 
