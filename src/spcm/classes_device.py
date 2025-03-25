@@ -152,8 +152,9 @@ class Device():
         Closes the connection to the card using a handle
         """
 
-        self.stop(M2CMD_DATA_STOPDMA) # stop the card and the DMA transfer
-        self.close_handle()
+        if not self._closed:
+            self.stop(M2CMD_DATA_STOPDMA) # stop the card and the DMA transfer
+            self.close_handle()
     
     def handle(self) -> object:
         """

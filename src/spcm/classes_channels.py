@@ -574,7 +574,8 @@ class Channels:
             the channel at the specific index
         """
 
-        
+        if index < 0 or index >= len(self.channels):
+            raise IndexError(repr(index))
         return self.channels[index]
     
     _channel_iterator_index = -1

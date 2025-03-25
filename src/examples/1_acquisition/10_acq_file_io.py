@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-8_acq_file_io.py
+10_acq_file_io.py
 
 Shows a simple Standard mode example acquisition example with the addition of writing the acquired data to a file and reading it back.
 - connect a function generator that generates a sine wave with 10-100 kHz frequency and 100 - 1000 mV amplitude to channel 0

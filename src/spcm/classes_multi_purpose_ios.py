@@ -60,6 +60,11 @@ class MultiPurposeIO:
         ----------
         mode : int
             The mode of the digital input/output
+        
+        Returns
+        -------
+        int
+            The mode of the digital input/output
         """
 
         if mode is not None:

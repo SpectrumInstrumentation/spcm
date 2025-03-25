@@ -188,6 +188,18 @@ class Card(Device):
         """
 
         return self.card_type() & TYP_SERIESMASK
+    
+    def family(self) -> int:
+        """
+        Get the family of the card (see register `SPC_PCITYP` and `TYP_FAMILYMASK` in the manual)
+    
+        Returns
+        -------
+        int
+            The family of the card
+        """
+
+        return (self.card_type() & TYP_FAMILYMASK) >> 8
 
     def function_type(self) -> int:
         """
