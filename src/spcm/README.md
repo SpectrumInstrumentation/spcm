@@ -49,6 +49,7 @@ Functionality classes handle specific functionality that is available to the car
 | `Trigger`           | `CardFunctionality` | class for setting up the trigger engine of the card                                           |
 | `MultiPurposeIOs`   | `CardFunctionality` | class for setting up the multi purpose i/o's of the card                                      |
 | `MultiPurposeIO`    | (none)              | class for handling a single multi purpose i/o line a list of these objects resides inside `MultiPurposeIOs` |
+| `SynchronousDigitalIOs` | `MultiPurposeIOs` | class for handling synchronous digital I/O on the xio lines                                 |
 | `DataTransfer`      | `CardFunctionality` | special class for handling data transfer functionality                                        |
 | `Multi`             | `DataTransfer`      | special class for handling multiple recording and replay mode functionality                   |
 | `Gated`             | `DataTransfer`      | special class for handling gated recording and replay functionality                           |
@@ -74,6 +75,7 @@ classDiagram
   class Clock
   class Trigger
   class MultiPurposeIOs
+  class SynchronousIOs
   class DataTransfer
   class DDS
   class DDSCore
@@ -102,6 +104,7 @@ classDiagram
   Multi <|-- BlockAverage
   Channels *-- Channel
   MultiPurposeIOs *-- MultiPurposeIO
+  MultiPurposeIOs <|-- SynchronousIOs
   PulseGenerators *-- PulseGenerator
   DDS *-- DDSCore
   DDS <|-- DDSCommandList
