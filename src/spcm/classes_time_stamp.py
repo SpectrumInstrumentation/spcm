@@ -198,18 +198,27 @@ class TimeStamp(DataTransfer):
         """
         self._to_transfer_timestamps = timestamps
 
-    def poll(self) -> npt.ArrayLike:
+    def poll(self, polling_length : int = 0) -> npt.ArrayLike:
         """
         This method is called when polling for timestamps
+
+        Parameters
+        ----------
+        polling_length : int = 0
+            the number of timestamps to poll and wait for
 
         Returns
         -------
         npt.ArrayLike
             the next data block
         """
+
         while True:
+            user_pos = self.avail_user_pos()
             user_len = self.avail_user_len()
-            if user_len >= 1:
-                user_pos = self.avail_user_pos()
+            if not polling_length and user_len >= 1:
                 self.avail_card_len(user_len)
                 return self.buffer[user_pos:user_pos+user_len, :]
+            elif user_len >= polling_length:
+                self.avail_card_len(polling_length)
+                return self.buffer[user_pos:user_pos+polling_length, :]

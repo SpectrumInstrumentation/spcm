@@ -80,25 +80,19 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     segment_cnt = 0
     print("Recording... press Ctrl+C to stop")
+
     try:
         for data_block in multiple_recording:
-            segment = 0
-            while True:
-                ts_data_range = ts.poll()
-                for ts_block in ts_data_range:
-                    timestampVal2 = (ts_block[0] / sample_rate).to_base_units()   # lower 8 bytes
+            ts_data_range = ts.poll(data_block.shape[0])
+            for ts, segment_data in zip(ts_data_range, data_block):
+                timestampVal2 = (ts[0] / sample_rate).to_base_units()   # lower 8 bytes
 
-                    # write timestamp value to file
-                    unit_data_block = channels[0].convert_data(data_block[segment,:,:], units.V) # index definition: [segment, sample, channel] !
-                    minimum = np.min(unit_data_block)
-                    maximum = np.max(unit_data_block)
-                    print(f"Segment[{segment_cnt}]: Time: {timestampVal2}, Minimum: {minimum}, Maximum: {maximum}")
-                    segment += 1
-                    segment_cnt += 1
-                    if segment >= data_block.shape[0]:
-                        break
-                if segment >= data_block.shape[0]:
-                    break
+                # Convert segment data to the correct units
+                unit_data_block = channels[0].convert_data(segment_data, units.V)
+                minimum = np.min(unit_data_block)
+                maximum = np.max(unit_data_block)
+                print(f"Segment[{segment_cnt}]: Time: {timestampVal2}, Minimum: {minimum}, Maximum: {maximum}")
+                segment_cnt += 1
     except KeyboardInterrupt:
         print("Recording stopped by user...")
 
