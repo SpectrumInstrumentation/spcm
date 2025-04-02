@@ -66,7 +66,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     gated_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     
     # start card
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA, spcm.M2CMD_EXTRA_WAITDMA)
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
 
     print("Finished acquiring...")
 
