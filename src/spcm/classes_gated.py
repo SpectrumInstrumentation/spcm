@@ -105,28 +105,38 @@ class Gated(DataTransfer):
     gate_count : int = 0
     _start : int = 0
     _end : int = 0
+    _aligned_end : int = 0
     def __next__(self):
         if self.direction is not Direction.Acquisition:
             raise ValueError("Iterating the Gated class can only be used with acquisition")
         self.iterator_index += 1
         self.gate_count = self.gate_counter()
-        if self.iterator_index >= self.gate_count:
+        if self.iterator_index >= self.gate_count or (self.max_num_gates > 0 and self.iterator_index >= self.max_num_gates):
+            # Reset the iterator index and raise StopIteration if there are no more gates to iterate over
             self.iterator_index = -1
             raise StopIteration
+        
+        # Use the aligned end of the last gate as the start of the new gate
+        self._start = self._aligned_end
+
         # Get the start and end of the gate event
-        alignment = self.alignment()
-        length_unaligned = self.timestamp.buffer[2*self.iterator_index+1, 0] - self.timestamp.buffer[2*self.iterator_index+0, 0]
-        length_aligned = (length_unaligned // alignment + 1) * alignment
-        segment_length = length_unaligned + self._pre_trigger + self._post_trigger
-        total_length = length_aligned + self._pre_trigger + self._post_trigger
-        end = self._start + total_length
+        length = self.timestamp.buffer[2*self.iterator_index+1, 0] - self.timestamp.buffer[2*self.iterator_index+0, 0]
+        segment_length = length + self._pre_trigger + self._post_trigger
         self._end = self._start + segment_length
-        if end > self.buffer.size:
+
+        # The data end of the gate is aligned to a multiple of the alignment length, hence we have to calculate the aligned end of the gate to know where the next gate starts
+        alignment = self.alignment()
+        length_with_alignment = (length // alignment + 1) * alignment
+        total_length = length_with_alignment + self._pre_trigger + self._post_trigger
+        self._aligned_end = self._start + total_length
+        if self._aligned_end > self.buffer.shape[-1]:
             print("Warning: Gate exceeds data length")
-            total_length -= end - self.buffer.size
-            segment_length -= self._end - self.buffer.size
-            end = self.buffer.size
-            self._end = self.buffer.size
+            total_length -= self._aligned_end - self.buffer.shape[-1]
+            segment_length -= self._end - self.buffer.shape[-1]
+            self._aligned_end = self.buffer.shape[-1]
+            self._end = self.buffer.shape[-1]
+
+        # Return the view of the data buffer that contains only the data of the current gate
         return self.buffer[:, self._start:self._end]
     
     def current_time_range(self, return_unit = None) -> int:
@@ -144,8 +154,9 @@ class Gated(DataTransfer):
             the current time range of the data buffer
         """
 
+        current_length = self._end - self._start
         time_range = np.arange(self.timestamp.buffer[2*self.iterator_index+0, 0] - self._pre_trigger, self.timestamp.buffer[2*self.iterator_index+1, 0] + self._post_trigger)
-        time_range = UnitConversion.to_unit(time_range / self._sample_rate(), return_unit)
+        time_range = UnitConversion.to_unit(time_range[:current_length] / self._sample_rate(), return_unit)
         return time_range
 
     def current_timestamps(self, return_unit = None) -> tuple:
