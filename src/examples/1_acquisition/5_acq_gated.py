@@ -50,11 +50,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
 
-    num_samples = 128 * units.KiS
+    num_samples = 16 * units.KiS
     max_num_gates = 128 # the maximum number of gates to be acquired
 
-    pre_trigger = 8 * units.KiS
-    post_trigger = 8 * units.KiS
+    pre_trigger = 16 * units.S
+    post_trigger = 16 * units.S
     # define the data buffer
     gated_transfer = spcm.Gated(card, max_num_gates=max_num_gates)
     gated_transfer.memory_size(num_samples)
@@ -70,16 +70,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     print("Finished acquiring...")
 
-    # Get the actual number of gates acquired
-    num_gates = gated_transfer.gate_counter()
-    print(f"Detected number of gates: {num_gates}")
-
     # Plot the acquired data
     fig, ax = plt.subplots()
     for gate in gated_transfer:
         time_range = gated_transfer.current_time_range(return_unit=units.us)
         gate_start, gate_end = gated_transfer.current_timestamps(return_unit=units.us)
-        print(f"Gate {gated_transfer.iterator_index}: {gate_start} to {gate_end}")
+        print(f"Gate {gated_transfer.iterator_index} - time period: {gate_start} to {gate_end} - number of points: {len(gate[0, :])}")
         for channel in channels:
             unit_data_V = channel.convert_data(gate[channel, :], units.V)
             ax.plot(time_range, unit_data_V, '.', label=f"{channel}")

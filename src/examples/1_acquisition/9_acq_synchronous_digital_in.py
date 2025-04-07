@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-8_acq_synchronous_digital_in.py
+9_acq_synchronous_digital_in.py
 
 A Standard acquisition (recording) mode example including synchronous bits from the digital inputs.
 - connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0

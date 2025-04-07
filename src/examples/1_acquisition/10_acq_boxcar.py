@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-9_acq_boxcar.py
+10_acq_boxcar.py
 
 Shows a simple Boxcar averaging example using only the few necessary commands
 - connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0
@@ -25,11 +25,11 @@ card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
-with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # if you want to open the first card of a specific type
+with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to open the first card of a specific type
     
     # setup card mode
-    card.card_mode(spcm.SPC_REC_STD_BOXCAR) # multiple recording mode
-    card.timeout(5 * units.s)# Clock Configuration
+    card.card_mode(spcm.SPC_REC_STD_BOXCAR) # boxcar averaging mode
+    card.timeout(5 * units.s)
     
     # Trigger settings
     trigger = spcm.Trigger(card)

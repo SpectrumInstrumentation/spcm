@@ -971,7 +971,7 @@ class DataTransfer(CardFunctionality):
                     user_len = self.avail_user_len()
                     if user_len >= self._notify_samples:
                         break
-                    time.sleep(0.01)
+                    time.sleep(self._polling_timer)
             except SpcmTimeout:
                 self.card._print("... Timeout ({})".format(timeout_counter), end='\r')
                 timeout_counter += 1
