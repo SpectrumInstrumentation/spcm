@@ -43,18 +43,19 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channel0.amp(1000 * units.mV)  
     channel0.offset(0)
-    channel0.termination(0)  # High impedance (1 MΩ)
+    channel0.termination(1)  # HF (50 Ω)
     channel0.coupling(spcm.COUPLING_DC)  # DC coupling
 
     trigger.ch_and_mask0(spcm.SPC_TMASK0_CH0)
     trigger.ch_mode(channel0, spcm.SPC_TM_POS)
-    trigger.ch_level0(channel0, 200 * units.mV, return_unit=units.mV)
+    trigger.ch_level0(channel0, 0 * units.mV, return_unit=units.mV)
 
-    num_samples = 4 * units.KiS
-    num_segments = 1
-    samples_per_segment = num_samples // num_segments
+    samples_per_segment = 1 * units.KiS
+    num_segments = 2
+    num_samples = samples_per_segment * num_segments
     averages = 8
-    post_trigger = samples_per_segment // 2
+    post_trigger = samples_per_segment - 128 * units.S
+
     # Boxcar Averaging Setup and Data Transfer
     boxcar = spcm.Boxcar(card)
     boxcar.box_averages(averages)  # Set boxcar averaging factor
@@ -70,17 +71,21 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # wait until the transfer has finished
     try:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(num_segments, 1, sharex=True)
 
         # Retrieve and plot the acquired data
         time_data_s = boxcar.time_data()
         for i in range(num_segments):
-            channel_data = channel0.convert_data(boxcar.buffer[i, :, channel0], units.V)
-            # Plot the results, only every 256th value to increase visibility of data points
-            ax.plot(time_data_s, channel_data, label=f"Segment {i}")
-        ax.xaxis.set_units(units.us)
-        ax.axvline(0, color='k', linestyle='--', label='Trigger')
-        ax.legend()
+            if num_segments > 1:
+                cax = ax[i]
+            else:
+                cax = ax
+            channel_data = channel0.convert_data(boxcar.buffer[i, :, channel0], return_unit=units.V, averages=averages)
+            cax.plot(time_data_s, channel_data, label=f"{channel0}")
+            cax.xaxis.set_units(units.us)
+            cax.set_ylim([-1.1, 1.1])
+            cax.axvline(0, color='k', linestyle='--', label='Trigger')
+            cax.legend()
         plt.show()
     except spcm.SpcmTimeout as timeout:
         print("Timeout...")

@@ -83,9 +83,12 @@ class Multi(DataTransfer):
             self._num_segments = self._memory_size // segment_samples
         else:
             self._num_segments = num_segments
-        super().allocate_buffer(segment_samples * self._num_segments)
+        
+        super().allocate_buffer(segment_samples * self._num_segments, no_reshape=True)
+
         num_channels = self.card.active_channels()
         if self.bits_per_sample > 1 and not self._12bit_mode:
+            self.card._print(f"{self._num_segments} segments of {segment_samples} samples with {num_channels} channels")
             self.buffer = self.buffer.reshape((self._num_segments, segment_samples, num_channels), order='C') # index definition: [segment, sample, channel] !
 
     def time_data(self, total_num_samples : int = None, return_units = units.s) -> npt.NDArray:

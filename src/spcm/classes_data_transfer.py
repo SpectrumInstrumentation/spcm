@@ -444,6 +444,9 @@ class DataTransfer(CardFunctionality):
         transfer_offset = UnitConversion.convert(transfer_offset, units.Sa, int)
         transfer_length = UnitConversion.convert(transfer_length, units.Sa, int)
 
+        if transfer_length is not None:
+            self.buffer_samples = transfer_length
+
         if self.buffer is None: 
             raise SpcmException(text="No buffer defined for transfer")
         if buffer_type: 
@@ -463,8 +466,6 @@ class DataTransfer(CardFunctionality):
             transfer_offset_bytes = self.samples_to_bytes(transfer_offset)
         else:
             transfer_offset_bytes = 0
-
-        self.buffer_samples = transfer_length
         
         # we define the buffer for transfer
         self.card._print("Starting the DMA transfer and waiting until data is in board memory")

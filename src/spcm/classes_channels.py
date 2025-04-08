@@ -214,7 +214,7 @@ class Channel:
         self._conversion_offset = UnitConversion.force_unit(return_value, card_unit)
         return return_quantity
     
-    def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = units.mV) -> npt.NDArray:
+    def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = units.mV, averages : int = 1) -> npt.NDArray:
         """
         Converts the data to the correct unit in units of electrical potential
         
@@ -222,8 +222,10 @@ class Channel:
         ----------
         data : numpy.ndarray
             The data to be converted
-        return_unit : pint.Unit = None
+        return_unit : pint.Unit = units.mV
             The unit of the return value
+        averages : int = 1
+            The number of averages that have been done to the data and should be taken into account to convert the data
             
         Returns
         -------
@@ -231,7 +233,7 @@ class Channel:
             The converted data in units of electrical potential
         """
 
-        max_value = self.card.max_sample_value()
+        max_value = self.card.max_sample_value() * averages
         if self._conversion_offset.check('[]'):
             return_data = (data / max_value - self._conversion_offset) * self._conversion_amp
         else:
