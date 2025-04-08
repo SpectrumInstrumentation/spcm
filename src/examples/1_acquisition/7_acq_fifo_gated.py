@@ -45,14 +45,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     clock.sample_rate(max=True)
     
     # setup the channels
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channel 0
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channels 0 and 1
     channels.amp(1000 * units.mV)
     channels.offset(0 * units.mV)
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
 
     num_samples = 128 * units.KiS
-    num_gates = 4 # the maximum number of gates to be acquired
+    num_gates = 8 # the number of gates to be acquired
 
     pre_trigger = 64 * units.S
     post_trigger = 64 * units.S
@@ -61,7 +61,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     gated_transfer.pre_trigger(pre_trigger)
     gated_transfer.post_trigger(post_trigger)
     gated_transfer.allocate_buffer(num_samples)
-    gated_transfer.polling(True, timer=0.01 * units.s) # polling mode
+    gated_transfer.polling(True, timer=0.01*units.s) # polling mode
     gated_transfer.start_buffer_transfer()
     
     # start the card
