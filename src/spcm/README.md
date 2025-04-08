@@ -58,6 +58,7 @@ Functionality classes handle specific functionality that is available to the car
 | `SCAPPTransfer`     | `DataTransfer`      | special class for handling direct card to GPU class using the SCAPP option                    |
 | `Boxcar`            | `Multi`             | special class for handling boxcar averaging                                                   |
 | `BlockAverage`      | `Multi`             | special class for handling block averaging functionality                                      |
+| `BlockStatistics`   | `Multi`             | special class for handling block statistics functionality                                     |
 | `PulseGenerators`   | `CardFunctionality` | class for handling the pulse generator functionality                                          |
 | `PulseGenerator`    | (none)              | class for handling a single pulse generator a list of these objects resides inside `PulseGenerators` |
 | `DDS`               | `CardFunctionality` | class for handling DDS functionality                                                          |
@@ -89,6 +90,7 @@ classDiagram
   class SCAPPTransfer
   class Boxcar
   class BlockAverage
+  class BlockStatistics
   CardFunctionality <|-- Clock
   CardFunctionality <|-- Trigger
   CardFunctionality <|-- MultiPurposeIOs
@@ -102,6 +104,7 @@ classDiagram
   DataTransfer <|-- SCAPPTransfer
   Multi <|-- Boxcar
   Multi <|-- BlockAverage
+  Multi <|-- BlockStatistics
   Channels *-- Channel
   MultiPurposeIOs *-- MultiPurposeIO
   MultiPurposeIOs <|-- SynchronousIOs
