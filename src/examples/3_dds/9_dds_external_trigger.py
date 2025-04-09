@@ -37,7 +37,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     trigger.ext0_mode(spcm.SPC_TM_POS) # positive edge
     trigger.ext0_level0(1.5 * units.V) # Trigger level is 1.5 V (1500 mV)
     trigger.ext0_coupling(spcm.COUPLING_DC) # set DC coupling
-    card.write_setup()
+    card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
     
     # Setup DDS
     dds = spcm.DDS(card, channels=channels)

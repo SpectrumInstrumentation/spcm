@@ -36,7 +36,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     multi_ios[0].x_mode(spcm.SPCM_XMODE_DDS)
     multi_ios[1].x_mode(spcm.SPCM_XMODE_DDS)
     multi_ios[2].x_mode(spcm.SPCM_XMODE_DDS)
-    card.write_setup()
+    card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
     
     # Setup DDS
     dds = spcm.DDS(card, channels=channels)

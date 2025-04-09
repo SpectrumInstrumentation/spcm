@@ -33,7 +33,7 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
 
         # setup card for DDS
         card.card_mode(spcm.SPC_REP_STD_DDS)
-        card.write_setup()
+        card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
         
         # Setup DDS
         dds = spcm.DDS(card)
