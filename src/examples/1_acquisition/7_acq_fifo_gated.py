@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-5_acq_fifo_gated.py
+7_acq_fifo_gated.py
 
 Shows a simple FIFO gated acquisition (recording) mode example using only the few necessary commands
 - connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0

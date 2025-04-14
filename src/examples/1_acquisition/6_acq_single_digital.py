@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-5_acq_single_digital.py
+6_acq_single_digital.py
 
 Shows a simple Standard mode example using only the few necessary commands to test digital acquisition
 
