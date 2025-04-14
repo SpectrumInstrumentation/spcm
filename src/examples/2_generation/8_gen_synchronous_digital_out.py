@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-7_gen_synchronous_digital_out.py
+8_gen_synchronous_digital_out.py
 
 A simple replay / generation example with synchronous digital outputs on the xios lines.
 - connect a scope to channel 0 to see the analog output

@@ -69,6 +69,64 @@ class DataTransfer(CardFunctionality):
     _buffer_samples : int = 0
     _notify_samples : int = 0
 
+    # private
+    _memory_size : int = 0
+    _c_buffer = None # Internal numpy ctypes buffer object
+    _buffer_alignment : int = 4096
+    _np_buffer : npt.NDArray[np.int_] # Internal object on which the getter setter logic is working
+    _bit_buffer : npt.NDArray[np.int_]
+    _8bit_mode : bool = False
+    _12bit_mode : bool = False
+    _pre_trigger : int = 0
+
+    def __init__(self, card, *args, **kwargs) -> None:
+        """
+        Initialize the DataTransfer object with a card object and additional arguments
+
+        Parameters
+        ----------
+        card : Card
+            the card object that is used for the data transfer
+        *args : list
+            list of additional arguments
+        **kwargs : dict
+            dictionary of additional keyword arguments
+        """
+        
+        self.buffer_size = 0
+        self.notify_size = 0
+        self.num_channels = 0
+        self.bytes_per_sample = 0
+        self.bits_per_sample = 0
+
+        self.current_user_pos = 0
+
+        self._buffer_samples = 0
+        self._notify_samples = 0
+        self._memory_size = 0
+        self._c_buffer = None
+        self._buffer_alignment = 4096
+        self._np_buffer = None
+        self._bit_buffer = None
+        self._8bit_mode = False
+        self._12bit_mode = False
+        self._pre_trigger = 0
+        
+        super().__init__(card, *args, **kwargs)
+        self.buffer_type = SPCM_BUF_DATA
+        self._bytes_per_sample()
+        self._bits_per_sample()
+        self.num_channels = self.card.active_channels()
+
+        # Find out the direction of transfer
+        if self.function_type == SPCM_TYPE_AI or self.function_type == SPCM_TYPE_DI:
+            self.direction = Direction.Acquisition
+        elif self.function_type == SPCM_TYPE_AO or self.function_type == SPCM_TYPE_DO:
+            self.direction = Direction.Generation
+        else:
+            self.direction = Direction.Undefined
+    
+
     @property
     def buffer(self) -> npt.NDArray[np.int_]:
         """
@@ -91,6 +149,28 @@ class DataTransfer(CardFunctionality):
     @buffer.deleter
     def buffer(self) -> None:
         del self._np_buffer
+    
+    @property
+    def bit_buffer(self) -> npt.NDArray[np.int_]:
+        """
+        The bit buffer object that interfaces the Card and can be written and read from
+        
+        Returns
+        -------
+        numpy array
+            with the buffer object where all the individual bits are now unpacked
+        """
+
+        # self._bit_buffer = self.unpackbits(self._np_buffer) # not a good solution
+        return self._bit_buffer
+    
+    @bit_buffer.setter
+    def bit_buffer(self, value) -> None:
+        self._bit_buffer = value
+    
+    @bit_buffer.deleter
+    def bit_buffer(self) -> None:
+        del self._bit_buffer
 
     @property
     def buffer_samples(self) -> int:
@@ -108,17 +188,45 @@ class DataTransfer(CardFunctionality):
     def buffer_samples(self, value) -> None:
         if value is not None:
             self._buffer_samples = value
-
             self.buffer_size = self.samples_to_bytes(self._buffer_samples)
-
-            # if self.bits_per_sample > 1:
-            #     self.buffer_size = int(self._buffer_samples * self.bytes_per_sample * self.num_channels)
-            # else:
-            #     self.buffer_size = int(self._buffer_samples * self.num_channels // 8)
     
     @buffer_samples.deleter
     def buffer_samples(self) -> None:
         del self._buffer_samples
+
+    def _bits_per_sample(self) -> int:
+        """
+        Get the number of bits per sample
+
+        Returns
+        -------
+        int
+            number of bits per sample
+        """
+        if self._8bit_mode:
+            self.bits_per_sample = 8
+        elif self._12bit_mode:
+            self.bits_per_sample = 12        
+        else:
+            self.bits_per_sample = self.card.bits_per_sample()
+        return self.bits_per_sample
+    
+    def _bytes_per_sample(self) -> int:
+        """
+        Get the number of bytes per sample
+
+        Returns
+        -------
+        int
+            number of bytes per sample
+        """
+        if self._8bit_mode:
+            self.bytes_per_sample = 1
+        elif self._12bit_mode:
+            self.bytes_per_sample = 1.5
+        else:
+            self.bytes_per_sample = self.card.bytes_per_sample()
+        return self.bytes_per_sample
     
     def bytes_to_samples(self, num_bytes : int) -> int:
         """
@@ -161,20 +269,7 @@ class DataTransfer(CardFunctionality):
         else:
             num_bytes = num_samples * self.num_channels // 8
         return num_bytes
-
-    # @property
-    # def notify_samples(self) -> int:
-    #     """
-    #     The number of samples to notify the user about
-        
-    #     Returns
-    #     -------
-    #     int
-    #         the number of samples to notify the user about
-    #     """
-    #     return self._notify_samples
     
-    # @notify_samples.setter
     def notify_samples(self, notify_samples : int = None) -> int:
         """
         Set the number of samples to notify the user about
@@ -189,67 +284,7 @@ class DataTransfer(CardFunctionality):
             notify_samples = UnitConversion.convert(notify_samples, units.Sa, int)
             self._notify_samples = notify_samples
             self.notify_size = self.samples_to_bytes(self._notify_samples)
-            # self.notify_size = int(self._notify_samples * self.bytes_per_sample * self.num_channels)
         return self._notify_samples
-    
-    # @notify_samples.deleter
-    # def notify_samples(self) -> None:
-    #     del self._notify_samples
-
-    # private
-    _memory_size : int = 0
-    _c_buffer = None # Internal numpy ctypes buffer object
-    _buffer_alignment : int = 4096
-    _np_buffer : npt.NDArray[np.int_] # Internal object on which the getter setter logic is working
-    _8bit_mode : bool = False
-    _12bit_mode : bool = False
-    _pre_trigger : int = 0
-
-    def __init__(self, card, *args, **kwargs) -> None:
-        """
-        Initialize the DataTransfer object with a card object and additional arguments
-
-        Parameters
-        ----------
-        card : Card
-            the card object that is used for the data transfer
-        *args : list
-            list of additional arguments
-        **kwargs : dict
-            dictionary of additional keyword arguments
-        """
-        
-        self.buffer_size = 0
-        self.notify_size = 0
-        self.num_channels = 0
-        self.bytes_per_sample = 0
-        self.bits_per_sample = 0
-
-        self.current_user_pos = 0
-
-        self._buffer_samples = 0
-        self._notify_samples = 0
-        self._memory_size = 0
-        self._c_buffer = None
-        self._buffer_alignment = 4096
-        self._np_buffer = None
-        self._8bit_mode = False
-        self._12bit_mode = False
-        self._pre_trigger = 0
-        
-        super().__init__(card, *args, **kwargs)
-        self.buffer_type = SPCM_BUF_DATA
-        self._bytes_per_sample()
-        self._bits_per_sample()
-        self.num_channels = self.card.active_channels()
-
-        # Find out the direction of transfer
-        if self.function_type == SPCM_TYPE_AI or self.function_type == SPCM_TYPE_DI:
-            self.direction = Direction.Acquisition
-        elif self.function_type == SPCM_TYPE_AO or self.function_type == SPCM_TYPE_DO:
-            self.direction = Direction.Generation
-        else:
-            self.direction = Direction.Undefined
 
     def _sample_rate(self) -> pint.Quantity:
         """
@@ -307,40 +342,6 @@ class DataTransfer(CardFunctionality):
     
     def loops(self, loops : int = None) -> int:
         return self.card.loops(loops)
-
-    def _bits_per_sample(self) -> int:
-        """
-        Get the number of bits per sample
-
-        Returns
-        -------
-        int
-            number of bits per sample
-        """
-        if self._8bit_mode:
-            self.bits_per_sample = 8
-        elif self._12bit_mode:
-            self.bits_per_sample = 12        
-        else:
-            self.bits_per_sample = self.card.bits_per_sample()
-        return self.bits_per_sample
-    
-    def _bytes_per_sample(self) -> int:
-        """
-        Get the number of bytes per sample
-
-        Returns
-        -------
-        int
-            number of bytes per sample
-        """
-        if self._8bit_mode:
-            self.bytes_per_sample = 1
-        elif self._12bit_mode:
-            self.bytes_per_sample = 1.5
-        else:
-            self.bytes_per_sample = self.card.bytes_per_sample()
-        return self.bytes_per_sample
     
     def pre_trigger(self, num_samples : int = None) -> int:
         """
@@ -411,7 +412,9 @@ class DataTransfer(CardFunctionality):
         # Address of data-memory from numpy-array: ArrayVariable.__array_interface__['data'][0]
         start_pos_samples = ((self._buffer_alignment - (databuffer_unaligned.__array_interface__['data'][0] & dwMask)) // item_size)
         self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address to sample size
-        if self.bits_per_sample > 1 and not self._12bit_mode and not no_reshape:
+        if self.bits_per_sample == 1:
+            self.unpackbits() # allocate the bit buffer for digital cards
+        elif not self._12bit_mode and not no_reshape:
             self.buffer = self.buffer.reshape((self.num_channels, self.buffer_samples), order='F')  # index definition: [channel, sample] !
     
     def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
@@ -629,7 +632,15 @@ class DataTransfer(CardFunctionality):
         return_data = data.reshape([-1, 1])
         num_bits = return_data.dtype.itemsize * 8
         mask = 2**np.arange(num_bits, dtype=return_data.dtype).reshape([1, num_bits])
-        return (return_data & mask).astype(bool).astype(int).reshape(dshape + [num_bits])
+        self.bit_buffer = (return_data & mask).astype(np.bool).astype(np.uint8).reshape(dshape + [num_bits])
+        return self.bit_buffer
+    
+    def packbits(self) -> None:
+        """
+        Pack the self.buffer from the self.bit_buffer
+        """
+
+        self.buffer[:] = np.packbits(self._bit_buffer, axis=-1, bitorder='little').view(self.buffer.dtype).reshape(self.buffer.shape)
 
     def tofile(self, filename : str, buffer = None, **kwargs) -> None:
         """

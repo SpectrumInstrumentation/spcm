@@ -726,6 +726,21 @@ class Channels:
         for channel in self.channels:
             channel.termination(value)
     
+    def digital_termination(self, word_id : int, value : int) -> None:
+        """
+        Sets the termination of the digital front-end of a specific word (16 channels / bits) of channels of the card (see register `SPC_110OHM0` in the manual)
+    
+        Parameters
+        ----------
+        word_id : int
+            The ID of the word of channels (e.g. 0 = D15 - D0, 1 = D31 - D16)
+        value : bool | int
+            The termination of all channels (0 = high-Z, 1 = 110 Ohm)
+        """
+
+        for card in self.cards:
+            card.set_i(SPC_110OHM0 + word_id * (SPC_110OHM1 - SPC_110OHM0), int(value))
+    
     def coupling(self, value : int) -> None:
         """
         Sets the coupling of the analog front-end of all channels of the card (see register `SPC_ACDC` in the manual)

@@ -1,7 +1,7 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-6_gen_fifo_multi.py
+7_gen_fifo_multi.py
 
 Shows a simple fifo multiple replay mode example.
 - There are 4 segments.

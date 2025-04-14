@@ -32,6 +32,7 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
 
     # setup the channels
     channels = spcm.Channels(card, card_enable=0xFFFF)
+    channels.digital_termination(0, True)
 
     # Set the trigger to software trigger
     trigger = spcm.Trigger(card)
@@ -43,7 +44,7 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
     clock.sample_rate(max=True)
 
     # define the data buffer
-    num_samples = 1 * units.KiS # KibiSamples = 1024 Samples
+    num_samples = 16 * units.KiS # KibiSamples = 1024 Samples
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
@@ -56,17 +57,17 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
     except spcm.SpcmException as exception:
         print("... Timeout")
     
-    bit_buffer = data_transfer.unpackbits()
+    data_transfer.unpackbits()
 
     # Plot the acquired data
     time_data = data_transfer.time_data()
     fig, ax = plt.subplots(len(channels), 1, sharex=True)
     for channel in channels:
-        ax[channel].step(time_data, bit_buffer[:, channel], label=f"{channel.index}")
+        ax[channel].step(time_data, data_transfer.bit_buffer[:, channel], label=f"{channel.index}")
         ax[channel].set_ylabel(f"{channel.index}")
         ax[channel].set_yticks([])
+        ax[channel].set_ylim([-0.1, 1.1])
         ax[channel].xaxis.set_units(units.us)
-    #ax.legend()
     fig.text(0.04, 0.5, 'channel', va='center', rotation='vertical')
     plt.show()
 
