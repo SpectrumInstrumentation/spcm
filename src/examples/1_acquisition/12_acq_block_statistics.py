@@ -7,7 +7,7 @@ Shows a simple Block averaging example using only the few necessary commands
 - connect a function generator that generates a sine wave with 10-100 kHz frequency and 200 mV amplitude to channel 0
 - triggering is done with a channel trigger on channel 0
 
-Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families.
+Example for analog recording cards (digitizers) for the the M2p, M4i and M4x card-families.
 
 See the README file in the parent folder of this examples directory for information about how to use this example.
 

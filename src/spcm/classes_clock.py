@@ -92,6 +92,18 @@ class Clock(CardFunctionality):
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
         return return_value
     
+    def oversampling_factor(self) -> int:
+        """
+        Returns the oversampling factor of the card (see register `SPC_OVERSAMPLINGFACTOR` in the manual)
+        
+        Returns
+        -------
+        int
+            the oversampling factor of the card
+        """
+        
+        return self.card.get_i(SPC_OVERSAMPLINGFACTOR)
+
     def clock_output(self, clock_output : int = None) -> int:
         """
         Set the clock output of the card (see register `SPC_CLOCKOUT` in the manual)
@@ -111,6 +123,25 @@ class Clock(CardFunctionality):
             self.card.set_i(SPC_CLOCKOUT, int(clock_output))
         return self.card.get_i(SPC_CLOCKOUT)
     output = clock_output
+
+    def clock_output_frequency(self, return_unit = None) -> int:
+        """
+        Returns the clock output frequency of the card (see register `SPC_CLOCKOUTFREQUENCY` in the manual)
+        
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the clock output frequency
+        
+        Returns
+        -------
+        int | pint.Quantity
+            the clock output frequency of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCKOUTFREQUENCY)
+        value = UnitConversion.to_unit(value * units.Hz, return_unit)
+        return value
     
     def reference_clock(self, reference_clock : int = None) -> int:
         """

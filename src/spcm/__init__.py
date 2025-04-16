@@ -50,6 +50,7 @@ from .classes_dds import DDS, DDSCore
 from .classes_dds_command_list import DDSCommandList
 from .classes_dds_command_queue import DDSCommandQueue
 from .classes_pulse_generators import PulseGenerator, PulseGenerators
+from .classes_aba import ABA
 from .classes_block_average import BlockAverage
 from .classes_block_statistics import BlockStatistics
 from .classes_boxcar import Boxcar
@@ -58,7 +59,7 @@ from .classes_synchronous_digital_ios import SynchronousDigitalIOs
 
 __all__ = [*__all__,
     "Device", "Card", "Sync", "CardStack", "Netbox", "CardFunctionality", "Channels", "Channel", "Clock", "Trigger", "MultiPurposeIOs", "MultiPurposeIO",
-    "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "Gated", "TimeStamp", "Sequence", 
+    "DataTransfer", "DDS", "DDSCore", "DDSCommandList", "DDSCommandQueue", "PulseGenerator", "PulseGenerators", "Multi", "Gated", "TimeStamp", "Sequence", "ABA",
     "BlockAverage", "Boxcar", "BlockStatistics", "SpcmException", "SpcmTimeout", "SpcmDeviceNotFound", "SpcmError", "SCAPPTransfer", "SynchronousDigitalIOs"
 ]
 

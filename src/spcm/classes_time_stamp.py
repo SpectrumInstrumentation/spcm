@@ -7,6 +7,8 @@ from spcm_core.constants import *
 from spcm_core import c_void_p, spcm_dwDefTransfer_i64
 
 from .classes_data_transfer import DataTransfer
+from .classes_unit_conversion import UnitConversion
+from . import units
 
 class TimeStamp(DataTransfer):
     """a class to control Spectrum Instrumentation cards with the timestamp functionality
@@ -98,6 +100,7 @@ class TimeStamp(DataTransfer):
             The number of timestamps to be allocated
         """
 
+        num_timestamps = UnitConversion.convert(num_timestamps, units.S, int)
         self.buffer_size = num_timestamps * self.bytes_per_ts
 
         dwMask = self._buffer_alignment - 1
