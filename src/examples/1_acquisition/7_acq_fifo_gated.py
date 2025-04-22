@@ -51,8 +51,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
 
-    num_samples = 128 * units.KiS
-    num_gates = 8 # the number of gates to be acquired
+    num_samples = 512 * units.KiS
+    num_gates = 3 # the number of gates to be acquired
 
     pre_trigger = 64 * units.S
     post_trigger = 64 * units.S
@@ -78,6 +78,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
             print(f"Gate {gated_transfer.iterator_index}: {gate_start} to {gate_end}")
             for channel in channels:
                 unit_data_V = channel.convert_data(gate[channel, :], units.V)
+                print(f"Channel {channel} | mean: {np.mean(unit_data_V)} - std: {np.std(unit_data_V)}")
                 ax.plot(time_range, unit_data_V, '.', label=f"{channel}")
             ax.axvline(gate_start, color='b', linestyle='-', alpha=0.7, label='Gate')
             ax.axvline(gate_end, color='b', linestyle='-', alpha=0.7, label='Gate')

@@ -171,7 +171,7 @@ class Gated(DataTransfer):
         
         while self._polling:
             ts_len = self.timestamp.avail_user_len()
-            print(f"Available time stamps: {ts_len}", end="\r")
+            self.card._print(f"Available time stamps: {ts_len}", end="\r")
             if ts_len >= 2:
                 break
             time.sleep(self._polling_timer)
@@ -179,23 +179,25 @@ class Gated(DataTransfer):
         # Get the start and end of the gate event
         self._start = self.avail_user_pos()
         length = self.timestamp.buffer[2*self.iterator_index+1, 0] - self.timestamp.buffer[2*self.iterator_index+0, 0]
+        self.card._print(f"Gate {self.iterator_index} - Start: {self._start} - Length: {length}", end="\n")
         segment_length = length + self._pre_trigger + self._post_trigger
         self._end = self._start + segment_length
 
         # The data end of the gate is aligned to a multiple of the alignment length, hence we have to calculate the aligned end of the gate to know where the next gate starts
         alignment = self.alignment()
         length_with_alignment = (length // alignment + 1) * alignment
-        total_length = length_with_alignment + self._pre_trigger + self._post_trigger
-        self._aligned_end = self._start + total_length
+        self._current_num_samples = length_with_alignment + self._pre_trigger + self._post_trigger
+        self._aligned_end = self._start + self._current_num_samples
 
         # Wait for enough data to be available in the buffer to get the next gate
         while self._polling:
             user_len = self.avail_user_len()
-            if user_len >= total_length:
+            self.card._print(f"Available data: {user_len} - Required data: {self._current_num_samples}", end="\r")
+            if user_len >= self._current_num_samples:
                 break
             time.sleep(self._polling_timer)
 
-        self._current_samples += total_length
+        self._current_samples += self._current_num_samples
         if self._to_transfer_samples > 0 and self._to_transfer_samples <= self._current_samples:
             self.stop_next()
         
