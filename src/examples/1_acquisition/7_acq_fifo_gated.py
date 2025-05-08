@@ -26,11 +26,11 @@ card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
-with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to open the first card of a specific type
+with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # if you want to open the first card of a specific type
     
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_FIFO_GATE)
-    card.timeout(5 * units.s)                     # timeout 5 s
+    card.timeout(0)                     # no timeout
 
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # trigger set to external
@@ -42,7 +42,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    clock.sample_rate(max=True)
+    clock.sample_rate(1 * units.kHz)
     
     # setup the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channels 0 and 1
@@ -52,7 +52,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels.coupling(spcm.COUPLING_DC)
 
     num_samples = 512 * units.KiS
-    num_gates = 3 # the number of gates to be acquired
+    notify_samples = 512 * units.S # number of samples to be notified (transferred) at once
+    num_gates = 0 # 0 is infinite; the number of gates to be acquired
 
     pre_trigger = 64 * units.S
     post_trigger = 64 * units.S
@@ -61,8 +62,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     gated_transfer.pre_trigger(pre_trigger)
     gated_transfer.post_trigger(post_trigger)
     gated_transfer.allocate_buffer(num_samples)
+    gated_transfer.notify_samples(notify_samples)
     gated_transfer.polling(True, timer=0.01*units.s) # polling mode
     gated_transfer.start_buffer_transfer()
+    card.cmd(spcm.M2CMD_EXTRA_POLL)
+
     
     # start the card
     card.start(spcm.M2CMD_DATA_STARTDMA | spcm.M2CMD_CARD_ENABLETRIGGER)

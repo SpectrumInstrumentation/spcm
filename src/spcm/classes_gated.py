@@ -53,7 +53,8 @@ class Gated(DataTransfer):
     def start_buffer_transfer(self, *args, **kwargs):
         super().start_buffer_transfer(*args, **kwargs)
         if self.direction is Direction.Acquisition:
-            self.timestamp.start_buffer_transfer(M2CMD_EXTRA_STARTDMA)
+            # self.timestamp.start_buffer_transfer(M2CMD_EXTRA_STARTDMA)
+            self.timestamp.start_buffer_transfer(M2CMD_EXTRA_POLL)
     
     def post_trigger(self, num_samples : int = None) -> int:
         """

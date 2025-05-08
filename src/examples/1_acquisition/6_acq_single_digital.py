@@ -15,7 +15,6 @@ See the LICENSE file for the conditions under which this software may be used an
 import spcm
 from spcm import units
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 
