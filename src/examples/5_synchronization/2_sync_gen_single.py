@@ -1,7 +1,7 @@
 """  
 Spectrum Instrumentation GmbH (c) 2024
 
-1_sync_gen_single.py
+2_sync_gen_single.py
 
 Shows a simple standard mode example with a StarHub and two cards.
 On the first card there is a sine wave on each channel, on the second card there is

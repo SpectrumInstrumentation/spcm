@@ -1,9 +1,9 @@
 """  
 Spectrum Instrumentation GmbH (c) 2024
 
-2_sync_acq_fifo.py
+1_sync_acq_single.py
 
-Shows a simple multi-threaded FIFO mode example using only the
+Shows a simple standard single mode example with two or more synchronized cards using only the
 few necessary commands.
 
 Example for analog recording cards (digitizers) for the the M2p, M4i, M4x and M5i card-families with Starhub synchronization.
@@ -14,32 +14,10 @@ See the LICENSE file for the conditions under which this software may be used an
 """
 
 
-import threading
 import spcm
 from spcm import units
 
-import numpy as np
-
-class CardThread (threading.Thread):
-    """
-    thread that handles the data transfer for a card
-    One instance will be started for each card.
-    """
-
-    def __init__ (self, index : int, data_transfer : spcm.DataTransfer):
-        threading.Thread.__init__(self)
-        self.index    = index     # index of card (only used for output)
-        self.data_transfer = data_transfer  # DMA buffer for the card
-
-    def run(self):
-        minimum = 32767
-        maximum = -32768
-        for data_block in self.data_transfer:
-            minimum = np.min([minimum, np.min(data_block)])
-            maximum = np.max([maximum, np.max(data_block)])
-
-        # print the calculated results
-        print("\n{0} Finished... Minimum: {1:d} Maximum: {2:d}".format(self.index, minimum, maximum))
+import matplotlib.pyplot as plt
 
 
 card_identifiers = ["/dev/spcm0", "/dev/spcm1"]
@@ -62,8 +40,17 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         card.timeout(5 * units.s) # timeout 5 s
 
         trigger = spcm.Trigger(card)
-        trigger.or_mask(spcm.SPC_TMASK_SOFTWARE) # trigger set to software
-        trigger.and_mask(0)
+        features = card.features()
+        if features & (spcm.SPCM_FEAT_STARHUB5 | spcm.SPCM_FEAT_STARHUB16):
+            # set star-hub carrier card as trigger master
+            trigger.or_mask(spcm.SPC_TMASK_EXT0)
+            trigger.ext0_mode(spcm.SPC_TM_POS)
+            trigger.ext0_level0(1.5 * units.V)
+            trigger.ext0_coupling(spcm.COUPLING_DC)
+            trigger.termination(1)
+        else:
+            trigger.or_mask(spcm.SPC_TMASK_NONE)
+        trigger.and_mask(spcm.SPC_TMASK_NONE)
 
         # we try to set the samplerate to 20 MHz on internal PLL, no clock output
         clock = spcm.Clock(card)
@@ -72,14 +59,11 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         clock.clock_output(False)
 
         # define the data buffer
-        num_samples = spcm.MEBI(2)
-        notify_samples = spcm.KIBI(8)
+        num_samples = 128 * units.KiS
         dt = spcm.DataTransfer(card)
         dt.memory_size(num_samples)
-        dt.pre_trigger(1024) # 1k of pretrigger data at start of FIFO mode
         dt.allocate_buffer(num_samples)
-        dt.notify_samples(notify_samples)
-        dt.to_transfer_samples(spcm.MEBI(8))
+        dt.post_trigger(num_samples * 3 // 4)
         dt.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, direction=spcm.SPCM_DIR_CARDTOPC)
         data_transfer.append(dt)
 
@@ -90,13 +74,18 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     # start all cards using the star-hub handle
     stack.start(spcm.M2CMD_CARD_ENABLETRIGGER)
 
-    # for each card we start a thread that controls the data transfer
-    list_threads = []
-    for i, card in enumerate(stack.cards):
-        thread = CardThread(i, data_transfer[i])
-        list_threads.append(thread)
-        thread.start()
+    # for each card we wait for the data from the DMA transfer
+    plt.figure()
+    time_data_s = data_transfer[0].time_data()
+    print("Waiting for trigger...")
+    for dt in data_transfer:
+        dt.card.cmd(spcm.M2CMD_DATA_WAITDMA)
+        print(f"{dt.card} finished transfer")
+        plt.plot(time_data_s, dt.buffer[0], label=f"{dt.card}")
+    plt.legend()
+    plt.xlabel("Time [s]")
+    plt.ylabel("Voltage [V]")
+    plt.title("Acquired data")
+    plt.show()
+    print("Finished acquiring...")
 
-    # wait until all threads have finished
-    for x in list_threads:
-        x.join()

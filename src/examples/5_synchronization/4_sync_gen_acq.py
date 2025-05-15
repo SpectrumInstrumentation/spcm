@@ -1,7 +1,7 @@
 """  
 Spectrum Instrumentation GmbH (c) 2024
 
-3_sync_acq_gen.py
+4_sync_acq_gen.py
 
 Shows a simple example using synchronized replay and record cards
 
