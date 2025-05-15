@@ -396,26 +396,50 @@ class DataTransfer(CardFunctionality):
         ----------
         num_samples : int | pint.Quantity = None
             use the number of samples an get the number of active channels and bytes per samples directly from the card
+        no_reshape : bool = False
+            if True, the buffer is not reshaped to the number of channels. This is useful for digital cards where the data is packed in a single array. 
+            As well as for 12bit cards where three data points are packed in four bytes or two 16-bit samples.
+        """
+
+        self.buffer_samples = UnitConversion.convert(num_samples, units.Sa, int)
+        no_reshape |= self._12bit_mode | self.bits_per_sample == 1
+        self.buffer = self._allocate_buffer(self.buffer_samples, no_reshape, self.num_channels)
+        if self.bits_per_sample == 1:
+            self.unpackbits() # allocate the bit buffer for digital cards
+
+    
+    def _allocate_buffer(self, num_samples : int, no_reshape : bool = False, num_channels : int = 1) -> npt.NDArray:
+        """
+        Memory allocation for the buffer that is used for communicating with the card
+
+        Parameters
+        ----------
+        num_samples : int | pint.Quantity = None
+            use the number of samples an get the number of active channels and bytes per samples directly from the card
+        no_reshape : bool = False
+            if True, the buffer is not reshaped to the number of channels. This is useful for digital cards where the data is packed in a single array.
+        
+        Returns
+        -------
+        numpy array
+            the allocated buffer
         """
         
-        self.buffer_samples = UnitConversion.convert(num_samples, units.Sa, int)
-
+        buffer_size = self.samples_to_bytes(num_samples)
         sample_type = self.numpy_type()
 
         dwMask = self._buffer_alignment - 1
 
         item_size = sample_type(0).itemsize
-        # print(f"Item size: {item_size}")
         # allocate a buffer (numpy array) for DMA transfer: a little bigger one to have room for address alignment
-        databuffer_unaligned = np.empty(((self._buffer_alignment + self.buffer_size) // item_size, ), dtype = sample_type)   # byte count to sample (// = integer division)
+        databuffer_unaligned = np.empty(((self._buffer_alignment + buffer_size) // item_size, ), dtype = sample_type)   # byte count to sample (// = integer division)
         # two numpy-arrays may share the same memory: skip the begin up to the alignment boundary (ArrayVariable[SKIP_VALUE:])
         # Address of data-memory from numpy-array: ArrayVariable.__array_interface__['data'][0]
         start_pos_samples = ((self._buffer_alignment - (databuffer_unaligned.__array_interface__['data'][0] & dwMask)) // item_size)
-        self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address to sample size
-        if self.bits_per_sample == 1:
-            self.unpackbits() # allocate the bit buffer for digital cards
-        elif not self._12bit_mode and not no_reshape:
-            self.buffer = self.buffer.reshape((self.num_channels, self.buffer_samples), order='F')  # index definition: [channel, sample] !
+        buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (buffer_size // item_size)]   # byte address to sample size
+        if not no_reshape:
+            buffer = buffer.reshape((num_channels, num_samples), order='F')  # index definition: [channel, sample] !
+        return buffer
     
     def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
         """

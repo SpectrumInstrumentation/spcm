@@ -26,6 +26,9 @@ class Card(Device):
     _function_type : int = 0
     _card_type : int = 0
     _max_sample_value : int = 0
+    _features : int = 0
+    _ext_features : int = 0
+    _demo_card : bool = False
 
     def __enter__(self) -> 'Card':
         """
@@ -100,6 +103,7 @@ class Card(Device):
         self._features = self.get_i(SPC_PCIFEATURES)
         self._ext_features = self.get_i(SPC_PCIEXTFEATURES)
         self._max_sample_value = self.get_i(SPC_MIINST_MAXADCVALUE)
+        self._demo_card = bool(self.get_i(SPC_MIINST_ISDEMOCARD))
         
         return self
     
@@ -290,6 +294,18 @@ class Card(Device):
         """
 
         return self.num_modules() * self.channels_per_module()
+    
+    def is_demo_card(self) -> bool:
+        """
+        Check if the card is a demo card (see register `SPC_MIINST_ISDEMOCARD` in the manual)
+    
+        Returns
+        -------
+        bool
+            True if the card is a demo card, False otherwise
+        """
+
+        return self._demo_card
 
     def card_mode(self, card_mode : int = None) -> int:
         """
