@@ -7,7 +7,7 @@ Shows a simple standard mode example using only the few necessary commands.
 - There will be a saw-tooth signal generated on channel 0.
 - This signal will have an amplitude of 1 V.
 
-Example for analog replay cards (AWG) for the the M2p, M4i, M4x and M5i card-families.
+Example for digital replay cards (AWG) for the the M2p, M4i, M4x and M5i card-families.
 
 See the README file in the parent folder of this examples directory for information about how to use this example.
 
@@ -18,7 +18,6 @@ import spcm
 from spcm import units
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 card : spcm.Card
 
