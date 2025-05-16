@@ -23,6 +23,15 @@ To try these examples we recommend the use of Python with a [virtual environment
 ## Download and install Python
 Start by installing [Python 3.9 or higher](https://www.python.org/downloads/).
 
+## Download and unzip this examples directory
+You can either clone the full repository on GitHub to your local computer or use the following link:
+
+[Download spcm-examples](https://download-directory.github.io/?url=https%3A%2F%2Fgithub.com%2FSpectrumInstrumentation%2Fspcm%2Ftree%2Fmaster%2Fsrc%2Fexamples&filename=spcm-examples)
+
+to directly download the folder with all the examples in a zip file. This download uses the open source tool `download-directory`, which is opened when clicking on the link.
+
+After downloading the examples, please unzip the package and open a terminal in the folder where this README recides.
+
 ## Create a virtual environment
 In the main examples folder, the folder in which this README recides, create a virtual environment:
 
@@ -43,7 +52,7 @@ you're all setup to run the examples!
 If you'd like to use CUDA (for example in combination with the SCAPP option), there is an additional requirements.txt file in the `7_cuda_scapp` folder. Please install this requirements file, when trying to use CUDA.
 ```bash
 $ source venv/Scripts/activate
-$ pip install -r ../7_cuda_scapp/requirements.txt
+$ pip install -r ./7_cuda_scapp/requirements.txt
 ```
 
 ## Running the examples
