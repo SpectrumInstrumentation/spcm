@@ -24,7 +24,6 @@ class Multi(DataTransfer):
 
     def __init__(self, card, *args, **kwargs) -> None:
         super().__init__(card, *args, **kwargs)
-        self._pre_trigger = None
         self._segment_size = 0
         self._num_segments = 0
 
