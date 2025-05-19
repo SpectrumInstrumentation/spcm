@@ -48,7 +48,7 @@ class DDSCommandList(DDS):
 
         self._dtm = mode
         self.card.set_i(SPC_DDS_DATA_TRANSFER_MODE, mode)
-        self.card.set_i(SPC_DDS_CMD, SPCM_DDS_CMD_WRITE_TO_CARD)
+        # self.card.set_i(SPC_DDS_CMD, SPCM_DDS_CMD_WRITE_TO_CARD)
         self.list_size = self.default_size()
     
     def default_size(self) -> int:
