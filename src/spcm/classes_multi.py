@@ -59,7 +59,10 @@ class Multi(DataTransfer):
             the number of post trigger samples
         """
 
-        post_trigger = super().post_trigger(num_samples)
+        
+        if self._segment_size < num_samples:
+            raise ValueError(f"The number of post trigger samples needs to be smaller than the total number of samples in the segment: {self._segment_size} < {num_samples}")
+        post_trigger = super().post_trigger(num_samples, set_pre_trigger=False)
         self._pre_trigger = self._segment_size - post_trigger
         return post_trigger
 

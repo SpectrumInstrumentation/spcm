@@ -364,7 +364,7 @@ class DataTransfer(CardFunctionality):
         self._pre_trigger = self.card.get_i(SPC_PRETRIGGER)
         return self._pre_trigger
     
-    def post_trigger(self, num_samples : int = None) -> int:
+    def post_trigger(self, num_samples : int = None, set_pre_trigger : bool = True) -> int:
         """
         Set the number of post trigger samples (see register `SPC_POSTTRIGGER` in the manual)
         
@@ -372,6 +372,8 @@ class DataTransfer(CardFunctionality):
         ----------
         num_samples : int | pint.Quantity
             the number of post trigger samples
+        set_pre_trigger : bool = True
+            if True, the pre trigger samples are set to the memory size minus the post trigger samples.
         
         Returns
         -------
@@ -379,13 +381,14 @@ class DataTransfer(CardFunctionality):
             the number of post trigger samples
         """
 
-        if self._memory_size < num_samples:
+        if set_pre_trigger and self._memory_size < num_samples:
             raise ValueError(f"The number of post trigger samples needs to be smaller than the total number of samples: {self._memory_size} < {num_samples}")
         if num_samples is not None:
             num_samples = UnitConversion.convert(num_samples, units.Sa, int)
             self.card.set_i(SPC_POSTTRIGGER, num_samples)
         post_trigger = self.card.get_i(SPC_POSTTRIGGER)
-        self._pre_trigger = self._memory_size - post_trigger
+        if set_pre_trigger:
+            self._pre_trigger = self._memory_size - post_trigger
         return post_trigger
     
     def allocate_buffer(self, num_samples : int, no_reshape = False) -> None:
