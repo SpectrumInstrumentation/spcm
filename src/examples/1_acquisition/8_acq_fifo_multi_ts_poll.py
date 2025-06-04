@@ -58,7 +58,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     num_samples_in_segment = 4 * units.KiS
     num_segments = num_samples // num_samples_in_segment
     multiple_recording = spcm.Multi(card)
-    multiple_recording.memory_size(num_samples)
     multiple_recording.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
     multiple_recording.to_transfer_samples(total_samples)
     multiple_recording.notify_samples(notify_samples)
@@ -84,8 +83,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     try:
         for data_block in multiple_recording:
             ts_data_range = ts.poll(data_block.shape[0])
-            for ts, segment_data in zip(ts_data_range, data_block):
-                timestampVal2 = (ts[0] / sample_rate).to_base_units()   # lower 8 bytes
+            for ts_arr, segment_data in zip(ts_data_range, data_block):
+                timestampVal2 = (ts_arr[0] / sample_rate).to_base_units()   # lower 8 bytes
 
                 # Convert segment data to the correct units
                 unit_data_block = channels[0].convert_data(segment_data, units.V)
