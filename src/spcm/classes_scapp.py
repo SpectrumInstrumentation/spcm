@@ -16,9 +16,17 @@ from .classes_error_exception import SpcmException
 _cuda_support = False
 try:
     import cupy as cp
-    from cuda import cuda, cudart, nvrtc
+    # from cuda import cuda, cudart, nvrtc
+    from cuda.bindings import driver as cuda
+    from cuda.bindings import runtime as cudart
+    from cuda.bindings import nvrtc
 except ImportError:
-    _cuda_support = False
+    try:
+        from cuda import cuda, cudart, nvrtc
+    except ImportError:
+        _cuda_support = False
+    else:
+        _cuda_support = True
 else:
     _cuda_support = True
 
