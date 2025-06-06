@@ -42,7 +42,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    clock.sample_rate(1 * units.kHz)
+    clock.sample_rate(10 * units.percent)
     
     # setup the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channels 0 and 1
@@ -52,7 +52,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     channels.coupling(spcm.COUPLING_DC)
 
     num_samples = 512 * units.KiS
-    notify_samples = 512 * units.S # number of samples to be notified (transferred) at once
     num_gates = 0 # 0 is infinite; the number of gates to be acquired
 
     pre_trigger = 64 * units.S
@@ -62,10 +61,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     gated_transfer.pre_trigger(pre_trigger)
     gated_transfer.post_trigger(post_trigger)
     gated_transfer.allocate_buffer(num_samples)
-    gated_transfer.notify_samples(notify_samples)
     gated_transfer.polling(True, timer=0.01*units.s) # polling mode
     gated_transfer.start_buffer_transfer()
-    card.cmd(spcm.M2CMD_EXTRA_POLL)
 
     
     # start the card

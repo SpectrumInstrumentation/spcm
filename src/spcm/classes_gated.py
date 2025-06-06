@@ -47,14 +47,17 @@ class Gated(DataTransfer):
                     self.max_num_gates = self._num_gates
             self.timestamp = TimeStamp(card)
             self.timestamp.mode(SPC_TSMODE_STARTRESET, SPC_TSCNT_INTERNAL)
-            self.timestamp.allocate_buffer(2*self.max_num_gates)
+            self.timestamp.allocate_buffer(2*self.max_num_gates+1)
+            # self.card.cmd(M2CMD_EXTRA_POLL)
             self._alignment = self.card.get_i(SPC_GATE_LEN_ALIGNMENT)
     
     def start_buffer_transfer(self, *args, **kwargs):
         super().start_buffer_transfer(*args, **kwargs)
         if self.direction is Direction.Acquisition:
-            # self.timestamp.start_buffer_transfer(M2CMD_EXTRA_STARTDMA)
-            self.timestamp.start_buffer_transfer(M2CMD_EXTRA_POLL)
+            if self._polling:
+                self.timestamp.start_buffer_transfer(M2CMD_EXTRA_POLL)
+            else:
+                self.timestamp.start_buffer_transfer(M2CMD_EXTRA_STARTDMA)
     
     def post_trigger(self, num_samples : int = None) -> int:
         """
@@ -190,21 +193,56 @@ class Gated(DataTransfer):
         self._current_num_samples = length_with_alignment + self._pre_trigger + self._post_trigger
         self._aligned_end = self._start + self._current_num_samples
 
+        force_triggers_added = 0
         # Wait for enough data to be available in the buffer to get the next gate
         while self._polling:
             user_len = self.avail_user_len()
             self.card._print(f"Available data: {user_len} - Required data: {self._current_num_samples}", end="\r")
             if user_len >= self._current_num_samples:
                 break
+            # Check if the last gate has been reached, if so add force triggers to get enough data in the FPGA FIFO to output the next gate
+            if self._num_gates > 0 and self.iterator_index == self._num_gates - 1:
+                self.card.cmd(M2CMD_CARD_FORCETRIGGER)
+                force_triggers_added += 1
+
             time.sleep(self._polling_timer)
+        
+        if force_triggers_added > 0:
+            self.card._print(f"\nForce triggers {force_triggers_added} added to get enough data for the last gate")
 
         self._current_samples += self._current_num_samples
         if self._to_transfer_samples > 0 and self._to_transfer_samples <= self._current_samples:
             self.stop_next()
         
+        # Check for overflowing of the data buffer
+        if self._end > self.buffer_samples:
+            self.card._print(f"Warning: The end of the gate ({self._end}) exceeds the buffer size ({self.buffer_samples}). This might lead to speed loss.")
+            sample_indices = np.mod(np.arange(self._start, self._end), self.buffer_samples)
+            return self.buffer[:, sample_indices]
+
         # Return the view of the data buffer that contains only the data of the current gate
         return self.buffer[:, self._start:self._end]
     
+    def polling(self, polling : bool = True, timer : int = 0.01 * units.s):
+        """
+        Set the polling mode for the gated acquisition
+
+        Parameters
+        ----------
+        polling : bool
+            If True, the polling mode is enabled, otherwise it is disabled
+        timer : int | pint.Quantity
+            The timer to wait for new data in the buffer in polling mode
+
+        Returns
+        -------
+        bool
+            The current polling mode
+        """
+        
+        super().polling(polling, timer)
+        self.notify_samples(64 * units.S)  # Set the notify size to the smallest possible value (a multiple of 64 bytes is the minimum for M5i cards)
+
     def stop_next(self):
         """
         Stop the iteration and flush all the iterator parameters
