@@ -59,16 +59,4 @@ class BlockAverage(Multi):
         self.bytes_per_sample = super()._bytes_per_sample() * 2
         return self.bytes_per_sample
 
-    def numpy_type(self) -> npt.NDArray[np.int_]:
-        """
-        Get the type of numpy data from number of bytes
-
-        Returns
-        -------
-        numpy data type
-            the type of data that is used by the card
-        """
-        if self._bytes_per_sample == 2:
-            return np.int16
-        return np.int32
     
