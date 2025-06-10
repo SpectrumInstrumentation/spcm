@@ -32,8 +32,10 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     sample_rate = clock.sample_rate(max = True, return_unit=units.MHz)
 
     multi_ios = spcm.MultiPurposeIOs(card)
-    for io in multi_ios:
-        io.x_mode(spcm.SPCM_XMODE_PULSEGEN)
+    multi_ios[0].x_mode(spcm.SPCM_XMODE_PULSEGEN)
+    multi_ios[1].x_mode(spcm.SPCM_XMODE_PULSEGEN)
+    multi_ios[2].x_mode(spcm.SPCM_XMODE_PULSEGEN)
+    multi_ios[3].x_mode(spcm.SPCM_XMODE_PULSEGEN)
 
     # start the pulse generator 0
     pulse_generators = spcm.PulseGenerators(card, enable=True)
