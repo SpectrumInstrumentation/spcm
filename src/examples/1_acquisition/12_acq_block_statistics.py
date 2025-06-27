@@ -41,7 +41,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
     channels.amp(1000 * units.mV)  
     channels.offset(0)
-    channels.termination(0)  # High impedance (1 MΩ)
     channels.coupling(spcm.COUPLING_DC)  # DC coupling
 
     trigger.ch_and_mask0(spcm.SPC_TMASK0_CH0)
@@ -52,7 +51,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     samples_per_segment = 16 * units.KiS
     samples_per_segment_magnitude = samples_per_segment.to_base_units().magnitude
     num_samples = samples_per_segment * num_segments
-    averages = 8
     post_trigger = samples_per_segment // 2
 
     # Block Statistics Setup and Data Transfer
