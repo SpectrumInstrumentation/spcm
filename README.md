@@ -64,11 +64,7 @@ The `spcm` package is a high-level object-oriented programming library for contr
 ## Examples
 For detailed examples see the `src\examples` directory. There are several sub-directories each corresponding to a certain kind of functionality. You can find the most recent examples on [GitHub](https://github.com/SpectrumInstrumentation/spcm/tree/master/src/examples).
 
-To download the examples directly as a zip file, please follow the following download link:
-
-[Download spcm-examples](https://download-directory.github.io/?url=https%3A%2F%2Fgithub.com%2FSpectrumInstrumentation%2Fspcm%2Ftree%2Fmaster%2Fsrc%2Fexamples&filename=spcm-examples)
-
-This download uses the open source tool `download-directory`, which is opened when clicking on the link.
+To download the examples directly as a zip file, please go to the [releases page](https://github.com/SpectrumInstrumentation/spcm/releases) and download the most recent spcm-examples-*.zip file.
 
 ## Hardware interfaces
 

@@ -1,0 +1,29 @@
+name: Create and release a zipped artifact with examples
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  create-artifact:
+    name: Create and release artifact
+    runs-on: ubuntu-latest
+    permissions: write-all
+    environment:
+      name: release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Zip examples folder
+        run: |
+          mkdir -p dist
+          cd src/examples/
+          zip -r ../../dist/spcm-examples-${{ github.event.release.tag_name }}.zip *
+      - name: Release artifact
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: github.ref_type == 'tag'
+        with:
+          files: dist/spcm-examples-${{ github.event.release.tag_name }}.zip
