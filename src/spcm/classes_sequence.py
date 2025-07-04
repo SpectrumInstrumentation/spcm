@@ -36,13 +36,13 @@ class Segment:
         return self._index
     __index__ = __int__
     
-    def __getitem__(self, item) -> npt.NDArray:
+    def __getitem__(self, index) -> npt.NDArray:
         """
         Returns the segment data for the given index
 
         Parameters
         ----------
-        item : int | slice
+        index : int | slice
             The index or slice of the segment data to be returned
 
         Returns
@@ -50,21 +50,21 @@ class Segment:
         segment : npt.NDArray
             The segment data for the given index
         """
-        return self._segment[item]
+        return self._segment[index]
 
-    def __setitem__(self, item, value) -> None:
+    def __setitem__(self, index, value) -> None:
         """
         Sets the segment data for the given index
 
         Parameters
         ----------
-        item : int | slice
+        index : int | slice
             The index or slice of the segment data to be set
         value : npt.NDArray
             The value to be set for the given index
         """
         
-        self._segment[item] = value
+        self._segment[index] = value
     
     def __getattr__(self, name):
         """
