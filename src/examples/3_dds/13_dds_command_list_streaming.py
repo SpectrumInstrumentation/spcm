@@ -40,32 +40,34 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     channels.enable(True)
     channels.output_load(50 * units.ohm)
     channels.amp(1 * units.V)
+
+    # Setup the trigger engine
+    trigger = spcm.Trigger(card, channels=channels)
+    trigger.or_mask(spcm.SPC_TM_NONE)  # Disable all trigger sources and use force triggers to control the DDS execution
+
     card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
     
     # Setup DDS
     dds = spcm.DDSCommandList(card)
-    # Please note that units aren't supported in the DDSCommandQueue class, to improve performance
+    # Please note that units are by default turned-off in the DDSCommandList class, to improve performance
     dds.reset()
 
     dds.data_transfer_mode(spcm.SPCM_DDS_DTM_DMA)
 
-    # Start the card and enable trigger, but don't send a force trigger yet
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
-    print("Card started")
-
     # Start the DDS test
     num_freq      =  20
-    start_freq_Hz =   5.0 * 1e6
-    delta_freq_Hz = 500.0 * 1e3
+    start_freq_Hz =  10.0 * 1e3
+    delta_freq_Hz =   5.0 * 1e3
 
     # STEP 0 - Initialize frequencies
     period_s = 1.0
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_TIMER)
     dds.trg_timer(period_s)
-    dds.amp(0, 0.1)
+    dds.amp(0, 0.5)
     dds.freq(0, start_freq_Hz)
     dds.exec_at_trg()
     dds.write_to_card()
+    dds.write()
 
     print("Calculate frequencies and add to queue")
     period_s = 1000e-9
@@ -80,10 +82,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     
     # Start streaming
     dds.mode = dds.WRITE_MODE.WAIT_IF_FULL
-
-    # Start the card
-    card.cmd(spcm.M2CMD_CARD_FORCETRIGGER)
-    print("Card triggered")
+    
+    # Start the card and enable trigger, but don't send a force trigger yet
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
+    print("Card started and triggered")
     print("Streaming... stop by pressing Ctrl+C")
 
     try:

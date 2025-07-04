@@ -44,14 +44,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     
     # Setup DDS
     dds = spcm.DDSCommandQueue(card)
-    # Please note that units aren't supported in the DDSCommandQueue class, to improve performance
+    # Please note that units are by default turned-off in the DDSCommandQueue class, to improve performance
     dds.reset()
 
     dds.data_transfer_mode(spcm.SPCM_DDS_DTM_DMA)
-
-    # Start the card and enable trigger, but don't send a force trigger yet
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
-    print("Card started")
 
     # Start the DDS test
     num_freq      =  20
@@ -68,7 +64,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.write_to_card()
 
     print("Calculate frequencies and add to queue")
-    period_s = 4e-6
+    period_s = 100e-6
     dds.trg_timer(period_s)
     dds.write_to_card()
 
@@ -85,9 +81,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Start streaming
     dds.mode = dds.WRITE_MODE.WAIT_IF_FULL
 
-    # Start the card
-    card.cmd(spcm.M2CMD_CARD_FORCETRIGGER)
-    print("Card triggered")
+    # Start the card and enable trigger and send a trigger
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
+    print("Card started and triggered")
     print("Streaming... stop by pressing Ctrl+C")
 
     try:

@@ -27,6 +27,7 @@ class DDSCommandList(DDS):
     _list_size : int = KIBI(16)
 
     def __init__(self, *args, **kwargs) -> None:
+        kwargs["no_units"] = kwargs.get("no_units", True) # disable units to make the command queu faster
         super().__init__(*args, **kwargs)
 
         self.command_list = None
@@ -48,7 +49,6 @@ class DDSCommandList(DDS):
 
         self._dtm = mode
         self.card.set_i(SPC_DDS_DATA_TRANSFER_MODE, mode)
-        # self.card.set_i(SPC_DDS_CMD, SPCM_DDS_CMD_WRITE_TO_CARD)
         self.list_size = self.default_size()
     
     def default_size(self) -> int:
@@ -107,8 +107,8 @@ class DDSCommandList(DDS):
                 self.command_list[index].lType = TYPE_INT64
                 self.command_list[index].llValue = exec_mode
                 index += 1
-        self.write_to_card()
         self.current_index = index
+        self.write_to_card()
 
     def write_to_card(self) -> None:
         """

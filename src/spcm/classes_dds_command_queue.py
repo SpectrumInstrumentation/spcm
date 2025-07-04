@@ -71,89 +71,89 @@ class DDSCommandQueue(DDSCommandList):
         super().write()
         self.current_index = 0
 
-    # DDS "static" parameters
-    def amp(self, index : int, amplitude : float) -> None:
-        """
-        set the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
+    # # DDS "static" parameters
+    # def amp(self, index : int, amplitude : float) -> None:
+    #     """
+    #     set the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
         
-        Parameters
-        ----------
-        index : int
-            the core index
-        amplitude : float
-            the value between 0 and 1 corresponding to the amplitude
-        """
+    #     Parameters
+    #     ----------
+    #     index : int
+    #         the core index
+    #     amplitude : float
+    #         the value between 0 and 1 corresponding to the amplitude
+    #     """
 
-        self.set_d(SPC_DDS_CORE0_AMP + index, amplitude)
+    #     self.set_d(SPC_DDS_CORE0_AMP + index, amplitude)
 
-    def freq(self, index : int, frequency : float) -> None:
-        """
-        set the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
+    # def freq(self, index : int, frequency : float) -> None:
+    #     """
+    #     set the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
         
-        Parameters
-        ----------
-        index : int
-            the core index
-        frequency : float
-            the value of the frequency in Hz
-        """
+    #     Parameters
+    #     ----------
+    #     index : int
+    #         the core index
+    #     frequency : float
+    #         the value of the frequency in Hz
+    #     """
 
-        self.set_d(SPC_DDS_CORE0_FREQ + index, frequency)
+    #     self.set_d(SPC_DDS_CORE0_FREQ + index, frequency)
     
-    def phase(self, index : int, phase : float) -> None:
-        """
-        set the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
+    # def phase(self, index : int, phase : float) -> None:
+    #     """
+    #     set the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
         
-        Parameters
-        ----------
-        core_index : int
-            the index of the core to be changed
-        phase : float
-            the value between 0 and 360 degrees of the phase
-        """
+    #     Parameters
+    #     ----------
+    #     core_index : int
+    #         the index of the core to be changed
+    #     phase : float
+    #         the value between 0 and 360 degrees of the phase
+    #     """
 
-        self.set_d(SPC_DDS_CORE0_PHASE + index, phase)
+    #     self.set_d(SPC_DDS_CORE0_PHASE + index, phase)
     
-    def freq_slope(self, core_index : int, slope : float) -> None:
-        """
-        set the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
+    # def freq_slope(self, core_index : int, slope : float) -> None:
+    #     """
+    #     set the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
         
-        Parameters
-        ----------
-        core_index : int
-            the index of the core to be changed
-        slope : float
-            the rate of frequency change in Hz/s
-        """
+    #     Parameters
+    #     ----------
+    #     core_index : int
+    #         the index of the core to be changed
+    #     slope : float
+    #         the rate of frequency change in Hz/s
+    #     """
 
-        self.set_d(SPC_DDS_CORE0_FREQ_SLOPE + core_index, slope)
+    #     self.set_d(SPC_DDS_CORE0_FREQ_SLOPE + core_index, slope)
 
-    def amp_slope(self, core_index : int, slope : float) -> None:
-        """
-        set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
+    # def amp_slope(self, core_index : int, slope : float) -> None:
+    #     """
+    #     set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
         
-        Parameters
-        ----------
-        core_index : int
-            the index of the core to be changed
-        slope : float
-            the rate of amplitude change in 1/s
-        """
+    #     Parameters
+    #     ----------
+    #     core_index : int
+    #         the index of the core to be changed
+    #     slope : float
+    #         the rate of amplitude change in 1/s
+    #     """
 
-        self.set_d(SPC_DDS_CORE0_AMP_SLOPE + core_index, slope)
+    #     self.set_d(SPC_DDS_CORE0_AMP_SLOPE + core_index, slope)
 
-    def trg_timer(self, period : float) -> None:
-        """
-        set the period at which the timer should raise DDS trigger events. (see register `SPC_DDS_TRG_TIMER` in the manual)
+    # def trg_timer(self, period : float) -> None:
+    #     """
+    #     set the period at which the timer should raise DDS trigger events. (see register `SPC_DDS_TRG_TIMER` in the manual)
 
-        NOTE
-        ----
-        only used in conjecture with the trigger source set to SPCM_DDS_TRG_SRC_TIMER ---
+    #     NOTE
+    #     ----
+    #     only used in conjecture with the trigger source set to SPCM_DDS_TRG_SRC_TIMER ---
 
-        Parameters
-        ----------
-        period : float
-            the time between DDS trigger events in seconds
-        """
+    #     Parameters
+    #     ----------
+    #     period : float
+    #         the time between DDS trigger events in seconds
+    #     """
 
-        self.set_d(SPC_DDS_TRG_TIMER, float(period))
+    #     self.set_d(SPC_DDS_TRG_TIMER, float(period))

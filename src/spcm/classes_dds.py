@@ -9,20 +9,19 @@ from .classes_channels import Channels, Channel
 from .classes_unit_conversion import UnitConversion
 from . import units
 
-class DDSCore:
+class DDSBareCore:
     """
-    a class for controlling a single DDS core
+    a class for controlling a single DDS core with fast access and without units.
+    This class is used to access the DDS cores directly without using the units framework pint.
     """
 
     dds : "DDS"
     index : int
-    channel : Channel
 
     def __init__(self, core_index, dds, *args, **kwargs) -> None:
         self.dds = dds
         self.index = core_index
-        self.channel = kwargs.get("channel", None)
-    
+        
     def __int__(self) -> int:
         """
         get the index of the core
@@ -62,27 +61,23 @@ class DDSCore:
             the sum of the two indices
         """
         return self.index + other
-
+    
     # DDS "static" parameters
-    def amp(self, amplitude : float) -> None:
+    def amp(self, amplitude : float, *args, **kwargs) -> None:
         """
         set the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
         
         Parameters
         ----------
-        amplitude : float | pint.Quantity
+        amplitude : float
             the value between 0 and 1 corresponding to the amplitude
         """
 
-        if self.channel is not None:
-            amplitude = self.channel.to_amplitude_fraction(amplitude)
-        elif isinstance(amplitude, units.Quantity) and amplitude.check("[]"):
-            amplitude = UnitConversion.convert(amplitude, units.fraction, float, rounding=None)
         self.dds.set_d(SPC_DDS_CORE0_AMP + self.index, float(amplitude))
     # aliases
     amplitude = amp
 
-    def get_amp(self, return_unit = None) -> float:
+    def get_amp(self, *args, **kwargs) -> float:
         """
         gets the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
 
@@ -98,15 +93,170 @@ class DDSCore:
         """
 
         return_value = self.dds.card.get_d(SPC_DDS_CORE0_AMP + self.index)
+        return return_value
+    # aliases
+    get_amplitude = get_amp
+
+    def freq(self, frequency : float, *args, **kwargs) -> None:
+        """
+        set the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
+        
+        Parameters
+        ----------
+        frequency : float
+            the value of the frequency in Hz
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_FREQ + self.index, float(frequency))
+    # aliases
+    frequency = freq
+
+    def get_freq(self, *args, **kwargs) -> float:
+        """
+        gets the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
+        
+        Returns
+        -------
+        float | pint.Quantity
+            the value of the frequency in Hz the specific core
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_FREQ + self.index)
+    # aliases
+    get_frequency = get_freq
+
+    def phase(self, phase : float, *args, **kwargs) -> None:
+        """
+        set the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
+        
+        Parameters
+        ----------
+        phase : float
+            the value between 0 and 360 degrees of the phase
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_PHASE + self.index, float(phase))
+
+    def get_phase(self, *args, **kwargs) -> float:
+        """
+        gets the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
+        
+        Returns
+        -------
+        float
+            the value between 0 and 360 degrees of the phase
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_PHASE + self.index)
+
+    # DDS dynamic parameters
+    def freq_slope(self, slope : float, *args, **kwargs) -> None:
+        """
+        set the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
+        
+        Parameters
+        ----------
+        slope : float
+            the rate of frequency change in Hz/s (positive or negative)
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index, float(slope))
+    # aliases
+    frequency_slope = freq_slope
+
+    def get_freq_slope(self, *args, **kwargs) -> float:
+        """
+        get the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
+
+        Returns
+        -------
+        float
+            the rate of frequency change in Hz/s
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index)
+    # aliases
+    get_frequency_slope = get_freq_slope
+
+    def amp_slope(self, slope : float, *args, **kwargs) -> None:
+        """
+        set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
+        
+        Parameters
+        ----------
+        slope : float
+            the rate of amplitude change in 1/s (positive or negative)
+        """
+
+        self.dds.set_d(SPC_DDS_CORE0_AMP_SLOPE + self.index, float(slope))
+    # aliases
+    amplitude_slope = amp_slope
+
+    def get_amp_slope(self, *args, **kwargs) -> float:
+        """
+        set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
+
+        Returns
+        -------
+        float
+            the rate of amplitude change in 1/s
+        """
+
+        return self.dds.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + self.index)
+    # aliases
+    amplitude_slope = amp_slope
+
+class DDSCore(DDSBareCore):
+    """
+    a class for controlling a single DDS core
+    """
+
+    channel : Channel
+
+    def __init__(self, core_index, dds, *args, **kwargs) -> None:
+        super().__init__(core_index, dds, *args, **kwargs)
+        self.channel = kwargs.get("channel", None)
+    
+    # DDS "static" parameters
+    def amp(self, amplitude : float, *args, **kwargs) -> None:
+        """
+        set the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
+        
+        Parameters
+        ----------
+        amplitude : float | pint.Quantity
+            the value between 0 and 1 corresponding to the amplitude
+        """
+
+        if self.channel is not None:
+            amplitude = self.channel.to_amplitude_fraction(amplitude)
+        elif isinstance(amplitude, units.Quantity) and amplitude.check("[]"):
+            amplitude = UnitConversion.convert(amplitude, units.fraction, float, rounding=None)
+        super().amp(amplitude)
+
+    def get_amp(self, return_unit = None, *args, **kwargs) -> float:
+        """
+        gets the amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the returned amplitude, by default None
+
+        Returns
+        -------
+        float
+            the value between 0 and 1 corresponding to the amplitude
+        """
+
+        return_value = super().get_amp()
         if self.channel is not None:
             return_value = self.channel.from_amplitude_fraction(return_value, return_unit)
         else:
             return_value = UnitConversion.to_unit(return_value, return_unit)
         return return_value
-    # aliases
-    get_amplitude = get_amp
 
-    def freq(self, frequency : float) -> None:
+    def freq(self, frequency : float, *args, **kwargs) -> None:
         """
         set the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
         
@@ -117,11 +267,9 @@ class DDSCore:
         """
 
         frequency = UnitConversion.convert(frequency, units.Hz, float, rounding=None)
-        self.dds.set_d(SPC_DDS_CORE0_FREQ + self.index, float(frequency))
-    # aliases
-    frequency = freq
+        super().freq(frequency)
 
-    def get_freq(self, return_unit = None) -> float:
+    def get_freq(self, return_unit = None, *args, **kwargs) -> float:
         """
         gets the frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ` in the manual)
         
@@ -136,13 +284,11 @@ class DDSCore:
             the value of the frequency in Hz the specific core
         """
 
-        return_value = self.dds.card.get_d(SPC_DDS_CORE0_FREQ + self.index)
+        return_value = super().get_freq()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
         return return_value
-    # aliases
-    get_frequency = get_freq
 
-    def phase(self, phase : float) -> None:
+    def phase(self, phase : float, *args, **kwargs) -> None:
         """
         set the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
         
@@ -153,9 +299,9 @@ class DDSCore:
         """
 
         phase = UnitConversion.convert(phase, units.deg, float, rounding=None)
-        self.dds.set_d(SPC_DDS_CORE0_PHASE + self.index, float(phase))
+        super().phase(phase)
 
-    def get_phase(self, return_unit = None) -> float:
+    def get_phase(self, return_unit = None, *args, **kwargs) -> float:
         """
         gets the phase of the sine wave of a specific core (see register `SPC_DDS_CORE0_PHASE` in the manual)
         
@@ -165,12 +311,12 @@ class DDSCore:
             the value between 0 and 360 degrees of the phase
         """
 
-        return_value = self.dds.card.get_d(SPC_DDS_CORE0_PHASE + self.index)
+        return_value = super().get_phase()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.deg, return_unit)
         return return_value
 
     # DDS dynamic parameters
-    def freq_slope(self, slope : float) -> None:
+    def freq_slope(self, slope : float, *args, **kwargs) -> None:
         """
         set the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
         
@@ -181,11 +327,9 @@ class DDSCore:
         """
 
         slope = UnitConversion.convert(slope, units.Hz/units.s, float, rounding=None)
-        self.dds.set_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index, float(slope))
-    # aliases
-    frequency_slope = freq_slope
+        super().freq_slope(slope)
 
-    def get_freq_slope(self, return_unit = None) -> float:
+    def get_freq_slope(self, return_unit = None, *args, **kwargs) -> float:
         """
         get the frequency slope of the linearly changing frequency of the sine wave of a specific core (see register `SPC_DDS_CORE0_FREQ_SLOPE` in the manual)
         
@@ -200,13 +344,11 @@ class DDSCore:
             the rate of frequency change in Hz/s
         """
 
-        return_value = self.dds.card.get_d(SPC_DDS_CORE0_FREQ_SLOPE + self.index)
+        return_value = super().get_freq_slope()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz/units.s, return_unit)
         return return_value
-    # aliases
-    get_frequency_slope = get_freq_slope
 
-    def amp_slope(self, slope : float) -> None:
+    def amp_slope(self, slope : float, *args, **kwargs) -> None:
         """
         set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
         
@@ -217,11 +359,9 @@ class DDSCore:
         """
 
         slope = UnitConversion.convert(slope, 1/units.s, float, rounding=None)
-        self.dds.set_d(SPC_DDS_CORE0_AMP_SLOPE + self.index, float(slope))
-    # aliases
-    amplitude_slope = amp_slope
+        super().amp_slope(slope)
 
-    def get_amp_slope(self, return_unit = None) -> float:
+    def get_amp_slope(self, return_unit = None, *args, **kwargs) -> float:
         """
         set the amplitude slope of the linearly changing amplitude of the sine wave of a specific core (see register `SPC_DDS_CORE0_AMP_SLOPE` in the manual)
         
@@ -237,11 +377,9 @@ class DDSCore:
         """
 
 
-        return_value = self.dds.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + self.index)
+        return_value = super().get_amp_slope()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value / units.s, return_unit)
         return return_value
-    # aliases
-    amplitude_slope = amp_slope
 
 
 class DDS(CardFunctionality):
@@ -295,6 +433,8 @@ class DDS(CardFunctionality):
     channels : Channels = None
 
     check_features : bool = False
+    no_units : bool = False
+    core_type = DDSCore
 
     _current_core : int = -1
     _channel_from_core : dict[int, int] = {}
@@ -303,7 +443,14 @@ class DDS(CardFunctionality):
         super().__init__(*args, **kwargs)
         self.channels = kwargs.get("channels", None)
         self.check_features = kwargs.get("check_features", False)
+        self.no_units = kwargs.get("no_units", False)
         self.cores = []
+
+        if self.no_units:
+            self.core_type = DDSBareCore
+        else:
+            self.core_type = DDSCore
+
         self.load_cores()
         # Check if DDS feature is installed
         if self.check_features:
@@ -328,9 +475,9 @@ class DDS(CardFunctionality):
         
         for core in range(num_cores):
             if core in self._channel_from_core:
-                self.cores.append(DDSCore(core, self, channel=self._channel_from_core[core]))
+                self.cores.append(self.core_type(core, self, channel=self._channel_from_core[core]))
             else:
-                self.cores.append(DDSCore(core, self))
+                self.cores.append(self.core_type(core, self))
         
     def __len__(self) -> int:
         """
