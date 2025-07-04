@@ -3,3 +3,4 @@ numpy
 psutil
 matplotlib
 PyQt5
+ipykernel
