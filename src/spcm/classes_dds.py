@@ -204,7 +204,7 @@ class DDSBareCore:
 
         return self.dds.card.get_d(SPC_DDS_CORE0_AMP_SLOPE + self.index)
     # aliases
-    amplitude_slope = amp_slope
+    get_amplitude_slope = get_amp_slope
 
 class DDSCore(DDSBareCore):
     """
@@ -233,6 +233,8 @@ class DDSCore(DDSBareCore):
         elif isinstance(amplitude, units.Quantity) and amplitude.check("[]"):
             amplitude = UnitConversion.convert(amplitude, units.fraction, float, rounding=None)
         super().amp(amplitude)
+    # aliases
+    amplitude = amp
 
     def get_amp(self, return_unit = None, *args, **kwargs) -> float:
         """
@@ -255,6 +257,8 @@ class DDSCore(DDSBareCore):
         else:
             return_value = UnitConversion.to_unit(return_value, return_unit)
         return return_value
+    # aliases
+    get_amplitude = get_amp
 
     def freq(self, frequency : float, *args, **kwargs) -> None:
         """
@@ -268,6 +272,8 @@ class DDSCore(DDSBareCore):
 
         frequency = UnitConversion.convert(frequency, units.Hz, float, rounding=None)
         super().freq(frequency)
+    # aliases
+    frequency = freq
 
     def get_freq(self, return_unit = None, *args, **kwargs) -> float:
         """
@@ -287,6 +293,8 @@ class DDSCore(DDSBareCore):
         return_value = super().get_freq()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
         return return_value
+    # aliases
+    get_frequency = get_freq
 
     def phase(self, phase : float, *args, **kwargs) -> None:
         """
@@ -328,6 +336,8 @@ class DDSCore(DDSBareCore):
 
         slope = UnitConversion.convert(slope, units.Hz/units.s, float, rounding=None)
         super().freq_slope(slope)
+    # aliases
+    frequency_slope = freq_slope
 
     def get_freq_slope(self, return_unit = None, *args, **kwargs) -> float:
         """
@@ -347,6 +357,8 @@ class DDSCore(DDSBareCore):
         return_value = super().get_freq_slope()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz/units.s, return_unit)
         return return_value
+    # aliases
+    get_frequency_slope = get_freq_slope
 
     def amp_slope(self, slope : float, *args, **kwargs) -> None:
         """
@@ -360,6 +372,8 @@ class DDSCore(DDSBareCore):
 
         slope = UnitConversion.convert(slope, 1/units.s, float, rounding=None)
         super().amp_slope(slope)
+    # aliases
+    amplitude_slope = amp_slope
 
     def get_amp_slope(self, return_unit = None, *args, **kwargs) -> float:
         """
@@ -380,6 +394,8 @@ class DDSCore(DDSBareCore):
         return_value = super().get_amp_slope()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value / units.s, return_unit)
         return return_value
+    # aliases
+    get_amplitude_slope = get_amp_slope
 
 
 class DDS(CardFunctionality):
