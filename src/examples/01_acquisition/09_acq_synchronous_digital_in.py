@@ -59,8 +59,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
     data_transfer.post_trigger(num_samples//2)
-    # Start DMA transfer
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
     # add synchronous digital outputs to the data
     synchronous_io = spcm.SynchronousDigitalIOs(data_transfer, channels, digin2bit=True) # digin2bit is only using for the 44xx family of cards
@@ -71,9 +69,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
         for index in range(num_buffers):
             synchronous_io.setup(buffer_index=index, channel=channels[index % len(channels)], xios=[index % synchronous_io.num_xio_lines])
     
-    # start card
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
+
     print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
+    
+    data_transfer.unpackbits()
 
     synchronous_io.process()
 

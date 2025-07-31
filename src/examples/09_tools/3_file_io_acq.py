@@ -35,11 +35,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
     data_transfer = spcm.DataTransfer(card)
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
-    # Start DMA transfer
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     
-    # start card
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
+
+    print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 
     # Write to file
     print("Writing data to file: data.*")

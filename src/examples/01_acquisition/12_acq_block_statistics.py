@@ -54,20 +54,22 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     post_trigger = samples_per_segment // 2
 
     # Block Statistics Setup and Data Transfer
-    block_statistics = spcm.BlockStatistics(card)
-    block_statistics.memory_size(num_samples)  # Define memory segment
-    block_statistics.allocate_buffer(samples_per_segment, num_segments)
-    block_statistics.post_trigger(post_trigger)
+    data_transfer = spcm.BlockStatistics(card)
+    data_transfer.memory_size(num_samples)  # Define memory segment
+    data_transfer.allocate_buffer(samples_per_segment, num_segments)
+    data_transfer.post_trigger(post_trigger)
 
     # setup timestamps (only need to turn them on, the timestamps are automatically saved in the block statistics data)
     ts = spcm.TimeStamp(card)
     ts.mode(spcm.SPC_TSMODE_STARTRESET, spcm.SPC_TSCNT_INTERNAL)
-
-    # Start data acquisition
-    block_statistics.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+    
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
     print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 
     # wait until the transfer has finished
     try:
@@ -77,12 +79,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
             print(f"---\nSegment {i}")
             for channel in channels:
                 print(f"-- {channel}")
-                print("   Average:          {:4.3f~P}".format(channel.convert_data(block_statistics.buffer[i]['average'][channel]/samples_per_segment_magnitude), return_unit=units.V))
-                print("   Minimum:          {:4.3f~P}".format(channel.convert_data(block_statistics.buffer[i]['minimum'][channel]), return_unit=units.V))
-                print("   Maximum:          {:4.3f~P}".format(channel.convert_data(block_statistics.buffer[i]['maximum'][channel]), return_unit=units.V))
-                print("   Minimum Position: {:4.3f~P}".format((block_statistics.buffer[i]['minimum_position'][channel]/sampling_rate).to(units.us)))
-                print("   Maximum Position: {:4.3f~P}".format((block_statistics.buffer[i]['maximum_position'][channel]/sampling_rate).to(units.us)))
-                print("   Timestamp:        {:4.3f~P}".format((block_statistics.buffer[i]['timestamp'][channel]/sampling_rate).to(units.us)))
+                print("   Average:          {:4.3f~P}".format(channel.convert_data(data_transfer.buffer[i]['average'][channel]/samples_per_segment_magnitude), return_unit=units.V))
+                print("   Minimum:          {:4.3f~P}".format(channel.convert_data(data_transfer.buffer[i]['minimum'][channel]), return_unit=units.V))
+                print("   Maximum:          {:4.3f~P}".format(channel.convert_data(data_transfer.buffer[i]['maximum'][channel]), return_unit=units.V))
+                print("   Minimum Position: {:4.3f~P}".format((data_transfer.buffer[i]['minimum_position'][channel]/sampling_rate).to(units.us)))
+                print("   Maximum Position: {:4.3f~P}".format((data_transfer.buffer[i]['maximum_position'][channel]/sampling_rate).to(units.us)))
+                print("   Timestamp:        {:4.3f~P}".format((data_transfer.buffer[i]['timestamp'][channel]/sampling_rate).to(units.us)))
     except spcm.SpcmTimeout as timeout:
         print("Timeout...")
 

@@ -38,10 +38,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
 
     # setup trigger engine
     trigger = spcm.Trigger(card)
-    trigger.ext0_mode(spcm.SPC_TM_POS)   # set trigger mode
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # trigger set to external
+    trigger.ext0_mode(spcm.SPC_TM_POS)   # set trigger mode
     trigger.ext0_coupling(spcm.COUPLING_DC)  # trigger coupling
-    trigger.ext0_level0(1.5 * units.V)
+    trigger.ext0_level0(0.2 * units.V)
 
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
@@ -58,10 +58,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     # setup data transfer buffer
     num_samples_in_segment = 2 * units.KiS
     num_segments = num_samples // num_samples_in_segment
-    multiple_recording = spcm.Multi(card)
-    multiple_recording.memory_size(num_samples)
-    multiple_recording.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
-    multiple_recording.post_trigger(num_samples_in_segment - pre_trigger)
+    data_transfer = spcm.Multi(card)
+    data_transfer.memory_size(num_samples)
+    data_transfer.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
+    data_transfer.post_trigger(num_samples_in_segment - pre_trigger)
     num_timestamps = num_segments + 1
 
     # setup ABA mode
@@ -80,18 +80,18 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
 
     # wait until the transfer has finished
     try:
+        
         # Create Timestamp and ABA buffer and start the DMA transfers together
         ts.start_buffer_transfer()
         aba.start_buffer_transfer(spcm.M2CMD_EXTRA_STARTDMA)
-        # Create and start multiple recording buffer
-        multiple_recording.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
 
         # Start the card and wait until all the data has been recorder
         card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
-        # Wait until the data transfer has finished
-        card.cmd(spcm.M2CMD_DATA_WAITDMA, spcm.M2CMD_EXTRA_WAITDMA)
+        
+        # Create and start multiple recording buffer
+        data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA, spcm.M2CMD_EXTRA_WAITDMA)
 
-        aba_time_offset = multiple_recording.convert_time(ts.buffer[0, 0]) # timestamps are recorded on the time base of the fast recording
+        aba_time_offset = data_transfer.convert_time(ts.buffer[0, 0]) # timestamps are recorded on the time base of the fast recording
                                                                          # hence the conversion of the multiple_recording object is needed.
         aba_time_data = aba.time_data() + aba_time_offset
 
@@ -102,11 +102,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
             chan_data = channel.convert_data(aba.buffer[channel, :] ) # index definition: [segment, sample, channel]
             plt.plot(aba_time_data, chan_data, '.-', label="(A)")
         
-        data = multiple_recording.buffer
-        time_data = multiple_recording.time_data()
+        data = data_transfer.buffer
+        time_data = data_transfer.time_data()
         # Plot the "fast" B data
         for segment in range(data.shape[0]):
-            time_offset = multiple_recording.convert_time(ts.buffer[segment + 1, 0])
+            time_offset = data_transfer.convert_time(ts.buffer[segment + 1, 0])
             ax.axvline(time_offset, color='k', linestyle='--', label='Trigger {}'.format(segment))
             for channel in channels:
                 chan_data = channel.convert_data(data[segment, :, channel]) # index definition: [segment, sample, channel]

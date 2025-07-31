@@ -55,13 +55,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)
     data_transfer.duration(100*units.us, post_trigger_duration=80*units.us)
-    # Start DMA transfer
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     
-    # start card
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
     print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 
     # Plot the acquired data
     time_data_s = data_transfer.time_data()

@@ -64,7 +64,6 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
         dt.memory_size(num_samples)
         dt.allocate_buffer(num_samples)
         dt.post_trigger(num_samples * 3 // 4)
-        dt.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, direction=spcm.SPCM_DIR_CARDTOPC)
         data_transfer.append(dt)
 
     # setup star-hub
@@ -72,14 +71,14 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
     stack.sync_enable(True)
 
     # start all cards using the star-hub handle
-    stack.start(spcm.M2CMD_CARD_ENABLETRIGGER)
+    stack.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
     # for each card we wait for the data from the DMA transfer
     plt.figure()
     time_data_s = data_transfer[0].time_data()
     print("Waiting for trigger...")
     for dt in data_transfer:
-        dt.card.cmd(spcm.M2CMD_DATA_WAITDMA)
+        dt.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA, direction=spcm.SPCM_DIR_CARDTOPC)
         print(f"{dt.card} finished transfer")
         plt.plot(time_data_s, dt.buffer[0], label=f"{dt.card}")
     plt.legend()

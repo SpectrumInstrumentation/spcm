@@ -37,7 +37,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     trigger.and_mask(spcm.SPC_TMASK_NONE)      # no AND mask
     trigger.ext0_mode(spcm.SPC_TM_POS)   # set trigger mode
     trigger.ext0_coupling(spcm.COUPLING_DC)  # trigger coupling
-    trigger.ext0_level0(0.75 * units.V)
+    trigger.ext0_level0(0.25 * units.V)
     trigger.termination(1)
 
     clock = spcm.Clock(card)
@@ -57,12 +57,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     pre_trigger = 64 * units.S
     post_trigger = 64 * units.S
     # define the data buffer
-    gated_transfer = spcm.Gated(card, num_gates=num_gates)
-    gated_transfer.pre_trigger(pre_trigger)
-    gated_transfer.post_trigger(post_trigger)
-    gated_transfer.allocate_buffer(num_samples)
-    gated_transfer.polling(True, timer=0.01*units.s) # polling mode
-    gated_transfer.start_buffer_transfer()
+    data_transfer = spcm.Gated(card, num_gates=num_gates)
+    data_transfer.pre_trigger(pre_trigger)
+    data_transfer.post_trigger(post_trigger)
+    data_transfer.allocate_buffer(num_samples)
+    data_transfer.polling(True, timer=0.01*units.s) # polling mode
+    data_transfer.start_buffer_transfer()
 
     
     # start the card
@@ -73,10 +73,10 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     try:
         print("Press Ctrl+C to stop the recording and show the results...")
         # Get a block of data
-        for gate in gated_transfer:
-            time_range = gated_transfer.current_time_range(return_unit=units.us)
-            gate_start, gate_end = gated_transfer.current_timestamps(return_unit=units.us)
-            print(f"Gate {gated_transfer.iterator_index}: {gate_start} to {gate_end}")
+        for gate in data_transfer:
+            time_range = data_transfer.current_time_range(return_unit=units.us)
+            gate_start, gate_end = data_transfer.current_timestamps(return_unit=units.us)
+            print(f"Gate {data_transfer.iterator_index}: {gate_start} to {gate_end}")
             for channel in channels:
                 unit_data_V = channel.convert_data(gate[channel, :], units.V)
                 print(f"Channel {channel} | mean: {np.mean(unit_data_V)} - std: {np.std(unit_data_V)}")

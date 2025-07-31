@@ -57,30 +57,32 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     post_trigger = samples_per_segment - 128 * units.S
 
     # Boxcar Averaging Setup and Data Transfer
-    boxcar = spcm.Boxcar(card)
-    boxcar.box_averages(averages)  # Set boxcar averaging factor
-    boxcar.memory_size(num_samples)  # Define memory segment
-    boxcar.allocate_buffer(samples_per_segment, num_segments)
-    boxcar.post_trigger(post_trigger)
+    data_transfer = spcm.Boxcar(card)
+    data_transfer.box_averages(averages)  # Set boxcar averaging factor
+    data_transfer.memory_size(num_samples)  # Define memory segment
+    data_transfer.allocate_buffer(samples_per_segment, num_segments)
+    data_transfer.post_trigger(post_trigger)
     
-    # Start data acquisition
-    boxcar.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
     print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 
     # wait until the transfer has finished
     try:
         fig, ax = plt.subplots(num_segments, 1, sharex=True)
 
         # Retrieve and plot the acquired data
-        time_data_s = boxcar.time_data()
+        time_data_s = data_transfer.time_data()
         for i in range(num_segments):
             if num_segments > 1:
                 cax = ax[i]
             else:
                 cax = ax
-            channel_data = channel0.convert_data(boxcar.buffer[i, :, channel0], return_unit=units.V, averages=averages)
+            channel_data = channel0.convert_data(data_transfer.buffer[i, :, channel0], return_unit=units.V, averages=averages)
             cax.plot(time_data_s, channel_data, label=f"{channel0}")
             cax.xaxis.set_units(units.us)
             cax.set_ylim([-1.1, 1.1])

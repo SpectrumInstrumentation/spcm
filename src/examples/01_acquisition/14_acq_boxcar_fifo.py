@@ -62,14 +62,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:            #
     num_samples = samples_per_segment * num_segments
     post_trigger = samples_per_segment - 128 * units.S
 
-    boxcar = spcm.Boxcar(card)
-    boxcar.box_averages(averages)  # Set boxcar averaging factor
-    boxcar.allocate_buffer(segment_samples=samples_per_segment, num_segments=num_segments)
-    boxcar.notify_samples(notify_samples)
-    boxcar.post_trigger(post_trigger)
+    data_transfer = spcm.Boxcar(card)
+    data_transfer.box_averages(averages)  # Set boxcar averaging factor
+    data_transfer.allocate_buffer(segment_samples=samples_per_segment, num_segments=num_segments)
+    data_transfer.notify_samples(notify_samples)
+    data_transfer.post_trigger(post_trigger)
 
-    boxcar.start_buffer_transfer()
-    boxcar.verbose(True)
+    data_transfer.start_buffer_transfer()
+    data_transfer.verbose(True)
 
     # start the card
     card.start(spcm.M2CMD_DATA_STARTDMA | spcm.M2CMD_CARD_ENABLETRIGGER)
@@ -78,7 +78,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:            #
     try:
         print("Press Ctrl+C to stop the recording and show the results...")
         # Get a block of data
-        for data_block in boxcar:
+        for data_block in data_transfer:
             if data_array.size == 0:
                 data_array = data_block
             else:
@@ -90,7 +90,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:            #
     print("Finished...\n")
     
     # Plot the accumulated data
-    time_data_s = boxcar.time_data(total_num_samples=samples_per_segment)
+    time_data_s = data_transfer.time_data(total_num_samples=samples_per_segment)
     fig, ax = plt.subplots()
     for channel in channels:
         print(channel)

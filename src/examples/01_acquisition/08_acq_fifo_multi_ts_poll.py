@@ -41,7 +41,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger.ext0_mode(spcm.SPC_TM_POS)   # set trigger mode
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # trigger set to external
     trigger.ext0_coupling(spcm.COUPLING_DC)  # trigger coupling
-    trigger.ext0_level0(1.5 * units.V)
+    trigger.ext0_level0(0.25 * units.V)
 
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
@@ -57,11 +57,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # setup data transfer buffer
     num_samples_in_segment = 4 * units.KiS
     num_segments = num_samples // num_samples_in_segment
-    multiple_recording = spcm.Multi(card)
-    multiple_recording.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
-    multiple_recording.to_transfer_samples(total_samples)
-    multiple_recording.notify_samples(notify_samples)
-    multiple_recording.post_trigger(num_samples_in_segment - 128 * units.S)
+    data_transfer = spcm.Multi(card)
+    data_transfer.allocate_buffer(segment_samples=num_samples_in_segment, num_segments=num_segments)
+    data_transfer.to_transfer_samples(total_samples)
+    data_transfer.notify_samples(notify_samples)
+    data_transfer.post_trigger(num_samples_in_segment - 128 * units.S)
 
     # setup timestamps
     ts = spcm.TimeStamp(card)
@@ -74,14 +74,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     ts.start_buffer_transfer(spcm.M2CMD_EXTRA_POLL)
 
     # start everything
-    multiple_recording.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
 
     segment_cnt = 0
     print("Recording... press Ctrl+C to stop")
 
     try:
-        for data_block in multiple_recording:
+        for data_block in data_transfer:
             ts_data_range = ts.poll(data_block.shape[0])
             for ts_arr, segment_data in zip(ts_data_range, data_block):
                 timestampVal2 = (ts_arr[0] / sample_rate).to_base_units()   # lower 8 bytes

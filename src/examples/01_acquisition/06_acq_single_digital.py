@@ -48,13 +48,14 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
     data_transfer.post_trigger(num_samples // 2)
-    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, direction=spcm.SPCM_DIR_CARDTOPC)
+    
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
-    # start everything
-    try:
-        card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
-    except spcm.SpcmException as exception:
-        print("... Timeout")
+    print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA, direction=spcm.SPCM_DIR_CARDTOPC)
     
     data_transfer.unpackbits()
 

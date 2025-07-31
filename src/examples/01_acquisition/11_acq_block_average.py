@@ -58,24 +58,26 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     post_trigger = samples_per_segment - 1024 * units.S 
 
     # Block Averaging Setup and Data Transfer
-    block_average = spcm.BlockAverage(card)
-    block_average.averages(averages)  # Set averaging factor
-    block_average.memory_size(num_samples)  # Define memory segment
-    block_average.allocate_buffer(samples_per_segment, num_segments)
-    block_average.post_trigger(post_trigger)
+    data_transfer = spcm.BlockAverage(card)
+    data_transfer.averages(averages)  # Set averaging factor
+    data_transfer.memory_size(num_samples)  # Define memory segment
+    data_transfer.allocate_buffer(samples_per_segment, num_segments)
+    data_transfer.post_trigger(post_trigger)
     
-    # Start data acquisition
-    block_average.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
-    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+    # start card and wait until recording is finished
+    card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
     print("Finished acquiring...")
+
+    # Start DMA transfer and wait until the data is transferred
+    data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 
     # wait until the transfer has finished
     try:
         fig, ax = plt.subplots(num_segments, 1, sharex=True)
 
         # Retrieve and plot the acquired data
-        time_data_s = block_average.time_data()
+        time_data_s = data_transfer.time_data()
         for i in range(num_segments):
             if num_segments > 1:
                 cax = ax[i]
@@ -83,7 +85,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
                 cax = ax
             cax.set_title(f"Segment {i}")
             for channel in channels:
-                channel_data = channel.convert_data(block_average.buffer[i, :, channel], averages=averages, return_unit=units.V)
+                channel_data = channel.convert_data(data_transfer.buffer[i, :, channel], averages=averages, return_unit=units.V)
                 cax.plot(time_data_s, channel_data, label=f"{channel}")
             cax.xaxis.set_units(units.us)
             cax.axvline(0, color='k', linestyle='--', label='Trigger')

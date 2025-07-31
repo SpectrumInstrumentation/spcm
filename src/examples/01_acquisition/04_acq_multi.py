@@ -53,19 +53,24 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     # setup data transfer
     num_samples = 4 * units.KiS
     samples_per_segment = 1 * units.KiS
-    multiple_recording = spcm.Multi(card)
-    multiple_recording.memory_size(num_samples)
-    multiple_recording.allocate_buffer(samples_per_segment)
-    multiple_recording.post_trigger(samples_per_segment // 2)
-    multiple_recording.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA)
+    data_transfer = spcm.Multi(card)
+    data_transfer.memory_size(num_samples)
+    data_transfer.allocate_buffer(samples_per_segment)
+    data_transfer.post_trigger(samples_per_segment // 2)
 
 
     # wait until the transfer has finished
     try:
-        card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_DATA_WAITDMA)
+        # start card and wait until recording is finished
+        card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
 
-        data = multiple_recording.buffer
-        time_data = multiple_recording.time_data()
+        print("Finished acquiring...")
+
+        # Start DMA transfer and wait until the data is transferred
+        data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
+
+        data = data_transfer.buffer
+        time_data = data_transfer.time_data()
 
         # this is the point to do anything with the data
         # e.g. calculate minimum and maximum of the acquired data
