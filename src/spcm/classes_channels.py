@@ -41,8 +41,13 @@ class Channel:
         self.card = card
         self.index = index
         self.data_index = data_index
-        self._conversion_amp = None
-        self._conversion_offset = 0 * units.percent
+        if card.function_type() == SPCM_TYPE_AI or card.function_type() == SPCM_TYPE_AO:
+            self._conversion_amp = self.amp(return_unit=units.V)
+            self._conversion_offset = self.offset(return_unit=units.V)
+        else:
+            # For digital cards, we do not have a conversion factor, taking 3.3 V as a default
+            self._conversion_amp = 3.3 * units.V
+            self._conversion_offset = 0 * units.V
         self._output_load = 50 * units.ohm
         self._series_impedance = 50 * units.ohm
     

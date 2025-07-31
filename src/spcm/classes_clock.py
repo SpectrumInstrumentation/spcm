@@ -49,6 +49,25 @@ class Clock(CardFunctionality):
             self.card.set_i(SPC_CLOCKMODE, mode)
         return self.card.get_i(SPC_CLOCKMODE)
     
+    def special_clock(self, special_clock : int = None) -> int:
+        """
+        Set the special clock mode of the card (see register `SPC_SPECIALCLOCK` in the manual)
+    
+        Parameters
+        ----------
+        special_clock : int
+            The special clock mode of the card
+        
+        Returns
+        -------
+        int
+            The special clock mode of the card
+        """
+        
+        if special_clock is not None:
+            self.card.set_i(SPC_SPECIALCLOCK, special_clock)
+        return self.card.get_i(SPC_SPECIALCLOCK)
+    
     def max_sample_rate(self, return_unit = None) -> int:
         """
         Returns the maximum sample rate of the active card (see register `SPC_MIINST_MAXADCLOCK` in the manual)
@@ -261,4 +280,104 @@ class Clock(CardFunctionality):
         
         value = self.card.get_i(SPC_CLOCK_AVAILTHRESHOLD_STEP)
         value = UnitConversion.to_unit(value * units.mV, return_unit)
+        return value
+    
+    def edge(self, edge : int = None) -> int:
+        """
+        Set the clock edge of the card (see register `SPC_CLOCK_EDGE` in the manual)
+        
+        Parameters
+        ----------
+        edge : int
+            the clock edge of the card
+        
+        Returns
+        -------
+        int
+            the clock edge of the card
+        """
+        
+        if edge is not None:
+            self.card.set_i(SPC_CLOCK_EDGE, int(edge))
+        return self.card.get_i(SPC_CLOCK_EDGE)
+
+    def delay(self, delay : int = None, return_unit = None):
+        """
+        Set the clock delay of the card (see register `SPC_CLOCK_DELAY` in the manual)
+
+        Parameters
+        ----------
+        delay : int | pint.Quantity | pint.Unit = None
+            the clock delay of the card
+        return_unit : pint.Unit = None
+            the unit of the clock delay
+
+        Returns
+        -------
+        int | pint.Unit
+            the clock delay of the card
+        """
+
+        if delay is not None:
+            delay = UnitConversion.convert(delay, units.ps, int)
+            self.card.set_i(SPC_CLOCK_DELAY, int(delay))
+        delay = self.card.get_i(SPC_CLOCK_DELAY)
+        delay = UnitConversion.to_unit(delay * units.ps, return_unit)
+        return delay
+    
+    def delay_min(self, return_unit = None) -> int:
+        """
+        Returns the minimum clock delay of the card (see register `SPC_CLOCK_AVAILDELAY_MIN` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the return clock delay
+
+        Returns
+        -------
+        int | pint.Quantity
+            the minimum clock delay of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCK_AVAILDELAY_MIN)
+        value = UnitConversion.to_unit(value * units.ps, return_unit)
+        return value
+    
+    def delay_max(self, return_unit = None) -> int:
+        """
+        Returns the maximum clock delay of the card (see register `SPC_CLOCK_AVAILDELAY_MAX` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the return clock delay
+
+        Returns
+        -------
+        int | pint.Quantity
+            the maximum clock delay of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCK_AVAILDELAY_MAX)
+        value = UnitConversion.to_unit(value * units.ps, return_unit)
+        return value
+    
+    def delay_step(self, return_unit = None) -> int:
+        """
+        Returns the step of the clock delay of the card (see register `SPC_CLOCK_AVAILDELAY_STEP` in the manual)
+
+        Parameters
+        ----------
+        return_unit : pint.Unit = None
+            the unit of the return clock delay
+
+        Returns
+        -------
+        int | pint.Quantity
+            the step of the clock delay of the card
+        """
+        
+        value = self.card.get_i(SPC_CLOCK_AVAILDELAY_STEP)
+        value = UnitConversion.to_unit(value * units.ps, return_unit)
         return value

@@ -29,6 +29,9 @@ class Card(Device):
     _features : int = 0
     _ext_features : int = 0
     _demo_card : bool = False
+    _product_name : str = ""
+    _sn : int = 0
+
 
     def __enter__(self) -> 'Card':
         """
@@ -88,14 +91,6 @@ class Card(Device):
                 raise SpcmException(text="The card with the given device identifier is not the correct type")
             elif serial_number != 0 and self.sn() != serial_number:
                 raise SpcmException(text="The card with the given device identifier does not have the correct serial number")
-        
-        # Check python, driver and kernel version
-        if self._verbose:
-            print("Python version: {} on {}".format (platform.python_version(), platform.system()))
-            print("Driver version: {major}.{minor}.{build}".format(**self.drv_version()))
-            print("Kernel version: {major}.{minor}.{build}".format(**self.kernel_version()))
-            if self._handle:
-                print("Found '{}': {} sn {:05d}".format(self.device_identifier, self.product_name(), self.sn()))
 
         # Get the function type of the card
         self._function_type = self.get_i(SPC_FNCTYPE)
@@ -104,6 +99,16 @@ class Card(Device):
         self._ext_features = self.get_i(SPC_PCIEXTFEATURES)
         self._max_sample_value = self.get_i(SPC_MIINST_MAXADCVALUE)
         self._demo_card = bool(self.get_i(SPC_MIINST_ISDEMOCARD))
+        self._product_name = self.get_str(SPC_PCITYP)
+        self._sn = self.get_i(SPC_PCISERIALNO)
+        
+        # Check python, driver and kernel version
+        if self._verbose:
+            print("Python version: {} on {}".format (platform.python_version(), platform.system()))
+            print("Driver version: {major}.{minor}.{build}".format(**self.drv_version()))
+            print("Kernel version: {major}.{minor}.{build}".format(**self.kernel_version()))
+            if self._handle:
+                print("Found '{}': {} sn {:05d}".format(self.device_identifier, self.product_name(), self.sn()))
         
         return self
     
@@ -336,7 +341,7 @@ class Card(Device):
             The product name of the connected card (e.g. M4i.6631-x8)
         """
 
-        return self.get_str(SPC_PCITYP)
+        return self._product_name
     
     def sn(self) -> int:
         """
@@ -348,7 +353,7 @@ class Card(Device):
             The serial number of the connected card (e.g. 12345)
         """
 
-        return self.get_i(SPC_PCISERIALNO)
+        return self._sn
 
     def active_channels(self) -> int:
         """

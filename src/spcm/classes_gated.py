@@ -169,7 +169,7 @@ class Gated(DataTransfer):
             self.flush()
 
         # Check if all the gates have been acquired
-        if self._num_gates > 0 and self.iterator_index >= self._num_gates: self.stop_next()
+        if self._num_gates > 0 and self.iterator_index >= self._num_gates or self.iterator_index >= self.max_num_gates: self.stop_next()
         ts_len = self.timestamp.avail_user_len()
         if not self._fifo_mode and ts_len < 2: self.stop_next()
         

@@ -29,6 +29,7 @@ class Trigger(CardFunctionality):
 
         super().__init__(card)
         self.channels = kwargs.get('channels', None)
+        self.clock = kwargs.get('clock', None)
     
     def __str__(self) -> str:
         """
@@ -205,6 +206,42 @@ class Trigger(CardFunctionality):
         """
 
         return self.ch_level(channel, 1, level_value, return_unit)
+    
+    def ch_pulsewidth(self, channel : int, pulsewidth_value = None, return_unit : pint.Unit = None) -> int:
+        """
+        Set the pulse width for the trigger input lines (see register 'SPC_TRIG_CH0_PULSEWIDTH' in chapter `Trigger` in the manual)
+        
+        Parameters
+        ----------
+        channel : int | Channel
+            The channel to set the pulse width for
+        pulsewidth_value : int | pint.Quantity | None
+            The pulse width for the trigger input lines
+        
+        Returns
+        -------
+        int
+            The pulse width for the trigger input lines
+        """
+
+        channel_index = int(channel)
+        if pulsewidth_value is not None:
+            if isinstance(pulsewidth_value, units.Quantity) and pulsewidth_value.check("[time]"):
+                if self.clock is None:
+                    raise ValueError("No clock information available to convert the trigger pulse width value. Please provide a clock object to the Trigger object.")
+                sample_rate = self.clock.sample_rate(return_unit=units.Hz)
+                pulsewidth_value = np.rint((pulsewidth_value * sample_rate).to_base_units().magnitude).astype(np.int64)
+            self.card.set_i(SPC_TRIG_CH0_PULSEWIDTH + channel_index, pulsewidth_value)
+        
+        return_value = self.card.get_i(SPC_TRIG_CH0_PULSEWIDTH + channel_index)
+        # if a return unit is given, convert the value to the given unit if a channel object is available
+        if isinstance(return_unit, pint.Unit):
+            if self.clock is None:
+                raise ValueError("No clock information available to convert the trigger pulse width value. Please provide a clock object to the Trigger object.")
+            sample_rate = self.clock.sample_rate(return_unit=units.Hz)
+            return_value = UnitConversion.to_unit(return_value / sample_rate, return_unit)
+            
+        return return_value
 
     # Channel OR Mask0
     def ch_or_mask0(self, mask : int = None) -> int:
