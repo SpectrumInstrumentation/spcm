@@ -22,7 +22,10 @@ import matplotlib.pyplot as plt
 
 card : spcm.Card
 
-with spcm.Card('/dev/spcm4', verbose=True) as card:                         # if you want to open a specific card
+with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if you want to open a specific card
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
     
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_GATE)
@@ -30,7 +33,7 @@ with spcm.Card('/dev/spcm4', verbose=True) as card:                         # if
     
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    clock.sample_rate(10 * units.percent)
+    clock.sample_rate(100 * units.percent)
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
@@ -40,75 +43,66 @@ with spcm.Card('/dev/spcm4', verbose=True) as card:                         # if
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_NONE)
     trigger.ch_or_mask0(channel0.ch_mask())
+    
+    trigger_modes = {
+        1:  [spcm.SPC_TM_HIGH, 0.25 * units.V, None], # gate signal when channel signal is above the trigger level.
+        2:  [spcm.SPC_TM_LOW, 0.1 * units.V, None], # gate signal when channel signal is below the trigger level.
+        3:  [spcm.SPC_TM_INWIN, 0.2 * units.V, 0.1 * units.V], # gate signal when channel signal is within the window defined by level0 and level1.
+        4:  [spcm.SPC_TM_OUTSIDEWIN, 0.2 * units.V, 0.1 * units.V], # gate signal when channel signal is outside the window defined by level0 and level1.
+        5:  [spcm.SPC_TM_POS | spcm.SPC_TM_HYSTERESIS, 0.2 * units.V, 0.1 * units.V], # channel hysteresis trigger on positive edge.
+        6:  [spcm.SPC_TM_NEG | spcm.SPC_TM_HYSTERESIS, 0.2 * units.V, 0.1 * units.V], # channel hysteresis trigger on negative edge.
+        7:  [spcm.SPC_TM_POS | spcm.SPC_TM_HYSTERESIS | spcm.SPC_TM_REARM, 0.2 * units.V, 0.1 * units.V], # channel rearm hysteresis trigger on positive edge.
+        8:  [spcm.SPC_TM_NEG | spcm.SPC_TM_HYSTERESIS | spcm.SPC_TM_REARM, 0.2 * units.V, 0.1 * units.V], # channel rearm hysteresis trigger on negative edge.
+        9:  [spcm.SPC_TM_HIGH | spcm.SPC_TM_HYSTERESIS, 0.4 * units.V, 0.1 * units.V], # high level hysteresis trigger.
+        10: [spcm.SPC_TM_LOW | spcm.SPC_TM_HYSTERESIS, 0.4 * units.V, 0.1 * units.V], # low level hysteresis trigger.
+    }
+    trigger_modes_str = {
+        1:  " 1: Gate signal when channel signal is above the trigger level.",
+        2:  " 2: Gate signal when channel signal is below the trigger level.",
+        3:  " 3: Gate signal when channel signal is within the window defined by level0 and level1.",
+        4:  " 4: Gate signal when channel signal is outside the window defined by level0 and level1.",
+        5:  " 5: Channel hysteresis trigger on positive edge.",
+        6:  " 6: Channel hysteresis trigger on negative edge.",
+        7:  " 7: Channel rearm hysteresis trigger on positive edge.",
+        8:  " 8: Channel rearm hysteresis trigger on negative edge.",
+        9:  " 9: High level hysteresis trigger.",
+        10: "10: Low level hysteresis trigger."
+    }
+    trigger_modes_families = {
+        1:  [0x22, 0x44, 0x59],
+        2:  [0x22, 0x44, 0x59],
+        3:  [0x22, 0x44, 0x59],
+        4:  [0x22, 0x44, 0x59],
+        5:  [0x22, 0x44, 0x59],
+        6:  [0x22, 0x44, 0x59],
+        7:  [0x22, 0x44, 0x59],
+        8:  [0x22, 0x44, 0x59],
+        9:  [0x22, 0x44, 0x59],
+        10: [0x22, 0x44, 0x59]
+    }
 
-    selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \
-    "1: Gate signal when channel signal is above the trigger level.\n" \
-    "2: Gate signal when channel signal is below the trigger level.\n" \
-    "3: Gate signal when channel signal is within the window defined by level0 and level1.\n" \
-    "4: Gate signal when channel signal is outside the window defined by level0 and level1.\n" \
-    "5: Channel hysteresis trigger on positive edge.\n" \
-    "6: Channel hysteresis trigger on negative edge.\n" \
-    "7: Channel re-arm hysteresis trigger on positive edge.\n" \
-    "8: Channel re-arm hysteresis trigger on negative edge.\n" \
-    "9: High level hysteresis trigger.\n" \
-    "10: Low level hysteresis trigger.\n")
+    question_str = "Please select one of the following trigger modes by entering the corresponding number and press <ENTER>:\n"
+    for mode, description in trigger_modes_str.items():
+        if card_family in trigger_modes_families[mode]:
+            question_str += f"{description}\n"
+        else:
+            question_str += f"{description} (not supported by card family {card_family:02x}xx)\n"
+    selected_trigger_mode = input(question_str)
+
     try:
         tm = int(selected_trigger_mode)
     except ValueError:
-        print("Invalid input. Defaulting to trigger on positive edge of channel signal.")
-        tm = 1
-    
-    if tm == 1:
-        # Gate signal generated when a signal on the channel 0 input is higher then 500 mV
-        trigger.ch_mode(channel0, spcm.SPC_TM_HIGH) # gate when channel 0 is above the trigger level
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel 0
-    elif tm == 2:
-        # Gate signal generated when a signal on the channel 0 input is lower then 500 mV
-        trigger.ch_mode(channel0, spcm.SPC_TM_LOW) # gate when channel 0 is below the trigger level
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel 0
-    elif tm == 3:
-        # Gate signal generated when a signal on the channel 0 input is within the range of 0 mV to 500 mV
-        trigger.ch_mode(channel0, spcm.SPC_TM_INWIN) # gate when channel 0 is within the window
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper trigger level of gate window for channel 0
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower trigger level of gate window for channel 0
-    elif tm == 4:
-        # Gate signal generated when a signal on the channel 0 input is outside the range of 0 mV to 500 mV
-        trigger.ch_mode(channel0, spcm.SPC_TM_OUTSIDEWIN) # gate when channel 0 is outside the window
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper trigger level of gate window for channel 0
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower trigger level of gate window for channel 0
-    elif tm == 5:
-        # Channel hysteresis trigger on positive edge.
-        trigger.ch_mode(channel0, spcm.SPC_TM_POS | spcm.SPC_TM_HYSTERESIS) 
-        trigger.ch_level0(channel0, 0.5 * units.V)  # start the gate when the channel signal has a positive slope through this level
-        trigger.ch_level1(channel0, 0.0 * units.V)  # stop the gate when the channel signal passes through this level
-    elif tm == 6:
-        # Channel hysteresis trigger on negative edge.
-        trigger.ch_mode(channel0, spcm.SPC_TM_NEG | spcm.SPC_TM_HYSTERESIS) 
-        trigger.ch_level0(channel0, 0.5 * units.V)  # start the gate when the channel signal has a negative slope through this level
-        trigger.ch_level1(channel0, 0.0 * units.V)  # stop the gate when the channel signal passes through this level
-    elif tm == 7:
-        # Channel re-arm hysteresis trigger on positive edge.
-        trigger.ch_mode(channel0, spcm.SPC_TM_POS | spcm.SPC_TM_HYSTERESIS | spcm.SPC_TM_REARM)
-        trigger.ch_level0(channel0, 0.5 * units.V)  # start the gate when the channel signal has a positive slope through this level
-        trigger.ch_level1(channel0, 0.0 * units.V)  # re-arm the trigger when passing through this level and stop the gate when the channel signal passes through this level
-    elif tm == 8:
-        # Channel re-arm hysteresis trigger on negative edge.
-        trigger.ch_mode(channel0, spcm.SPC_TM_NEG | spcm.SPC_TM_HYSTERESIS | spcm.SPC_TM_REARM)
-        trigger.ch_level0(channel0, 0.0 * units.V)  # start the gate when the channel signal has a negative slope through this level
-        trigger.ch_level1(channel0, 0.5 * units.V)  # re-arm the trigger when passing through this level and stop the gate when the channel signal passes through this level
-    elif tm == 9:
-        # High level hysteresis trigger
-        trigger.ch_mode(channel0, spcm.SPC_TM_HIGH | spcm.SPC_TM_HYSTERESIS)
-        trigger.ch_level0(channel0, 0.5 * units.V)  # start the gate when the channel signal is above this level
-        trigger.ch_level1(channel0, 0.0 * units.V)  # stop the gate when the channel signal is below this level
-    elif tm == 10:
-        # Low level hysteresis trigger
-        trigger.ch_mode(channel0, spcm.SPC_TM_LOW | spcm.SPC_TM_HYSTERESIS)
-        trigger.ch_level0(channel0, 0.0 * units.V)  # start the gate when the channel signal is below this level
-        trigger.ch_level1(channel0, 0.5 * units.V)  # stop the gate when the channel signal is above this level
-    else:
         print("Invalid input. Stopping execution.")
         exit()
+
+    if card_family not in trigger_modes_families[tm]:
+        print(f"Trigger mode {tm} is not supported by card family {card_family:02x}xx. Stopping execution.")
+        exit()
+
+    # Re-arm the trigger when crossing through level1 and then trigger when a signal on the channel input crosses 500 mV from below to above (positive slope)
+    trigger.ch_mode(channel0, trigger_modes[tm][0]) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of channel input through level0
+    trigger.ch_level0(channel0, trigger_modes[tm][1])  # trigger level for channel input
+    if trigger_modes[tm][2] is not None: trigger.ch_level1(channel0, trigger_modes[tm][2])  # re-arm level for channel input
     #############################
 
     num_samples = 16 * units.KiS
@@ -122,6 +116,7 @@ with spcm.Card('/dev/spcm4', verbose=True) as card:                         # if
     data_transfer.pre_trigger(pre_trigger)
     data_transfer.post_trigger(post_trigger)
     data_transfer.allocate_buffer(num_samples)
+    data_transfer.polling(True)
     
     # start card and wait until recording is finished
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)

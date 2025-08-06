@@ -21,7 +21,11 @@ import matplotlib.pyplot as plt
 
 card : spcm.Card
 
-with spcm.Card('/dev/spcm1') as card: # if you want to open a specific card
+with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
+
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
@@ -38,109 +42,82 @@ with spcm.Card('/dev/spcm1') as card: # if you want to open a specific card
     trigger = spcm.Trigger(card, clock=clock)
     trigger.or_mask(spcm.SPC_TMASK_NONE)
     trigger.ch_or_mask0(channel0.ch_mask())
+    
+    trigger_modes = {
+        1: [spcm.SPC_TM_POS, 0.1 * units.V, None, None], # trigger on positive edge of channel signal
+        2: [spcm.SPC_TM_NEG, 0.1 * units.V, None, None], # trigger on negative edge of channel signal
+        3: [spcm.SPC_TM_BOTH, 0.1 * units.V, None, None], # trigger on both edges of channel signal
+        4: [spcm.SPC_TM_POS | spcm.SPC_TM_REARM, 0.1 * units.V, 0.0 * units.V, None], # re-arm the trigger with a positive slope through level1 and trigger on positive edge of channel signal through level0
+        5: [spcm.SPC_TM_NEG | spcm.SPC_TM_REARM, 0.1 * units.V, -0.1 * units.V, None], # re-arm the trigger with a negative slope through level1 and trigger on negative edge of channel signal through level0
+        6: [spcm.SPC_TM_POS | spcm.SPC_TM_PW_GREATER, 0.1 * units.V, None, 1 * units.us], # Channel pulse width trigger for positive pulses that are above the threshold for more than the pulse width
+        7: [spcm.SPC_TM_NEG | spcm.SPC_TM_PW_GREATER, 0.1 * units.V, None, 1 * units.us], # Channel pulse width trigger for negative pulses that are below the threshold for more than the pulse width
+        8: [spcm.SPC_TM_POS | spcm.SPC_TM_PW_SMALLER, 0.1 * units.V, None, 100 * units.us], # Channel pulse width trigger for positive pulses that are above the threshold for less than the pulse width
+        9: [spcm.SPC_TM_NEG | spcm.SPC_TM_PW_SMALLER, 0.1 * units.V, None, 100 * units.us], # Channel pulse width trigger for negative pulses that are below the threshold for less than the pulse width
+        10: [spcm.SPC_TM_WINENTER, 0.1 * units.V, 0.0 * units.V, None], # trigger on entering a window defined by level0 and level1
+        11: [spcm.SPC_TM_WINLEAVE, 0.1 * units.V, 0.0 * units.V, None], # trigger on leaving a window defined by level0 and level1
+        12: [spcm.SPC_TM_WINENTER | spcm.SPC_TM_PW_GREATER, 0.1 * units.V, 0.0 * units.V, 0.5 * units.us], # trigger on entering a window defined by level0 and level1 and staying there longer than the pulse width
+        13: [spcm.SPC_TM_WINLEAVE | spcm.SPC_TM_PW_GREATER, 0.1 * units.V, 0.0 * units.V, 0.5 * units.us], # trigger on leaving a window defined by level0 and level1 and staying outside longer than the pulse width
+        14: [spcm.SPC_TM_WINENTER | spcm.SPC_TM_PW_SMALLER, 0.1 * units.V, 0.0 * units.V, 100 * units.us], # trigger on entering a window defined by level0 and level1 and staying there shorter than the pulse width
+        15: [spcm.SPC_TM_WINLEAVE | spcm.SPC_TM_PW_SMALLER, 0.1 * units.V, 0.0 * units.V, 100 * units.us], # trigger on leaving a window defined by level0 and level1 and staying outside shorter than the pulse width
+        }
+    trigger_modes_str = {
+        1:  " 1: Trigger on positive edge of channel signal",
+        2:  " 2: Trigger on negative edge of channel signal",
+        3:  " 3: Trigger on both edges of channel signal",
+        4:  " 4: Trigger on positive edge of channel signal with re-arm",
+        5:  " 5: Trigger on negative edge of channel signal with re-arm",
+        6:  " 6: Channel pulse width trigger for positive pulses that are above the threshold for more than the pulse width",
+        7:  " 7: Channel pulse width trigger for negative pulses that are below the threshold for more than the pulse width",
+        8:  " 8: Channel pulse width trigger for positive pulses that are above the threshold for less than the pulse width",
+        9:  " 9: Channel pulse width trigger for negative pulses that are below the threshold for less than the pulse width",
+        10: "10: Trigger on entering a window defined by level0 and level1",
+        11: "11: Trigger on leaving a window defined by level0 and level1",
+        12: "12: Trigger on entering a window defined by level0 and level1 and staying there longer than the pulse width",
+        13: "13: Trigger on leaving a window defined by level0 and level1 and staying outside longer than the pulse width",
+        14: "14: Trigger on entering a window defined by level0 and level1 and staying there shorter than the pulse width",
+        15: "15: Trigger on leaving a window defined by level0 and level1 and staying outside shorter than the pulse width",
+    }
+    trigger_modes_families = {
+        1: [0x22, 0x44, 0x59],
+        2: [0x22, 0x44, 0x59],
+        3: [0x22, 0x44, 0x59],
+        4: [0x22, 0x44, 0x59],
+        5: [0x22, 0x44, 0x59],
+        6: [0x59],
+        7: [0x59],
+        8: [0x59],
+        9: [0x59],
+        10: [0x22, 0x44, 0x59],
+        11: [0x22, 0x44, 0x59],
+        12: [0x59],
+        13: [0x59],
+        14: [0x59],
+        15: [0x59]
+    }
 
-    selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \
-    "1: Trigger on positive edge of channel signal\n" \
-    "2: Trigger on negative edge of channel signal\n" \
-    "3: Trigger on both edges of channel signal\n" \
-    "4: Trigger on positive edge of channel signal with re-arm\n"
-    "5: Trigger on negative edge of channel signal with re-arm\n" \
-    "6: Channel pulse width trigger for positive pulses that are above the threshold for more than the pulse width\n" \
-    "7: Channel pulse width trigger for positive pulses that are below the threshold for more than the pulse width\n" \
-    "8: Channel pulse width trigger for negative pulses that are above the threshold for less than the pulse width\n" \
-    "9: Channel pulse width trigger for negative pulses that are below the threshold for less than the pulse width\n" \
-    "10: Trigger on entering a window defined by level0 and level1\n" \
-    "11: Trigger on leaving a window defined by level0 and level1\n" \
-    "12: Trigger on entering a window defined by level0 and level1 and staying there longer than the pulse width\n" \
-    "13: Trigger on leaving a window defined by level0 and level1 and staying outside longer than the pulse width\n" \
-    "14: Trigger on entering a window defined by level0 and level1 and staying there shorter than the pulse width\n" \
-    "15: Trigger on leaving a window defined by level0 and level1 and staying outside shorter than the pulse width\n" \
-    )
+    question_str = "Please select one of the following trigger modes by entering the corresponding number and press <ENTER>:\n"
+    for mode, description in trigger_modes_str.items():
+        if card_family in trigger_modes_families[mode]:
+            question_str += f"{description}\n"
+        else:
+            question_str += f"{description} (not supported by card family {card_family:02x}xx)\n"
+    selected_trigger_mode = input(question_str)
 
     try:
         tm = int(selected_trigger_mode)
     except ValueError:
-        print("Invalid input. Defaulting to trigger on positive edge of channel signal.")
-        tm = 1
-    if tm == 1:
-        # Trigger when a signal on the channel 0 crosses 500 mV from below to above (positive slope)
-        trigger.ch_mode(channel0, spcm.SPC_TM_POS) # trigger on positive edge of channel 0
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel 0
-    elif tm == 2:
-        # Trigger when a signal on the channel0 input crosses 500 mV from above to below (negative slope)
-        trigger.ch_mode(channel0, spcm.SPC_TM_NEG) # trigger on negative edge of channel0
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-    elif tm == 3:
-        # Trigger when a signal on the channel0 input crosses 500 mV from above to below (negative slope) and from below to above (positive slope)
-        trigger.ch_mode(channel0, spcm.SPC_TM_BOTH) # trigger on negative and positive edge of channel0
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-    elif tm == 4:
-        # Re-arm the trigger when the signal crosses through level1 and then trigger when the signal crosses 500 mV from below to above (positive slope)
-        trigger.ch_mode(channel0, spcm.SPC_TM_POS | spcm.SPC_TM_REARM) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of channel0 through level0
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-        trigger.ch_level1(channel0, 0.0 * units.V)  # re-arm level for channel0
-    elif tm == 5:
-        # Re-arm the trigger when the signal crosses through level1 and then trigger when the signal crosses 0 mV from above to below (negative slope)
-        trigger.ch_mode(channel0, spcm.SPC_TM_NEG | spcm.SPC_TM_REARM) # re-arm the trigger with a negative slope through level1 and trigger on negative edge of channel0 through level0
-        trigger.ch_level0(channel0, 0.5 * units.V)  # re-arm level for channel0
-        trigger.ch_level1(channel0, 0.0 * units.V)  # trigger level for channel0
-    elif tm == 6:
-        # Channel pulse width trigger for positive pulses that are above the threshold for more than the pulse width
-        trigger.ch_mode(channel0, spcm.SPC_TM_POS | spcm.SPC_TM_PW_GREATER)
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for channel0
-    elif tm == 7:
-        # Channel pulse width trigger for negative pulses that are below the threshold for more than the pulse width
-        trigger.ch_mode(channel0, spcm.SPC_TM_NEG | spcm.SPC_TM_PW_GREATER)
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for channel0
-    elif tm == 8:
-        # Channel pulse width trigger for negative pulses that are above the threshold for less than the pulse width
-        trigger.ch_mode(channel0, spcm.SPC_TM_POS | spcm.SPC_TM_PW_SMALLER)
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for channel0
-    elif tm == 9:
-        # Channel pulse width trigger for negative pulses that are below the threshold for less than the pulse width
-        trigger.ch_mode(channel0, spcm.SPC_TM_NEG | spcm.SPC_TM_PW_SMALLER)
-        trigger.ch_level0(channel0, 0.5 * units.V)  # trigger level for channel0
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for channel0
-    elif tm == 10:
-        # Channel window trigger for entering signals.
-        trigger.ch_mode(channel0, spcm.SPC_TM_WINENTER) # trigger on entering a window defined by level0 and level1
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper level for the window trigger
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower level for the window trigger
-    elif tm == 11:
-        # Channel window trigger for leaving signals.
-        trigger.ch_mode(channel0, spcm.SPC_TM_WINLEAVE) # trigger on leaving a window defined by level0 and level1
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper level for the window trigger
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower level for the window trigger
-    elif tm == 12:
-        # Channel window trigger for signals that stay within the window longer than the pulse width.
-        trigger.ch_mode(channel0, spcm.SPC_TM_WINENTER | spcm.SPC_TM_PW_GREATER) # trigger on entering a window defined by level0 and level1
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper level for the window trigger
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower level for the window trigger
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for the window trigger
-    elif tm == 13:
-        # Channel window trigger for leaving signals that stay outside the window longer than the pulse width.
-        trigger.ch_mode(channel0, spcm.SPC_TM_WINLEAVE | spcm.SPC_TM_PW_GREATER) # trigger on leaving a window defined by level0 and level1
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper level for the window trigger
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower level for the window trigger
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for the window trigger
-    elif tm == 14:
-        # Channel window trigger for signals that stay within the window shorter than the pulse width.
-        trigger.ch_mode(channel0, spcm.SPC_TM_WINENTER | spcm.SPC_TM_PW_SMALLER) # trigger on entering a window defined by level0 and level1
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper level for the window trigger
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower level for the window trigger
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for the window trigger
-    elif tm == 15:
-        # Channel window trigger for leaving signals that stay outside the window shorter than the pulse width.
-        trigger.ch_mode(channel0, spcm.SPC_TM_WINLEAVE | spcm.SPC_TM_PW_SMALLER) # trigger on leaving a window defined by level0 and level1
-        trigger.ch_level0(channel0, 0.5 * units.V)  # upper level for the window trigger
-        trigger.ch_level1(channel0, 0.0 * units.V)  # lower level for the window trigger
-        trigger.ch_pulsewidth(channel0, 100 * units.us)  # pulse width for the window trigger
-    else:
         print("Invalid input. Stopping execution.")
         exit()
+
+    if card_family not in trigger_modes_families[tm]:
+        print(f"Trigger mode {tm} is not supported by card family {card_family:02x}xx. Stopping execution.")
+        exit()
+
+    # Re-arm the trigger when crossing through level1 and then trigger when a signal on the channel input crosses 500 mV from below to above (positive slope)
+    trigger.ch_mode(channel0, trigger_modes[tm][0]) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of channel input through level0
+    trigger.ch_level0(channel0, trigger_modes[tm][1])  # trigger level for channel input
+    if trigger_modes[tm][2] is not None: trigger.ch_level1(channel0, trigger_modes[tm][2])  # re-arm level for channel input
+    if trigger_modes[tm][3] is not None: trigger.ch_pulsewidth(channel0, trigger_modes[tm][3])  # pulse width for the window trigger
     #############################
 
     # define the data buffer

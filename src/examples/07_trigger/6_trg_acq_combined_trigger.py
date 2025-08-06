@@ -21,7 +21,11 @@ import matplotlib.pyplot as plt
 
 card : spcm.Card
 
-with spcm.Card('/dev/spcm1') as card: # if you want to open a specific card
+with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
+
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
@@ -32,10 +36,15 @@ with spcm.Card('/dev/spcm1') as card: # if you want to open a specific card
     
     # setup the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channel 0 and 1
+    if card_family in [0x22, 0x44]:
+        channels.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channels.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
     channels.amp(1000 * units.mV)
 
     ### Trigger setup section ###
     trigger = spcm.Trigger(card, clock=clock)
+    trigger.or_mask(spcm.SPC_TMASK_NONE)
 
     selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \
     "1: Trigger on positive edge of channel signal, while the external trigger signal is high.\n" \
@@ -51,17 +60,17 @@ with spcm.Card('/dev/spcm1') as card: # if you want to open a specific card
         # Trigger when a signal on the channel 0 crosses 500 mV while at the same time the external trigger signal is high
         trigger.and_mask(spcm.SPC_TMASK_EXT0)
         trigger.ext0_mode(spcm.SPC_TM_HIGH)  # external trigger 0 is high
-        trigger.ext0_level0(1.0 * units.V)    # external trigger level for
+        trigger.ext0_level0(0.25 * units.V)    # external trigger level for
         trigger.ch_and_mask0(channels[0].ch_mask())
         trigger.ch_mode(channels[0], spcm.SPC_TM_POS) # trigger on positive edge of channel 0
-        trigger.ch_level0(channels[0], 0.5 * units.V)  # trigger level for channel 0
+        trigger.ch_level0(channels[0], 0.25 * units.V)  # trigger level for channel 0
     elif tm == 2:
         # Trigger when a signal on one of the channels crosses 500 mV
         trigger.ch_or_mask0(channels[0].ch_mask() | channels[1].ch_mask())
         trigger.ch_mode(channels[0], spcm.SPC_TM_POS)  # trigger on positive edge of channel 0
-        trigger.ch_level0(channels[0], 0.5 * units.V)  # trigger level for channel 0
+        trigger.ch_level0(channels[0], 0.25 * units.V)  # trigger level for channel 0
         trigger.ch_mode(channels[1], spcm.SPC_TM_POS)  # trigger on positive edge of channel 1
-        trigger.ch_level0(channels[1], 0.5 * units.V)  # trigger level for channel 1
+        trigger.ch_level0(channels[1], 0.25 * units.V)  # trigger level for channel 1
     else:
         print("Invalid input. Stopping execution.")
         exit()
@@ -69,7 +78,7 @@ with spcm.Card('/dev/spcm1') as card: # if you want to open a specific card
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)
-    num_samples = 512 * units.S
+    num_samples = 1024 * units.S
     data_transfer.memory_size(num_samples)
     data_transfer.allocate_buffer(num_samples)
     data_transfer.post_trigger(num_samples // 2)

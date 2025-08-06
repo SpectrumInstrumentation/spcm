@@ -22,6 +22,10 @@ import matplotlib.pyplot as plt
 card : spcm.Card
 
 with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
+
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
@@ -38,56 +42,56 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     trigger = spcm.Trigger(card, clock=clock)
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # or SPC_TMASK_EXT[1-4] (if available) for external trigger
 
-    selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \
-    "1: Trigger on positive edge of external trigger\n" \
-    "2: Trigger on negative edge of external trigger\n" \
-    "3: Trigger on both edges of external trigger\n" \
-    "4: Trigger on positive edge of external trigger with re-arm\n"
-    "5: Trigger on negative edge of external trigger with re-arm\n" \
-    "6: Trigger on entering a window defined by level0 and level1\n" \
-    "7: Trigger on leaving a window defined by level0 and level1\n")
+    trigger_modes = {
+        1: [spcm.SPC_TM_POS, 0.5 * units.V, None], # trigger on positive edge of external trigger
+        2: [spcm.SPC_TM_NEG, 0.5 * units.V, None], # trigger on negative edge of external trigger
+        3: [spcm.SPC_TM_BOTH, 0.5 * units.V, None], # trigger on both edges of external trigger
+        4: [spcm.SPC_TM_POS | spcm.SPC_TM_REARM, 0.5 * units.V, 0.0 * units.V], # re-arm the trigger with a positive slope through level1 and trigger on positive edge of external trigger through level0
+        5: [spcm.SPC_TM_NEG | spcm.SPC_TM_REARM, 0.1 * units.V, -0.1 * units.V], # re-arm the trigger with a negative slope through level1 and trigger on negative edge of external trigger through level0
+        6: [spcm.SPC_TM_WINENTER, 0.5 * units.V, -0.5 * units.V], # trigger on entering a window defined by level0 and level1
+        7: [spcm.SPC_TM_WINLEAVE, 0.5 * units.V, -0.5 * units.V], # trigger on leaving a window defined by level0 and level1
+    }
+    trigger_modes_str = {
+        1: "1: Trigger on positive edge of external trigger",
+        2: "2: Trigger on negative edge of external trigger",
+        3: "3: Trigger on both edges of external trigger",
+        4: "4: Trigger on positive edge of external trigger with re-arm",
+        5: "5: Trigger on negative edge of external trigger with re-arm",
+        6: "6: Trigger on entering a window defined by level0 and level1",
+        7: "7: Trigger on leaving a window defined by level0 and level1"
+    }
+    trigger_modes_families = {
+        1: [0x22, 0x44, 0x59],
+        2: [0x22, 0x44, 0x59],
+        3: [0x22, 0x44, 0x59],
+        4: [0x22, 0x44],
+        5: [0x22, 0x44],
+        6: [0x22, 0x44],
+        7: [0x22, 0x44]
+    }
+
+    question_str = "Please select one of the following trigger modes by entering the corresponding number and press <ENTER>:\n"
+    for mode, description in trigger_modes_str.items():
+        if card_family in trigger_modes_families[mode]:
+            question_str += f"{description}\n"
+        else:
+            question_str += f"{description} (not supported by card family {card_family:02x}xx)\n"
+    selected_trigger_mode = input(question_str)
 
     try:
         tm = int(selected_trigger_mode)
     except ValueError:
-        print("Invalid input. Defaulting to trigger on positive edge of external trigger.")
-        tm = 1
-
-    if tm == 1:
-        # Trigger when a signal on the external trigger input crosses 500 mV from below to above (positive slope)
-        trigger.ext0_mode(spcm.SPC_TM_POS) # trigger on positive edge of external trigger
-        trigger.ext0_level0(0.5 * units.V)  # trigger level for external trigger
-    elif tm == 2:
-        # Trigger when a signal on the external trigger input crosses 500 mV from above to below (negative slope)
-        trigger.ext0_mode(spcm.SPC_TM_NEG) # trigger on negative edge of external trigger
-        trigger.ext0_level0(0.5 * units.V)  # trigger level for external trigger
-    elif tm == 3:
-        # Trigger when a signal on the external trigger input crosses 500 mV from above to below (negative slope) and from below to above (positive slope)
-        trigger.ext0_mode(spcm.SPC_TM_BOTH) # trigger on negative and positive edge of external trigger
-        trigger.ext0_level0(0.5 * units.V)  # trigger level for external trigger
-    elif tm == 4:
-        # Re-arm the trigger when crossing through level1 and then trigger when a signal on the external trigger input crosses 500 mV from below to above (positive slope)
-        trigger.ext0_mode(spcm.SPC_TM_POS | spcm.SPC_TM_REARM) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of external trigger through level0
-        trigger.ext0_level0(0.5 * units.V)  # trigger level for external trigger
-        trigger.ext0_level1(0.0 * units.V)  # re-arm level for external trigger
-    elif tm == 5:
-        # Re-arm the trigger when crossing through level1 and then trigger when a signal on the external trigger input crosses 0 mV from above to below (negative slope)
-        trigger.ext0_mode(spcm.SPC_TM_NEG | spcm.SPC_TM_REARM) # re-arm the trigger with a negative slope through level1 and trigger on negative edge of external trigger through level0
-        trigger.ext0_level0(0.1 * units.V)  # re-arm level for external trigger
-        trigger.ext0_level1(-0.1 * units.V)  # trigger level for external trigger
-    elif tm == 6:
-        # Window trigger for entering signals.
-        trigger.ext0_mode(spcm.SPC_TM_WINENTER) # trigger on entering a window defined by level0 and level1
-        trigger.ext0_level0(0.5 * units.V)  # upper level for the window trigger
-        trigger.ext0_level1(-0.5 * units.V)  # lower level for the window trigger
-    elif tm == 7:
-        # Window trigger for leaving signals.
-        trigger.ext0_mode(spcm.SPC_TM_WINLEAVE) # trigger on leaving a window defined by level0 and level1
-        trigger.ext0_level0(0.5 * units.V)  # upper level for the window trigger
-        trigger.ext0_level1(-0.5 * units.V)  # lower level for the window trigger
-    else:
         print("Invalid input. Stopping execution.")
         exit()
+
+    if card_family not in trigger_modes_families[tm]:
+        print(f"Trigger mode {tm} is not supported by card family {card_family:02x}xx. Stopping execution.")
+        exit()
+
+    # Re-arm the trigger when crossing through level1 and then trigger when a signal on the external trigger input crosses 500 mV from below to above (positive slope)
+    trigger.ext0_mode(trigger_modes[tm][0]) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of external trigger through level0
+    trigger.ext0_level0(trigger_modes[tm][1])  # trigger level for external trigger
+    if trigger_modes[tm][2] is not None: trigger.ext0_level1(trigger_modes[tm][2])  # re-arm level for external trigger
     #############################
 
     # define the data buffer

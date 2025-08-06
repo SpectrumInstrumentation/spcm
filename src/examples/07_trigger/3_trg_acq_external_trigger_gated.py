@@ -23,14 +23,18 @@ import matplotlib.pyplot as plt
 card : spcm.Card
 
 with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if you want to open a specific card
-    
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
+
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_GATE)
     card.timeout(50 * units.s)                     # timeout 50 s
 
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    clock.sample_rate(10 * units.percent)
+    sample_rate = clock.sample_rate(max=True, return_unit=units.MHz)
+    print(f"Sample rate set to {sample_rate}.")
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
@@ -39,53 +43,62 @@ with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if
     ### Trigger setup section ###
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # or SPC_TMASK_EXT[1-4] (if available) for external trigger
+    
+    trigger_modes = {
+        1: [spcm.SPC_TM_HIGH, 0.1 * units.V, None], # gate signal when external trigger is above the trigger level
+        2: [spcm.SPC_TM_LOW, 0.1 * units.V, None], # gate signal when external trigger is below the trigger level
+        3: [spcm.SPC_TM_INWIN, 0.1 * units.V, -0.1 * units.V], # gate signal when external trigger is within the window defined by level0 and level1
+        4: [spcm.SPC_TM_OUTSIDEWIN, 0.1 * units.V, 0.0 * units.V] # gate signal when external trigger is outside the window defined by level0 and level1
+    }
+    trigger_modes_str = {
+        1: "1: Gate signal when external trigger is above the trigger level",
+        2: "2: Gate signal when external trigger is below the trigger level",
+        3: "3: Gate signal when external trigger is within the window defined by level0 and level1",
+        4: "4: Gate signal when external trigger is outside the window defined by level0 and level1"
+    }
+    trigger_modes_families = {
+        1: [0x22, 0x44, 0x59],
+        2: [0x22, 0x44, 0x59],
+        3: [0x22, 0x44],
+        4: [0x22, 0x44],
+    }
 
-    selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \
-    "1: Gate signal when external trigger is above the trigger level.\n" \
-    "2: Gate signal when external trigger is below the trigger level.\n" \
-    "3: Gate signal when external trigger is within the window defined by level0 and level1.\n" \
-    "4: Gate signal when external trigger is outside the window defined by level0 and level1.\n")
+    question_str = "Please select one of the following trigger modes by entering the corresponding number and press <ENTER>:\n"
+    for mode, description in trigger_modes_str.items():
+        if card_family in trigger_modes_families[mode]:
+            question_str += f"{description}\n"
+        else:
+            question_str += f"{description} (not supported by card family {card_family:02x}xx)\n"
+    selected_trigger_mode = input(question_str)
+
     try:
         tm = int(selected_trigger_mode)
     except ValueError:
-        print("Invalid input. Defaulting to trigger on positive edge of external trigger.")
-        tm = 1
-    
-    if tm == 1:
-        # Gate signal generated when a signal on the external trigger input is higher then 100 mV
-        trigger.ext0_mode(spcm.SPC_TM_HIGH) # gate when external trigger is above the trigger level
-        trigger.ext0_level0(0.1 * units.V)  # trigger level for external trigger
-    elif tm == 2:
-        # Gate signal generated when a signal on the external trigger input is lower then 100 mV
-        trigger.ext0_mode(spcm.SPC_TM_LOW) # gate when external trigger is below the trigger level
-        trigger.ext0_level0(0.1 * units.V)  # trigger level for external trigger
-    elif tm == 3:
-        # Gate signal generated when a signal on the external trigger input is within the range of 0 mV to 100 mV
-        trigger.ext0_mode(spcm.SPC_TM_INWIN) # gate when external trigger is within the window
-        trigger.ext0_level0(0.1 * units.V)  # upper trigger level of gate window for external trigger
-        trigger.ext0_level1(-0.1 * units.V)  # lower trigger level of gate window for external trigger
-    elif tm == 4:
-        # Gate signal generated when a signal on the external trigger input is outside the range of 0 mV to 100 mV
-        trigger.ext0_mode(spcm.SPC_TM_OUTSIDEWIN) # gate when external trigger is outside the window
-        trigger.ext0_level0(0.1 * units.V)  # upper trigger level of gate window for external trigger
-        trigger.ext0_level1(0.0 * units.V)  # lower trigger level of gate window for external trigger
-    else:
         print("Invalid input. Stopping execution.")
         exit()
+
+    if card_family not in trigger_modes_families[tm]:
+        print(f"Trigger mode {tm} is not supported by card family {card_family:02x}xx. Stopping execution.")
+        exit()
+
+    # Re-arm the trigger when crossing through level1 and then trigger when a signal on the external trigger input crosses 500 mV from below to above (positive slope)
+    trigger.ext0_mode(trigger_modes[tm][0]) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of external trigger through level0
+    trigger.ext0_level0(trigger_modes[tm][1])  # trigger level for external trigger
+    if trigger_modes[tm][2] is not None: trigger.ext0_level1(trigger_modes[tm][2])  # re-arm level for external trigger
     #############################
 
     num_samples = 16 * units.KiS
-    max_num_gates = 16 # the maximum number of gates to be acquired
+    max_num_gates = 128 # the maximum number of gates to be acquired
 
     pre_trigger = 16 * units.S
     post_trigger = 16 * units.S
     # define the data buffer
-    data_transfer = spcm.Gated(card, max_num_gates=max_num_gates)
-    data_transfer.auto_avail_card_len(False)
+    data_transfer = spcm.Gated(card, max_num_gates=max_num_gates, verbose=True)
     data_transfer.memory_size(num_samples)
     data_transfer.pre_trigger(pre_trigger)
     data_transfer.post_trigger(post_trigger)
     data_transfer.allocate_buffer(num_samples)
+    data_transfer.polling(True)
     
     # start card and wait until recording is finished
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
