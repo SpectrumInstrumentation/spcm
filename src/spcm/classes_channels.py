@@ -22,11 +22,12 @@ class Channel:
     data_index : int = 0
 
     _conversion_amp : pint.Quantity = None
+    _conversion_clock : float = 1.0
     _conversion_offset : pint.Quantity = None
     _output_load : pint.Quantity = None
     _series_impedance : pint.Quantity = None
 
-    def __init__(self, index : int, data_index : int, card : Card) -> None:
+    def __init__(self, index : int, data_index : int, card : Card, special_clock : bool = False) -> None:
         """
         Constructor of the Channel class
     
@@ -41,6 +42,7 @@ class Channel:
         self.card = card
         self.index = index
         self.data_index = data_index
+        self._conversion_clock = self.special_clock_adjust(special_clock)
         if card.function_type() == SPCM_TYPE_AI or card.function_type() == SPCM_TYPE_AO:
             self._conversion_amp = self.amp(return_unit=units.V)
             self._conversion_offset = self.offset(return_unit=units.V)
@@ -219,6 +221,22 @@ class Channel:
         self._conversion_offset = UnitConversion.force_unit(return_value, card_unit)
         return return_quantity
     
+    def special_clock_adjust(self, special_clock : bool = False) -> float:
+        """
+        Gets the special clock adjust value of the channel (see register `SPC_SPECIALCLOCK_ADJUST0` in the manual)
+        
+        Returns
+        -------
+        float
+            The special clock adjust value of the channel
+        """
+
+        adjust = 1.0
+        if special_clock:
+            # If the card is in special clock mode, we need to adjust the conversion factor
+            adjust = self.card.get_d(SPC_SPECIALCLOCK_ADJUST0 + (SPC_SPECIALCLOCK_ADJUST1 - SPC_SPECIALCLOCK_ADJUST0) * self.index)
+        return adjust
+    
     def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = units.mV, averages : int = 1) -> npt.NDArray:
         """
         Converts the data to the correct unit in units of electrical potential
@@ -240,9 +258,9 @@ class Channel:
 
         max_value = self.card.max_sample_value() * averages
         if self._conversion_offset.check('[]'):
-            return_data = (data / max_value - self._conversion_offset) * self._conversion_amp
+            return_data = (data / max_value - self._conversion_offset) * (self._conversion_amp * self._conversion_clock)
         else:
-            return_data = (data / max_value) * self._conversion_amp - self._conversion_offset
+            return_data = (data / max_value) * (self._conversion_amp * self._conversion_clock) - self._conversion_offset
         return_data = UnitConversion.to_unit(return_data, return_unit)
         return return_data
     
@@ -262,9 +280,9 @@ class Channel:
         """
 
         if self._conversion_offset.check('[]'):
-            return_data = int((data / self._conversion_amp + self._conversion_offset) * self.card.max_sample_value())
+            return_data = int((data / (self._conversion_amp * self._conversion_clock) + self._conversion_offset) * self.card.max_sample_value())
         else:
-            return_data = int(((data + self._conversion_offset) / self._conversion_amp) * self.card.max_sample_value())
+            return_data = int(((data + self._conversion_offset) / (self._conversion_amp * self._conversion_clock)) * self.card.max_sample_value())
         return return_data
 
     def termination(self, value : int) -> None:
@@ -508,6 +526,7 @@ class Channels:
     cards : list[Card] = []
     channels : list[Channel] = []
     num_channels : list[int] = []
+    _special_clock : list[bool] = []
 
     def __init__(self, card : Card = None, card_enable : int = None, stack : CardStack = None, stack_enable : list[int] = None) -> None:
         """
@@ -533,6 +552,7 @@ class Channels:
         self.cards = []
         self.channels = []
         self.num_channels = []
+        self._special_clock = []
         if card is not None:
             self.cards.append(card)
             if card_enable is not None:
@@ -637,21 +657,25 @@ class Channels:
 
         if enable_all:
             for card in self.cards:
+                special_clock = card.get_i(SPC_SPECIALCLOCK)
+                self._special_clock.append(special_clock)
                 num_channels = card.num_channels()
                 card.set_i(SPC_CHENABLE, (1 << num_channels) - 1)
                 num_channels = card.get_i(SPC_CHCOUNT)
                 self.num_channels.append(num_channels)
                 for i in range(num_channels):
-                    self.channels.append(Channel(i, i, card))
+                    self.channels.append(Channel(i, i, card, special_clock=special_clock))
         elif enable_list is not None:
             for enable, card in zip(enable_list, self.cards):
+                special_clock = card.get_i(SPC_SPECIALCLOCK)
+                self._special_clock.append(special_clock)
                 card.set_i(SPC_CHENABLE, enable)
                 num_channels = card.get_i(SPC_CHCOUNT)
                 self.num_channels.append(num_channels)
                 counter = 0
                 for i in range(len(bin(enable))):
                     if (enable >> i) & 1:
-                        self.channels.append(Channel(i, counter, card))
+                        self.channels.append(Channel(i, counter, card, special_clock=special_clock))
                         counter += 1
         return sum(self.num_channels)
         

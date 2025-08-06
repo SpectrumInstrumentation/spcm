@@ -24,7 +24,10 @@ card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
-with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to open the first card of a specific type
+with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to open the first card of a specific type           
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx", end="")
     
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
@@ -44,6 +47,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
+    channel0.amp(500 * units.mV)  # set channel 0 amplitude
+    channel0.offset(-250 * units.mV)
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)

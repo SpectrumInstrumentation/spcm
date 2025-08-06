@@ -67,6 +67,34 @@ class Clock(CardFunctionality):
         if special_clock is not None:
             self.card.set_i(SPC_SPECIALCLOCK, special_clock)
         return self.card.get_i(SPC_SPECIALCLOCK)
+
+    def auto_adjust(self):
+        """
+        Automatically adjust the clock settings of the card (see register `SPC_ADJ_AUTOADJ` in the manual)
+        
+        Returns
+        -------
+        None
+        """
+        
+        self.card.set_i(SPC_ADJ_AUTOADJ, ADJ_SPECIAL_CLOCK)
+
+    def special_clock_adjust(self, channel : int) -> float:
+        """
+        Get the sample correction factor obtained from the last special clock calibration (see register `SPC_SPECIALCLOCK_ADJUST0` in the manual)
+
+        Parameters
+        ----------
+        channel : int
+            The channel number to get the adjustment for
+
+        Returns
+        -------
+        float
+            The sample correction factor for the specified channel
+        """
+
+        return self.card.get_d(SPC_SPECIALCLOCK_ADJUST0 + (SPC_SPECIALCLOCK_ADJUST1 - SPC_SPECIALCLOCK_ADJUST0) * int(channel))
     
     def max_sample_rate(self, return_unit = None) -> int:
         """
@@ -81,7 +109,7 @@ class Clock(CardFunctionality):
         if return_unit is not None: max_sr = UnitConversion.to_unit(max_sr * units.Hz, return_unit)
         return max_sr
 
-    def sample_rate(self, sample_rate = 0, max : bool = False, return_unit = None) -> int:
+    def sample_rate(self, sample_rate = 0, max : bool = False, special_clock : bool = False, auto_adjust : bool = False, return_unit = None) -> int:
         """
         Sets or gets the current sample rate of the handled card (see register `SPC_SAMPLERATE` in the manual)
 
@@ -91,6 +119,10 @@ class Clock(CardFunctionality):
             if the parameter sample_rate is given with the function call, then the card's sample rate is set to that value
         max : bool = False
             if max is True, the method sets the maximum sample rate of the card
+        special_clock : bool = False
+            if special_clock is True, the method sets the special clock mode of the card
+        auto_adjust : bool = False
+            if auto_adjust is True, the method automatically calibrates the values of the ADC at this specific special clock sampling rate
         unit : pint.Unit = None
             the unit of the sample rate, by default None
     
@@ -101,6 +133,7 @@ class Clock(CardFunctionality):
         """
         
         if max: sample_rate = self.max_sample_rate()
+        if special_clock: self.special_clock(1)
         if sample_rate:
             if isinstance(sample_rate, units.Quantity) and sample_rate.check("[]"):
                 max_sr = self.max_sample_rate()
@@ -108,6 +141,7 @@ class Clock(CardFunctionality):
             sample_rate = UnitConversion.convert(sample_rate, units.Hz, int)
             self.card.set_i(SPC_SAMPLERATE, int(sample_rate))
         return_value = self.card.get_i(SPC_SAMPLERATE)
+        if special_clock and auto_adjust: self.auto_adjust()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
         return return_value
     

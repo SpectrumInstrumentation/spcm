@@ -83,16 +83,15 @@ with spcm.Card('/dev/spcm0') as card:                         # if you want to o
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
 
     # Plot the acquired data
-    time_data = data_transfer.time_data()
     fig, ax = plt.subplots()
     if function_type == spcm.SPCM_TYPE_DI or function_type == spcm.SPCM_TYPE_DIO:
         # For digital cards
         unit_data = data_transfer.unpackbits()[:, 0]
-        ax.step(time_data, data_transfer.bit_buffer[:, 0])
+        ax.step(data_transfer.bit_buffer[:, 0])
     else:
         # For analog cards
         unit_data = data_transfer.buffer[0, :]
-        ax.plot(time_data, unit_data)
+        ax.plot(unit_data)
         ax.yaxis.set_units(units.mV)
     print("\tMinimum: {}".format(np.min(unit_data)))
     print("\tMaximum: {}".format(np.max(unit_data)))

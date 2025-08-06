@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 card : spcm.Card
 
 # Opening a specific card
-with spcm.Card('/dev/spcm4') as card:            
+with spcm.Card('/dev/spcm0') as card:            
     # The following card families support special clock mode 22xx and 44xx
     card_family = card.family()
     print(f"Card family {card_family:02x}xx", end="")
@@ -39,11 +39,10 @@ with spcm.Card('/dev/spcm4') as card:
     ### Clock setup section ###
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    special_clock = clock.special_clock(1)  # enable special clock mode
-    sample_rate = clock.sample_rate(6.71 * units.MHz, return_unit=units.MHz)
+    sample_rate = clock.sample_rate(6.71 * units.MHz, special_clock=True, auto_adjust=True, return_unit=units.MHz)
     clock.output(True)  # enable the clock output
 
-    print("Special clock mode: {}".format("on" if special_clock else "off"))
+    print("Special clock mode: ")
     print(f"Sampling rate: {sample_rate}")
     print(f"Clock output: {clock.clock_output_frequency(return_unit=units.MHz)}")
     print(f"Oversampling factor: {clock.oversampling_factor()}")
@@ -51,6 +50,13 @@ with spcm.Card('/dev/spcm4') as card:
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
+    channel0.amp(500 * units.mV)  # set channel 0 amplitude to 500 mV
+    channel0.offset(-250 * units.mV)
+    print(f"Adjusted channel 0 conversion factor: {channel0.special_clock_adjust()}")
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)
