@@ -51,11 +51,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     trigger.ch_level0(channels[0], 0 * units.mV, return_unit=units.mV)
 
     # setup data transfer
-    num_samples = 4 * units.KiS
     samples_per_segment = 1 * units.KiS
+    num_segments = 4
+    num_samples = num_segments * samples_per_segment
     data_transfer = spcm.Multi(card)
     data_transfer.memory_size(num_samples)
-    data_transfer.allocate_buffer(samples_per_segment)
+    data_transfer.allocate_buffer(samples_per_segment, num_segments)
     data_transfer.post_trigger(samples_per_segment // 2)
 
 
