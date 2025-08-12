@@ -66,6 +66,8 @@ For detailed examples see the `src\examples` directory. There are several sub-di
 
 To download the examples directly as a zip file, please go to the [releases page](https://github.com/SpectrumInstrumentation/spcm/releases) and download the most recent spcm-examples-*.zip file.
 
+_Please note that in the following, when mentionning specific examples, we omit the number in front of the folder or example. This number is only meant for ordering examples based on their level of complexity and can change when new examples are added._
+
 ## Hardware interfaces
 
 `spcm` provides the following classes for interfacing with the different devices.
@@ -174,22 +176,27 @@ See our dedicated examples for more information about where units can be used.
 ## Card Functionality
 After opening a card, StarHub, group of cards or Netbox, specific functionality of the cards can be accessed through `CardFunctionality` classes. 
 
-| Name                | Description                                                         |
-|---------------------|---------------------------------------------------------------------|
-| `Channels`          | class for setting up the in- or output stage of the channels of a card |
-| `Clock`             | class for setting up the clock engine of the card                   |
-| `Trigger`           | class for setting up the trigger engine of the card                 |
-| `MultiPurposeIOs`   | class for setting up the multi purpose i/o of the card              |
-| `DataTransfer`      | class for handling data transfer functionality                      |
-| `Multi`             | class for handling multiple recording and replay mode functionality |
-| `Sequence`          | class for handling sequence mode functionality                      |
-| `TimeStamp`         | class for handling time stamped data                                |
-| `Boxcar`            | class for handling boxcar averaging                                 |
-| `BlockAverage`      | class for handling block averaging functionality                    |
-| `PulseGenerators`   | class for setting up the pulse generator functionality              |
-| `DDS`               | class for handling DDS functionality                                |
-| `DDSCommandList`    | class for abstracting streaming DDS commands using blocks of commands |
-| `DDSCommandQueue`   | class for abstracting streaming DDS commands using a queue of commands |
+| Name                | Description                                                                                   |
+|---------------------|-----------------------------------------------------------------------------------------------|
+| `Channels`          | class for controlling the channels of a card or a stack of cards                              |
+| `Clock`             | class for setting up the clock engine of the card                                             |
+| `Trigger`           | class for setting up the trigger engine of the card                                           |
+| `MultiPurposeIOs`   | class for setting up the multi purpose i/o's of the card                                      |
+| `SynchronousDigitalIOs` | class for handling synchronous digital I/O on the xio lines                               |
+| `DataTransfer`      | special class for handling data transfer functionality                                        |
+| `Multi`             | special class for handling multiple recording and replay mode functionality                   |
+| `Gated`             | special class for handling gated recording and replay functionality                           |
+| `Sequence`          | special class for handling sequence mode functionality                                        |
+| `TimeStamp`         | special class for handling time stamped data                                                  |
+| `SCAPPTransfer`     | special class for handling direct card to GPU class using the SCAPP option                    |
+| `Boxcar`            | special class for handling boxcar averaging                                                   |
+| `BlockAverage`      | special class for handling block averaging functionality                                      |
+| `BlockStatistics`   | special class for handling block statistics functionality                                     |
+| `PulseGenerators`   | class for handling the pulse generator functionality                                          |
+| `DDS`               | class for handling DDS functionality                                                          |
+| `DDSCommandList`    | class for handling streaming DDS commands in blocks |
+| `DDSCommandQueue`   | class for handling streaming DDS commands in queues, where commands are added to the queue and automatically written to the card |
+
 
 To use a specific functionality simply initiate an instance of one of the classes and pass a device object:
 
@@ -334,7 +341,7 @@ for data_block in data_transfer:
         print(f"Minimum: {minimum} - maximum: {maximum}")
 ```
 
-The same principle also works with generator cards (see the example `2_gen_fifo.py`).
+The same principle also works with generator cards (see the example `gen_fifo.py`).
 
 ## Multiple recording / replay
 
@@ -355,7 +362,7 @@ Again there are half the samples before and half the samples after the trigger.
 
 ## Timestamps
 
-See the example `6_acq_fifo_multi_ts_poll.py` in the examples folder `1_acquisition` for more information about the usage of timestamps. Moreover, detailed information about timestamps can be found in the corresponding chapter in the specific hardware manual.
+See the example `acq_fifo_multi_ts_poll.py` in the examples folder `acquisition` for more information about the usage of timestamps. Moreover, detailed information about timestamps can be found in the corresponding chapter in the specific hardware manual.
 
 To setup the timestamp buffer:
 
@@ -373,11 +380,11 @@ The user can then use polling to acquire time stamp data from the card.
 
 For more information about the SCAPP option, please see the detailed information page: https://spectrum-instrumentation.com/products/drivers_examples/scapp_cuda_interface.php.
 
-Please see the folder `7_cuda_scapp` in the `examples` folder for several dedicated exampes.
+Please see the folder `cuda_scapp` in the `examples` folder for several dedicated exampes.
 
 ### Pulse generator
 
-Please see the folder `4_pulse-generator` in the `examples` folder for several dedicated examples. In the following, there is a simple example for setting up a single pulse generator on x0.
+Please see the folder `pulse-generator` in the `examples` folder for several dedicated examples. In the following, there is a simple example for setting up a single pulse generator on x0.
 
 Create a pulse generators object and get the clock rate used by the pulse generator. Use that to calculate the period of a 1 MHz signal and the half of that period we'll have a high signal (hence 50% duty cycle). The pulse generator will start if the trigger condition is met without delay and loops infinitely many times. The triggering condition is set to the card software trigger. See more details in the pulse generator chapter in the specific hardware manual.
 
@@ -406,11 +413,11 @@ This will start the pulse generator to continuously output a 1 MHz signal.
 
 ### Sequence replay mode (AWG only)
 
-Please see the example `3_gen_sequence.py` in the folder `2_generation` of the examples to see an example dedicated to the Sequence replay mode.
+Please see the example `gen_sequence.py` in the folder `generation` of the examples to see an example dedicated to the Sequence replay mode.
 
 ### DDS (AWG only)
 
-Please see the examples in the dedicated examples folder `3_dds` for all the functionality provided by the DDS framework. Moreover, please also have a look at the corresponding hardware manual.
+Please see the examples in the dedicated examples folder `dds` for all the functionality provided by the DDS framework. Moreover, please also have a look at the corresponding hardware manual.
 
 ### Boxcar (Digitizer only)
 
