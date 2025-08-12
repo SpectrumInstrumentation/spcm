@@ -24,7 +24,7 @@ card_identifiers = ["/dev/spcm0", "/dev/spcm1"]
 sync_identifier  = "sync0"
 
 # open cards and sync
-with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_identifier) as stack:
+with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_identifier, find_sync=True) as stack:
     
     channels = spcm.Channels(stack=stack, stack_enable=[spcm.CHANNEL0, spcm.CHANNEL0])
     channels.amp(1 * units.V)
@@ -36,7 +36,7 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
             raise spcm.SpcmException(f"This is an example for A/D cards.\n{card} not supported by example\n")
         print(f"Found: {card}")
 
-        card.card_mode(spcm.SPC_REC_FIFO_SINGLE) # single FIFO mode
+        card.card_mode(spcm.SPC_REC_STD_SINGLE) # standard single mode
         card.timeout(5 * units.s) # timeout 5 s
 
         trigger = spcm.Trigger(card)
@@ -45,7 +45,7 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
             # set star-hub carrier card as trigger master
             trigger.or_mask(spcm.SPC_TMASK_EXT0)
             trigger.ext0_mode(spcm.SPC_TM_POS)
-            trigger.ext0_level0(1.5 * units.V)
+            trigger.ext0_level0(0.1 * units.V)
             trigger.ext0_coupling(spcm.COUPLING_DC)
             trigger.termination(1)
         else:
@@ -75,11 +75,10 @@ with spcm.CardStack(card_identifiers=card_identifiers, sync_identifier=sync_iden
 
     # for each card we wait for the data from the DMA transfer
     plt.figure()
-    time_data_s = data_transfer[0].time_data()
-    print("Waiting for trigger...")
     for dt in data_transfer:
-        dt.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA, direction=spcm.SPCM_DIR_CARDTOPC)
+        dt.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA, spcm.M2CMD_DATA_WAITDMA)
         print(f"{dt.card} finished transfer")
+        time_data_s = dt.time_data()
         plt.plot(time_data_s, dt.buffer[0], label=f"{dt.card}")
     plt.legend()
     plt.xlabel("Time [s]")
