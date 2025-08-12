@@ -38,6 +38,10 @@ with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
     channel0.amp(1000 * units.mV)
 
     ### Trigger setup section ###

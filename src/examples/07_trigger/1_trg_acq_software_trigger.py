@@ -22,6 +22,10 @@ import matplotlib.pyplot as plt
 card : spcm.Card
 
 with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
+    # The following card families support special clock mode 22xx and 44xx
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
+
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
@@ -32,6 +36,10 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
     channel0.amp(1000 * units.mV)
 
     ### Trigger setup section ###

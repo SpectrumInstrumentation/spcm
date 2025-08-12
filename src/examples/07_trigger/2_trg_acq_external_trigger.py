@@ -36,6 +36,10 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
     channel0.amp(1000 * units.mV)
 
     ### Trigger setup section ###
@@ -46,10 +50,10 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
         1: [spcm.SPC_TM_POS, 0.5 * units.V, None], # trigger on positive edge of external trigger
         2: [spcm.SPC_TM_NEG, 0.5 * units.V, None], # trigger on negative edge of external trigger
         3: [spcm.SPC_TM_BOTH, 0.5 * units.V, None], # trigger on both edges of external trigger
-        4: [spcm.SPC_TM_POS | spcm.SPC_TM_REARM, 0.5 * units.V, 0.0 * units.V], # re-arm the trigger with a positive slope through level1 and trigger on positive edge of external trigger through level0
-        5: [spcm.SPC_TM_NEG | spcm.SPC_TM_REARM, 0.1 * units.V, -0.1 * units.V], # re-arm the trigger with a negative slope through level1 and trigger on negative edge of external trigger through level0
-        6: [spcm.SPC_TM_WINENTER, 0.5 * units.V, -0.5 * units.V], # trigger on entering a window defined by level0 and level1
-        7: [spcm.SPC_TM_WINLEAVE, 0.5 * units.V, -0.5 * units.V], # trigger on leaving a window defined by level0 and level1
+        4: [spcm.SPC_TM_POS | spcm.SPC_TM_REARM, 0.2 * units.V, 0.1 * units.V], # re-arm the trigger with a positive slope through level1 and trigger on positive edge of external trigger through level0
+        5: [spcm.SPC_TM_NEG | spcm.SPC_TM_REARM, 0.2 * units.V, 0.1 * units.V], # re-arm the trigger with a negative slope through level1 and trigger on negative edge of external trigger through level0
+        6: [spcm.SPC_TM_WINENTER, 0.5 * units.V, 0.0 * units.V], # trigger on entering a window defined by level0 and level1
+        7: [spcm.SPC_TM_WINLEAVE, 0.5 * units.V, 0.0 * units.V], # trigger on leaving a window defined by level0 and level1
     }
     trigger_modes_str = {
         1: "1: Trigger on positive edge of external trigger",
