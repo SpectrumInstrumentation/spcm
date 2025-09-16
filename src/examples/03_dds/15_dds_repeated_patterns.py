@@ -23,7 +23,7 @@ card : spcm.Card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
 with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want to open the first card of a specific type
 
-    START_PATTERN_WITH_EXT_TRIGGER = True  # Set to True if you want to start the pattern with an external trigger, otherwise it will be started with a force trigger
+    START_PATTERN_WITH_EXT_TRIGGER = False  # Set to True if you want to start the pattern with an external trigger, otherwise it will be started with a force trigger
 
     # setup card for DDS
     card.card_mode(spcm.SPC_REP_STD_DDS)
@@ -32,7 +32,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels[0].enable(True)
     channels[0].output_load(50 * units.ohm)
-    channels[0].amp(0.5 * units.V)
+    channels[0].amp(500 * units.mV)
 
     # Setup the trigger engine
     trigger = spcm.Trigger(card, channels=channels)

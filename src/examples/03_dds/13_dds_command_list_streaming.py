@@ -39,8 +39,8 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     channels = spcm.Channels(card)
     channels.enable(True)
     channels.output_load(50 * units.ohm)
-    channels.amp(1 * units.V)
-
+    channels.amp(500 * units.mV)
+    
     # Setup the trigger engine
     trigger = spcm.Trigger(card, channels=channels)
     trigger.or_mask(spcm.SPC_TM_NONE)  # Disable all trigger sources and use force triggers to control the DDS execution

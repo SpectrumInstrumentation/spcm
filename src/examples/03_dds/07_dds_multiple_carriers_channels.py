@@ -25,12 +25,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
 
     # setup card for DDS
     card.card_mode(spcm.SPC_REP_STD_DDS)
+    card_family = card.family()
+    print(f"Card family {card_family:02x}xx")
 
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
     channels.output_load(50 * units.ohm)
-    channels.amp(1 * units.V)
+    channels.amp(500 * units.mV)
     card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
     
     # Setup DDS
@@ -38,25 +40,26 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.reset()
    
     # Switch groups of cores to other channels
-    if len(channels) == 2:
-        # pass
-        dds.cores_on_channel(1, 
-                             spcm.SPCM_DDS_CORE8,  spcm.SPCM_DDS_CORE9,  spcm.SPCM_DDS_CORE10, spcm.SPCM_DDS_CORE11, # Flex core block 8 - 11
-                             spcm.SPCM_DDS_CORE20) # Fixed core 20
-    elif len(channels) == 4:
-        dds.cores_on_channel(1, 
-                             spcm.SPCM_DDS_CORE8,  spcm.SPCM_DDS_CORE9,  spcm.SPCM_DDS_CORE10, spcm.SPCM_DDS_CORE11, # Flex core block 8 - 11
-                             spcm.SPCM_DDS_CORE20) # Fixed core 20
-        dds.cores_on_channel(2,
-                             spcm.SPCM_DDS_CORE12, spcm.SPCM_DDS_CORE13, spcm.SPCM_DDS_CORE14, spcm.SPCM_DDS_CORE15, # Flex core block 12 - 15
-                             spcm.SPCM_DDS_CORE21) # Fixed core 21
-        dds.cores_on_channel(3,
-                             spcm.SPCM_DDS_CORE16, spcm.SPCM_DDS_CORE17, spcm.SPCM_DDS_CORE18, spcm.SPCM_DDS_CORE19, # Flex core block 16 - 19
-                             spcm.SPCM_DDS_CORE22) # Fixed core 22
+    if card_family == 0x66:
+        if len(channels) == 2:
+            # pass
+            dds.cores_on_channel(1, 
+                                spcm.SPCM_DDS_CORE8,  spcm.SPCM_DDS_CORE9,  spcm.SPCM_DDS_CORE10, spcm.SPCM_DDS_CORE11, # Flex core block 8 - 11
+                                spcm.SPCM_DDS_CORE20) # Fixed core 20
+        elif len(channels) == 4:
+            dds.cores_on_channel(1, 
+                                spcm.SPCM_DDS_CORE8,  spcm.SPCM_DDS_CORE9,  spcm.SPCM_DDS_CORE10, spcm.SPCM_DDS_CORE11, # Flex core block 8 - 11
+                                spcm.SPCM_DDS_CORE20) # Fixed core 20
+            dds.cores_on_channel(2,
+                                spcm.SPCM_DDS_CORE12, spcm.SPCM_DDS_CORE13, spcm.SPCM_DDS_CORE14, spcm.SPCM_DDS_CORE15, # Flex core block 12 - 15
+                                spcm.SPCM_DDS_CORE21) # Fixed core 21
+            dds.cores_on_channel(3,
+                                spcm.SPCM_DDS_CORE16, spcm.SPCM_DDS_CORE17, spcm.SPCM_DDS_CORE18, spcm.SPCM_DDS_CORE19, # Flex core block 16 - 19
+                                spcm.SPCM_DDS_CORE22) # Fixed core 22
 
     # Start the test
     num_freq     = len(dds)
-    # 20 Carriers from 5 to 15 MHz
+    # N Carriers from 5 to 15 MHz
     start_freq_Hz = 5 * units.MHz
     delta_freq_Hz = 500 * units.kHz
     for core in dds:

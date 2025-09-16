@@ -28,14 +28,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the card
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.enable(True)
+    channels.amp(500 * units.mV)
     channels.output_load(50 * units.ohm)
-    channels.amp(1 * units.V)
     
     # Activate external trigger mode
     trigger = spcm.Trigger(card)
-    trigger.or_mask(spcm.SPC_TMASK_EXT0) # disable default software trigger
+    trigger.or_mask(spcm.SPC_TMASK_EXT0)
     trigger.ext0_mode(spcm.SPC_TM_POS) # positive edge
-    trigger.ext0_level0(1.5 * units.V) # Trigger level is 1.5 V (1500 mV)
+    trigger.ext0_level0(0.5 * units.V) # Trigger level is 0.5 V (500 mV)
     trigger.ext0_coupling(spcm.COUPLING_DC) # set DC coupling
     card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
     
@@ -47,19 +47,30 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Start the DDS test
     dds.trg_src(spcm.SPCM_DDS_TRG_SRC_CARD)
 
-    # Create one carrier and keep it off
+    # Create one carrier
     core0.amp(40 * units.percent)
     core0.freq(5 * units.MHz)
     dds.exec_at_trg()
 
     # each trigger event will change the generated frequency by 1 MHz
     for i in range(1, 11):
+        # core0.amp(40 * units.percent + i * 5 * units.percent)
         core0.freq(5 * units.MHz + i * units.MHz)
-        dds.exec_at_trg()    # turn off as soon as possible again
+        dds.exec_at_trg()
     dds.write_to_card()
 
     # Start command including enable of trigger engine
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
+    # card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
+    # trigger.force()
+    dds.status()
+    card.status()
+
+    # while True:
+    #     status = dds.status()
+    #     print(f"DDS Status: {status}", end='\r')
 
     input("Press Enter to Exit")
+    dds.status()
+    card.status()
 

@@ -112,11 +112,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
 
     # setup card for DDS
     card.card_mode(spcm.SPC_REP_STD_DDS)
+    family = card.family()
+    print(f"Card family {family:02x}xx")
+    if family not in [0x66]:
+        raise Exception("This example is only for M4i.66xx and M4x.66xx cards with DDS option")
 
     # Setup the card
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1 * units.V)
+    channels.amp(500 * units.mV)
     card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
 
     # Setup DDS

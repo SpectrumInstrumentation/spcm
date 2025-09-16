@@ -29,7 +29,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     channels = spcm.Channels(card)
     channels.enable(True)
     channels.output_load(50 * units.ohm)
-    channels.amp(1 * units.V)
+    channels.amp(500 * units.mV)
     
     # Activate the xio dds mode
     multi_ios = spcm.MultiPurposeIOs(card)

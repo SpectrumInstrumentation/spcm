@@ -57,7 +57,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Setup the channels
     channels = spcm.Channels(card)
     channels.enable(True)
-    channels.amp(1 * units.V)
+    channels.amp(500 * units.mV)
     card.write_setup() # IMPORTANT! this turns on the card's system clock signals, that are required for DDS to work
     
     # Setup DDS
