@@ -44,7 +44,7 @@ jobs:
         git rebase ${{ github.ref_name }}-branch
         PDOC_ALLOW_EXEC=1 pdoc ./src/spcm -d numpy -o ./docs --logo "https://spectrum-instrumentation.com/img/logo-complete.png" --logo-link "https://spectrum-instrumentation.com/" --favicon https://spectrum-instrumentation.com/img/favicon.ico --footer-text "Spectrum Instrumentation GmbH" --mermaid --no-search --show-source
         git add .
-        git commit -m 'Automatic documentation update ${{ github.ref_name }}'
+        git commit --allow-empty -m 'Automatic documentation update ${{ github.ref_name }}'
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
