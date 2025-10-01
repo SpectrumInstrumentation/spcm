@@ -54,21 +54,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
 
     # each trigger event will change the generated frequency by 1 MHz
     for i in range(1, 11):
-        # core0.amp(40 * units.percent + i * 5 * units.percent)
         core0.freq(5 * units.MHz + i * units.MHz)
         dds.exec_at_trg()
     dds.write_to_card()
 
     # Start command including enable of trigger engine
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
-    # card.start(spcm.M2CMD_CARD_ENABLETRIGGER)
-    # trigger.force()
     dds.status()
     card.status()
-
-    # while True:
-    #     status = dds.status()
-    #     print(f"DDS Status: {status}", end='\r')
 
     input("Press Enter to Exit")
     dds.status()
