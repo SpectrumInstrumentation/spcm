@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
-import time
-import numpy as np
-
 from .classes_card import Card
 from .classes_data_transfer import DataTransfer
+from .classes_multi import Multi
 
 from spcm_core import spcm_dwDefTransfer_i64, c_void_p
 from spcm_core.constants import *
-
-from .classes_unit_conversion import UnitConversion
-from . import units
 
 from .classes_error_exception import SpcmException
 
@@ -55,13 +50,17 @@ def checkCudaErrors(result):
     else:
         return result[1:]
     
-    
-class SCAPPTransfer(DataTransfer):
+
+class SCAPPShared:
     """
     Class for data transfer between the card and the host using the SCAPP API.
+    Abstract class that is not meant to be instantiated directly.
     """
 
     direction : Direction = None
+    
+    num_threads : int = 1024
+    num_blocks : int = 0
 
     def __init__(self, card : Card, direction : Direction = Direction.Acquisition):
         if not _cuda_support:
@@ -72,8 +71,10 @@ class SCAPPTransfer(DataTransfer):
             raise SpcmException(text="The card does not have the SCAPP option installed. SCAPP is a add-on feature that needs to be bought separately, please contact info@spec.de and ask for the SCAPP option for the card with serial number {}".format(self.card.sn()))
         self.direction = direction
         self.iterator_index = 0
-
-    def allocate_buffer(self, num_samples : int) -> None:
+        self.num_threads = 1024
+        self.num_blocks = 0
+    
+    def _allocate_buffer(self, num_samples : int, no_reshape : bool = False, num_channels : int = 1):
         """
         Memory allocation for the buffer that is used for communicating with the card
 
@@ -81,13 +82,28 @@ class SCAPPTransfer(DataTransfer):
         ----------
         num_samples : int | pint.Quantity = None
             use the number of samples an get the number of active channels and bytes per samples directly from the card
+        no_reshape : bool = False
+            if True, the buffer is not reshaped to the number of channels. This is useful for digital cards where the data is packed in a single array.
+        
+        Returns
+        -------
+        numpy array
+            the allocated buffer
         """
         
-        self.buffer_samples = UnitConversion.convert(num_samples, units.Sa, int)
+        buffer_size = self.samples_to_bytes(num_samples)
+        sample_type = self.numpy_type()
+
+        print(f"{buffer_size = }")
+        print(f"{num_samples = }")
+        
         # Allocate RDMA buffer
-        self.buffer = cp.empty((self.num_channels, self.buffer_samples), dtype = self.numpy_type(), order='F')
+        buffer = cp.empty((buffer_size,), dtype = sample_type, order='F')
         flag = 1
-        checkCudaErrors(cuda.cuPointerSetAttribute(flag, cuda.CUpointer_attribute.CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, self.buffer.data.ptr))
+        checkCudaErrors(cuda.cuPointerSetAttribute(flag, cuda.CUpointer_attribute.CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, buffer.data.ptr))
+        if not no_reshape:
+            buffer = buffer.reshape((num_channels, -1), order='F')
+        return buffer
     
     def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
         """
@@ -107,45 +123,39 @@ class SCAPPTransfer(DataTransfer):
             Total length of the transfer buffer.
         """
 
-        # only change this locally
-        if notify_samples is not None:
-            notify_size = notify_samples * self.num_channels * self.bytes_per_sample
-        else:
-            notify_size = self.notify_size
-        transfer_offset = UnitConversion.convert(transfer_offset, units.Sa, int)
-        transfer_length = UnitConversion.convert(transfer_length, units.Sa, int)
-
-        if self.buffer is None: 
-            raise SpcmException(text="No buffer defined for transfer")
-        if buffer_type: 
-            self.buffer_type = buffer_type
+        self._pre_buffer_transfer(*args, buffer_type=buffer_type, direction=direction, notify_samples=notify_samples, transfer_offset=transfer_offset, transfer_length=transfer_length, exception_num_samples=exception_num_samples)
         if direction is None:
             if self.direction == Direction.Acquisition:
-                direction = SPCM_DIR_CARDTOGPU
+                self._direction = SPCM_DIR_CARDTOGPU
             elif self.direction == Direction.Generation:
-                direction = SPCM_DIR_GPUTOCARD
+                self._direction = SPCM_DIR_GPUTOCARD
             else:
                 raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOGPU or SPCM_DIR_GPUTOCARD)")
-        
-        if self._notify_samples != 0 and np.remainder(self.buffer_samples, self._notify_samples) and exception_num_samples:
-            raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
-
-        if transfer_offset:
-            transfer_offset_bytes = self.samples_to_bytes(transfer_offset)
-        else:
-            transfer_offset_bytes = 0
-
-        self.buffer_samples = transfer_length
 
         # we define the buffer for transfer
         self.card._print("Starting the DMA transfer and waiting until data is in board memory")
-        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, direction, notify_size, c_void_p(self.buffer.data.ptr), transfer_offset_bytes, self.buffer_size))
+        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, self._direction, self.notify_size, c_void_p(self.buffer.data.ptr), self.transfer_offset, self.buffer_size))
 
-        # Execute additional commands if available
-        if args:
-            cmd = 0
-            for arg in args:
-                cmd |= arg
-            self.card.cmd(cmd)
-            self.card._print("... SCAPP data transfer started")
+        self._post_buffer_transfer(*args, buffer_type=buffer_type, direction=direction, notify_samples=notify_samples, transfer_offset=transfer_offset, transfer_length=transfer_length, exception_num_samples=exception_num_samples)
+
+    
+class SCAPPTransfer(DataTransfer, SCAPPShared):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def _allocate_buffer(self, num_samples : int, no_reshape : bool = False, num_channels : int = 1):
+        return SCAPPShared._allocate_buffer(self, num_samples=num_samples, no_reshape=no_reshape, num_channels=num_channels)
+    
+    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
+        return SCAPPShared.start_buffer_transfer(self, *args, buffer_type=buffer_type, direction=direction, notify_samples=notify_samples, transfer_offset=transfer_offset, transfer_length=transfer_length, exception_num_samples=exception_num_samples)
+    
+class SCAPPMulti(Multi, SCAPPShared):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def _allocate_buffer(self, num_samples : int, no_reshape : bool = False, num_channels : int = 1):
+        return SCAPPShared._allocate_buffer(self, num_samples=num_samples, no_reshape=no_reshape, num_channels=num_channels)
+    
+    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
+        return SCAPPShared.start_buffer_transfer(self, *args, buffer_type=buffer_type, direction=direction, notify_samples=notify_samples, transfer_offset=transfer_offset, transfer_length=transfer_length, exception_num_samples=exception_num_samples)
     

@@ -50,10 +50,12 @@ class DataTransfer(CardFunctionality):
 
     """
     # public
+    transfer_offset : int = 0
     buffer_size : int = 0
     notify_size : int = 0
 
     direction : Direction = Direction.Acquisition
+    _direction : int = 0
 
     buffer_type : int
     num_channels : int = 0
@@ -77,6 +79,7 @@ class DataTransfer(CardFunctionality):
     _bit_buffer : npt.NDArray[np.int_]
     _8bit_mode : bool = False
     _12bit_mode : bool = False
+    _unpack : bool = False # if True, the buffer is automatically unpacked if the mode is 12bit packed (WARNING: this might slow down the processing)
     _pre_trigger : int = 0
 
     def __init__(self, card, *args, **kwargs) -> None:
@@ -93,6 +96,7 @@ class DataTransfer(CardFunctionality):
             dictionary of additional keyword arguments
         """
         
+        self.transfer_offset = 0
         self.buffer_size = 0
         self.notify_size = 0
         self.num_channels = 0
@@ -121,10 +125,13 @@ class DataTransfer(CardFunctionality):
         # Find out the direction of transfer
         if self.function_type == SPCM_TYPE_AI or self.function_type == SPCM_TYPE_DI:
             self.direction = Direction.Acquisition
+            self._direction = SPCM_DIR_CARDTOPC
         elif self.function_type == SPCM_TYPE_AO or self.function_type == SPCM_TYPE_DO:
             self.direction = Direction.Generation
+            self._direction = SPCM_DIR_PCTOCARD
         else:
             self.direction = Direction.Undefined
+            self._direction = 0
     
 
     @property
@@ -161,7 +168,6 @@ class DataTransfer(CardFunctionality):
             with the buffer object where all the individual bits are now unpacked
         """
 
-        # self._bit_buffer = self.unpackbits(self._np_buffer) # not a good solution
         return self._bit_buffer
     
     @bit_buffer.setter
@@ -244,9 +250,9 @@ class DataTransfer(CardFunctionality):
         """
 
         if self.bits_per_sample > 1:
-            num_samples = num_bytes // self.bytes_per_sample // self.num_channels
+            num_samples = int(num_bytes // self.bytes_per_sample // self.num_channels)
         else:
-            num_samples = num_bytes // self.num_channels * 8
+            num_samples = int(num_bytes // self.num_channels * 8)
         return num_samples
     
     def samples_to_bytes(self, num_samples : int) -> int:
@@ -265,9 +271,9 @@ class DataTransfer(CardFunctionality):
         """
 
         if self.bits_per_sample > 1:
-            num_bytes = num_samples * self.bytes_per_sample * self.num_channels
+            num_bytes = int(num_samples * self.bytes_per_sample * self.num_channels)
         else:
-            num_bytes = num_samples * self.num_channels // 8
+            num_bytes = int(num_samples * self.num_channels // 8)
         return num_bytes
     
     def notify_samples(self, notify_samples : int = None) -> int:
@@ -405,7 +411,7 @@ class DataTransfer(CardFunctionality):
         """
 
         self.buffer_samples = UnitConversion.convert(num_samples, units.Sa, int)
-        no_reshape |= self._12bit_mode | self.bits_per_sample == 1
+        no_reshape |= (self.bits_per_sample == 1)
         self.buffer = self._allocate_buffer(self.buffer_samples, no_reshape, self.num_channels)
         if self.bits_per_sample == 1:
             self.unpackbits() # allocate the bit buffer for digital cards
@@ -441,17 +447,17 @@ class DataTransfer(CardFunctionality):
         start_pos_samples = ((self._buffer_alignment - (databuffer_unaligned.__array_interface__['data'][0] & dwMask)) // item_size)
         buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (buffer_size // item_size)]   # byte address to sample size
         if not no_reshape:
-            buffer = buffer.reshape((num_channels, num_samples), order='F')  # index definition: [channel, sample] !
+            buffer = buffer.reshape((num_channels, -1), order='F')# index definition: [channel, sample] 
         return buffer
     
-    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
+    def _pre_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
         """
-        Start the transfer of the data to or from the card  (see the API function `spcm_dwDefTransfer_i64` in the manual)
+        Preparation before the transfer definition
         
         Parameters
         ----------
         *args : list
-            list of additonal arguments that are added as flags to the start dma command
+            list of additional arguments that are added as flags to the start dma command
         buffer_type : int
             the type of buffer that is used for the transfer
         direction : int
@@ -483,9 +489,9 @@ class DataTransfer(CardFunctionality):
             self.buffer_type = buffer_type
         if direction is None:
             if self.direction == Direction.Acquisition:
-                direction = SPCM_DIR_CARDTOPC
+                self._direction = SPCM_DIR_CARDTOPC
             elif self.direction == Direction.Generation:
-                direction = SPCM_DIR_PCTOCARD
+                self._direction = SPCM_DIR_PCTOCARD
             else:
                 raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
         
@@ -493,15 +499,57 @@ class DataTransfer(CardFunctionality):
             raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
 
         if transfer_offset:
-            transfer_offset_bytes = self.samples_to_bytes(transfer_offset)
+            self.transfer_offset = self.samples_to_bytes(transfer_offset)
         else:
-            transfer_offset_bytes = 0
+            self.transfer_offset = 0
+    
+    def start_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
+        """
+        Start the transfer of the data to or from the card  (see the API function `spcm_dwDefTransfer_i64` in the manual)
         
+        Parameters
+        ----------
+        *args : list
+            list of additonal arguments that are added as flags to the start dma command
+        buffer_type : int
+            the type of buffer that is used for the transfer
+        direction : int
+            the direction of the transfer
+        notify_samples : int
+            the number of samples to notify the user about
+        transfer_offset : int
+            the offset of the transfer
+        transfer_length : int
+            the length of the transfer
+        exception_num_samples : bool
+            if True, an exception is raised if the number of samples is not a multiple of the notify samples. The automatic buffer handling only works with the number of samples being a multiple of the notify samples.
+
+        Raises
+        ------
+        SpcmException
+        """
+
+        self._pre_buffer_transfer(*args, buffer_type=buffer_type, direction=direction, notify_samples=notify_samples, transfer_offset=transfer_offset, transfer_length=transfer_length, exception_num_samples=exception_num_samples)
+
         # we define the buffer for transfer
         self.card._print("Starting the DMA transfer and waiting until data is in board memory")
         self._c_buffer = self.buffer.ctypes.data_as(c_void_p)
-        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, direction, self.notify_size, self._c_buffer, transfer_offset_bytes, self.buffer_size))
+        self.card._check_error(spcm_dwDefTransfer_i64(self.card._handle, self.buffer_type, self._direction, self.notify_size, self._c_buffer, self.transfer_offset, self.buffer_size))
         
+        self._post_buffer_transfer(*args, buffer_type=buffer_type, direction=direction, notify_samples=notify_samples, transfer_offset=transfer_offset, transfer_length=transfer_length, exception_num_samples=exception_num_samples)
+
+    def _post_buffer_transfer(self, *args, **kwargs) -> None:
+        """
+        Post processing after the transfer definition
+
+        Parameters
+        ----------
+        *args : list
+            list of additonal arguments that are added as flags to the start dma command
+        **kwargs : dict
+            dictionary of additional keyword arguments
+        """
+
         # Execute additional commands if available
         if args:
             cmd = 0
@@ -773,7 +821,6 @@ class DataTransfer(CardFunctionality):
         """
 
         available_samples = UnitConversion.convert(available_samples, units.Sa, int)
-        # print(available_samples, self.bytes_per_sample, self.num_channels)
         available_bytes = self.samples_to_bytes(available_samples)
         self.card.set_i(SPC_DATA_AVAIL_CARD_LEN, available_bytes)
     
@@ -870,7 +917,7 @@ class DataTransfer(CardFunctionality):
         return np.int64
 
     # Data conversion mode
-    def data_conversion(self, mode : int = None) -> int:
+    def data_conversion(self, mode : int = None, unpack : bool = False) -> int:
         """
         Set the data conversion mode (see register `SPC_DATACONVERSION` in the manual)
         
@@ -878,6 +925,8 @@ class DataTransfer(CardFunctionality):
         ----------
         mode : int
             the data conversion mode
+        unpack : bool = False
+            if True, the buffer is automatically unpacked if the mode is 12bit packed (WARNING: this might slow down the processing)
         """
 
         if mode is not None:
@@ -885,6 +934,7 @@ class DataTransfer(CardFunctionality):
         mode = self.card.get_i(SPC_DATACONVERSION)
         self._8bit_mode = (mode == SPCM_DC_12BIT_TO_8BIT or mode == SPCM_DC_14BIT_TO_8BIT or mode == SPCM_DC_16BIT_TO_8BIT)
         self._12bit_mode = (mode == SPCM_DC_12BIT_TO_12BITPACKED)
+        self._unpack_12bit = unpack
         self._bits_per_sample()
         self._bytes_per_sample()
         return mode
@@ -1001,6 +1051,10 @@ class DataTransfer(CardFunctionality):
         # notify the card that data is available or read, but only after the first block
         if self.iterator_index != 0 and self._auto_avail_card_len:
             self.flush()
+        
+        _notify_samples = self._notify_samples
+        if self._12bit_mode:
+            _notify_samples = (_notify_samples * 3) // 2  # in 12bit packed mode three bytes are used for two samples
 
         while True:
             try:
@@ -1008,7 +1062,7 @@ class DataTransfer(CardFunctionality):
                     self.wait_dma()
                 else:
                     user_len = self.avail_user_len()
-                    if user_len >= self._notify_samples:
+                    if user_len >= _notify_samples:
                         break
                     time.sleep(self._polling_timer)
             except SpcmTimeout:
@@ -1023,7 +1077,7 @@ class DataTransfer(CardFunctionality):
         
         self.iterator_index += 1
 
-        self._current_samples += self._notify_samples
+        self._current_samples += _notify_samples
         if self._to_transfer_samples != 0 and self._to_transfer_samples < self._current_samples:
             self.iterator_index = 0
             raise StopIteration
@@ -1033,7 +1087,9 @@ class DataTransfer(CardFunctionality):
         
         self.card._print("Fill size: {}%  Pos:{:08x} Total:{:.2f} MiS / {:.2f} MiS".format(fill_size/10, user_pos, self._current_samples / MEBI(1), self._to_transfer_samples / MEBI(1)), end='\r', verbose=self._verbose)
         
-        return self.buffer[:, user_pos:user_pos+self._notify_samples]
+        if self._unpack and self._12bit_mode:
+            return self.unpack_12bit_buffer(self.buffer[:, user_pos:user_pos+_notify_samples])
+        return self.buffer[:, user_pos:user_pos+_notify_samples]
     
     def flush(self):
         """

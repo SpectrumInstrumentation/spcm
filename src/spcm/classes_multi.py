@@ -89,9 +89,9 @@ class Multi(DataTransfer):
         super().allocate_buffer(segment_samples * self._num_segments, no_reshape=True)
 
         num_channels = self.card.active_channels()
-        if self.bits_per_sample > 1 and not self._12bit_mode:
+        if self.bits_per_sample > 1:
             self.card._print(f"{self._num_segments} segments of {segment_samples} samples with {num_channels} channels")
-            self.buffer = self.buffer.reshape((self._num_segments, segment_samples, num_channels), order='C') # index definition: [segment, sample, channel] !
+            self.buffer = self.buffer.reshape((self._num_segments, -1, num_channels), order='C') # index definition: [segment, sample, channel] !
 
     def time_data(self, total_num_samples : int = None, return_units = units.s) -> npt.NDArray:
         """
@@ -129,7 +129,7 @@ class Multi(DataTransfer):
             the unpacked 16bit buffer
         """
         buffer_12bit = super().unpack_12bit_buffer(data)
-        return buffer_12bit.reshape((self._num_segments, self.num_channels, self._segment_size), order='C')
+        return buffer_12bit.reshape((self._num_segments, -1, self.num_channels), order='C')
 
     
     def __next__(self) -> npt.ArrayLike:
@@ -154,4 +154,6 @@ class Multi(DataTransfer):
 
         self.card._print("NumSamples = {}, CurrentSegment = {}, CurrentPos = {},  FinalSegment = {}, FinalPos = {}".format(self._notify_samples, current_segment, current_pos_in_segment, final_segment, final_pos_in_segment))
 
+        if self._unpack and self._12bit_mode:
+            return self.unpack_12bit_buffer(self.buffer[current_segment:final_segment, :, :])
         return self.buffer[current_segment:final_segment, :, :]
