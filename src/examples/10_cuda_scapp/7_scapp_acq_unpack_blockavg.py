@@ -20,7 +20,7 @@ from spcm import units
 
 # Settings
 num_averages = 50
-num_iterations = 1000
+num_iterations = 100
 
 
 with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
@@ -33,7 +33,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
 
     # setup trigger engine
     trigger = spcm.Trigger(card)
-    # trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
     trigger.or_mask(spcm.SPC_TMASK_EXT0)
     trigger.ext0_mode(spcm.SPC_TM_POS)
     trigger.ext0_level0(0.5 * units.V)
@@ -41,15 +40,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
     trigger.termination(0)
 
     # setup channels
-    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)  # enable channel 0
+    channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)  # enable channel 0
     num_channels = len(channels)
-    amplitude = channels.amp(0.5 * units.V, return_unit=units.V)
-    max_value = card.max_sample_value()
+    channels.amp(0.5 * units.V)
 
     # we try to use the max samplerate
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(10 * units.GHz, return_unit=units.MHz)
+    sample_rate = clock.sample_rate(5 * units.GHz, return_unit=units.MHz)
     sample_rate_magnitude = sample_rate.to_base_units().magnitude 
     print(f"Used Sample Rate: {sample_rate}")
     
@@ -71,6 +69,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
 
     # Allocate memory on GPU
     data_unpacked_gpu = cp.zeros((num_channels, notify_samples_magnitude), order='F', dtype=cp.int16)
+    data_block_sum_gpu = cp.zeros((num_channels, notify_samples_magnitude), order='F', dtype=cp.int64)
 
     num_threads = 1024
     num_blocks = (notify_samples_magnitude * num_channels) // num_threads
@@ -116,21 +115,20 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
 
             kernel_unpack_12bit((num_blocks,), (num_threads,), (data_raw_gpu, data_unpacked_gpu))
             
-            data_block_sum_gpu += data_unpacked_gpu
+            data_block_sum_gpu[:, :] += data_unpacked_gpu
 
             counter += 1
             if counter % num_averages == 0:
-                average_counter += 1
 
                 print(f"\nAverage counter: {average_counter}\n---")
-                print(f"Minimum value avg: {data_block_sum_gpu.min()/num_averages}")
-                print(f"Maximum value avg: {data_block_sum_gpu.max()/num_averages}")
+                print(f"Minimum value avg: {data_block_sum_gpu.min(axis=1)/num_averages}")
+                print(f"Maximum value avg: {data_block_sum_gpu.max(axis=1)/num_averages}")
+                print(f"Card filling level: {scapp_transfer.fill_size_promille()/10} %")
 
                 # Monitor the GPU memory usage
-                # print("GPU memory - after iteration {:2}: {:.3} GB free".format(average_counter, cp.cuda.runtime.memGetInfo()[0]/1024/1024/1024))
+                print("GPU memory - after iteration {:2}: {:.3} GB free".format(average_counter, cp.cuda.runtime.memGetInfo()[0]/1024/1024/1024))
 
-                data_block_sum_cpu = cp.asnumpy(data_block_sum_gpu)
-                data_block_sum_gpu[:] = 0
+                average_counter += 1
 
             if average_counter >= num_iterations:
                 break
@@ -140,8 +138,13 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
 
+    print("Stopping acquisition and transfer data from GPU to CPU...")
+    data_block_sum_cpu = cp.asnumpy(data_block_sum_gpu)
+
+    print("Plotting the results...")
     plt.figure()
-    plt.plot(data_block_sum_cpu / num_averages)
+    plt.plot(data_block_sum_cpu[0] / num_averages)
+    plt.plot(data_block_sum_cpu[1] / num_averages)
     plt.title(f"Averaged signal (factor: {num_averages})")
     plt.xlabel("Sample number")
     plt.ylabel("Amplitude [LSB]")
