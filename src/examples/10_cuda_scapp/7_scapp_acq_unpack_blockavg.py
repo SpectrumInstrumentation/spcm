@@ -7,7 +7,7 @@ import cupy as cp
 
 # Plotting
 import matplotlib
-matplotlib.use('qtagg') # Use Tkinter-based backend
+matplotlib.use('qtagg') # Use Qt-based backend
 import matplotlib.pyplot as plt
 
 # # Save the CUDA source code for debugging you can find the file in the directory: ~/.cupy/kernel_cache
@@ -150,6 +150,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
     plt.ylabel("Amplitude [LSB]")
     plt.grid()
     plt.show()
+    # plt.savefig("7_scapp_acq_unpack_blockavg.png")
 
     print("Main loop finished")
 
