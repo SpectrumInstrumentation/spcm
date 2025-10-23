@@ -126,11 +126,11 @@ class DDSCommandList(DDS):
         """
 
         if self.mode == self.WRITE_MODE.EXCEPTION_IF_FULL:
-            if self.avail_user_len() < (self.current_index) * ctypes.sizeof(ST_LIST_PARAM):
+            if self.avail_user_len() < (self.current_index):
                 raise SpcmException(text="Buffer is full")
         elif self.mode == self.WRITE_MODE.WAIT_IF_FULL:
             timer = 0
-            while self.avail_user_len() < (self.current_index) * ctypes.sizeof(ST_LIST_PARAM):
+            while self.avail_user_len() < (self.current_index):
                 print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
                 timer = (timer + 1) % 400
         self.card.set_ptr(SPC_REGISTER_LIST, self.command_list, (self.current_index) * ctypes.sizeof(ST_LIST_PARAM))
