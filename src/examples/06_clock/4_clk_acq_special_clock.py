@@ -31,15 +31,17 @@ with spcm.Card('/dev/spcm0') as card:
     else:
         print(" is not supported.")
         exit()
+    
+    ### Do Clock calibration - !!!! WARNING ALL THE SETTINGS BEFORE THE AUTO_ADJUST ARE OVERWRITTEN !!!! ###
+    clock = spcm.Clock(card)
+    sample_rate = clock.sample_rate(6.71 * units.MHz, special_clock=True, auto_adjust=True, return_unit=units.MHz)
 
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
 
     ### Clock setup section ###
-    clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    sample_rate = clock.sample_rate(6.71 * units.MHz, special_clock=True, auto_adjust=True, return_unit=units.MHz)
     clock.output(True)  # enable the clock output
 
     print("Special clock mode: ")
