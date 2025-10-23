@@ -141,7 +141,7 @@ class Clock(CardFunctionality):
             sample_rate = UnitConversion.convert(sample_rate, units.Hz, int)
             self.card.set_i(SPC_SAMPLERATE, int(sample_rate))
         return_value = self.card.get_i(SPC_SAMPLERATE)
-        if special_clock and auto_adjust: self.auto_adjust()
+        if auto_adjust: self.auto_adjust()
         if return_unit is not None: return_value = UnitConversion.to_unit(return_value * units.Hz, return_unit)
         return return_value
     
