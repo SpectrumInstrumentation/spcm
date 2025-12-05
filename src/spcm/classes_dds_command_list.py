@@ -25,6 +25,8 @@ class DDSCommandList(DDS):
     
     _dtm : int = SPCM_DDS_DTM_SINGLE
     _list_size : int = KIBI(16)
+    buffer_size : int = 0
+    max_fill_promille : int = 1000
 
     def __init__(self, *args, **kwargs) -> None:
         kwargs["no_units"] = kwargs.get("no_units", True) # disable units to make the command queu faster
@@ -34,6 +36,9 @@ class DDSCommandList(DDS):
         self.current_index = 0
         
         self._dtm = SPCM_DDS_DTM_SINGLE
+
+        # The size of the small buffer in the DDS firmware
+        self.buffer_size = self.card.get_i(SPC_DDS_QUEUE_CMD_MAX)
         
         self.list_size = self.default_size()
 
@@ -57,7 +62,7 @@ class DDSCommandList(DDS):
         """
 
         if self._dtm == SPCM_DDS_DTM_SINGLE:
-            return self.card.get_i(SPC_DDS_QUEUE_CMD_MAX) // 2
+            return self.buffer_size // 2
         elif self._dtm == SPCM_DDS_DTM_DMA:
             return KIBI(16)
         raise SpcmException(text="Data transfer mode not supported.")
@@ -126,29 +131,44 @@ class DDSCommandList(DDS):
         """
 
         if self.mode == self.WRITE_MODE.EXCEPTION_IF_FULL:
-            if self.avail_user_len() < (self.current_index):
+            if self.buffer_full():
                 raise SpcmException(text="Buffer is full")
         elif self.mode == self.WRITE_MODE.WAIT_IF_FULL:
             timer = 0
-            while self.avail_user_len() < (self.current_index):
-                print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
-                timer = (timer + 1) % 400
+            if self.data_transfer_mode == SPCM_DDS_DTM_SINGLE:
+                while self.avail_user_len() < (self.current_index):
+                    self.card._print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
+                    timer = (timer + 1) % 400
+            elif self.data_transfer_mode == SPCM_DDS_DTM_DMA:
+                while self.buffer_full():
+                    self.card._print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
+                    timer = (timer + 1) % 400
         self.card.set_ptr(SPC_REGISTER_LIST, self.command_list, (self.current_index) * ctypes.sizeof(ST_LIST_PARAM))
     
     def avail_user_len(self) -> int:
         """
         get the available space for commands in the hardware queue
-
-        TODO: check if this correct. Probably we should use fillsize_promille here
         """
 
         if self._dtm == SPCM_DDS_DTM_SINGLE:
-            return self.list_size - self.card.get_i(SPC_DDS_QUEUE_CMD_COUNT)
+            return self.buffer_size - self.card.get_i(SPC_DDS_QUEUE_CMD_COUNT)
         elif self._dtm == SPCM_DDS_DTM_DMA:
-            return self.card.get_i(SPC_DATA_AVAIL_USER_LEN)
+            # Not supported for DMA mode
+            return False
         else:
             raise SpcmException(text="Data transfer mode not supported.")
 
+    def buffer_full(self) -> bool:
+        """
+        check if the command list buffer is full
+        """
+
+        if self._dtm == SPCM_DDS_DTM_SINGLE:
+            return 1000 * (self.card.get_i(SPC_DDS_QUEUE_CMD_COUNT)/self.list_size) >= self.max_fill_promille
+        elif self._dtm == SPCM_DDS_DTM_DMA:
+            return self.card.get_i(SPC_FILLSIZEPROMILLE) >= self.max_fill_promille
+        else:
+            raise SpcmException(text="Data transfer mode not supported.")
 
     @property
     def list_size(self) -> int:

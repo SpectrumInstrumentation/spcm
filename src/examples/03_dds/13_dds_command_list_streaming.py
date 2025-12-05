@@ -30,7 +30,7 @@ card : spcm.Card
 # with spcm.Card('/dev/spcm0') as card:                         # if you want to open a specific card
 # with spcm.Card('TCPIP::192.168.1.10::inst0::INSTR') as card:  # if you want to open a remote card
 # with spcm.Card(serial_number=12345) as card:                  # if you want to open a card by its serial number
-with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to open the first card of a specific type
+with spcm.Card(card_type=spcm.SPCM_TYPE_AO, verbose=True) as card:            # if you want to open the first card of a specific type
 
     # setup card for DDS
     card.card_mode(spcm.SPC_REP_STD_DDS)
@@ -55,9 +55,9 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.data_transfer_mode(spcm.SPCM_DDS_DTM_DMA)
 
     # Start the DDS test
-    num_freq      =  20
-    start_freq_Hz =  10.0 * 1e3
-    delta_freq_Hz =   5.0 * 1e3
+    num_freq      =  5
+    start_freq_Hz =  200.0 * 1e6
+    delta_freq_Hz =  0.5 * 1e6
 
     # STEP 0 - Initialize frequencies
     period_s = 1.0
@@ -70,17 +70,26 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     dds.write()
 
     print("Calculate frequencies and add to queue")
-    period_s = 1000e-9
+    period_s = 300e-9
     dds.trg_timer(period_s)
     dds.write_to_card()
 
+    dds.mode = dds.WRITE_MODE.EXCEPTION_IF_FULL
+
     # Load frequencies to the queue
-    freq_list = np.linspace(start_freq_Hz, start_freq_Hz + num_freq*delta_freq_Hz, num_freq)
+    freq_list = np.linspace(start_freq_Hz, start_freq_Hz + (num_freq-1)*delta_freq_Hz, num_freq)
     dds.load({spcm.SPC_DDS_CORE0_FREQ: freq_list}, exec_mode=spcm.SPCM_DDS_CMD_EXEC_AT_TRG, repeat=0)
-    # Preload frequencies to the card
-    dds.write()
+    dds.max_fill_promille = 120
+
+    # Pre-filling the card memory
+    try:
+        while True: # fill until max_fill_promille is reached
+            dds.write()
+            print("Fill size {}%".format(card.get_i(spcm.SPC_FILLSIZEPROMILLE)/10), end="\r")
+    except spcm.SpcmException:
+        print("\nCommand list full, all frequencies loaded to card")
     
-    # Start streaming
+    # While running wait for space in the command list and keep filling it
     dds.mode = dds.WRITE_MODE.WAIT_IF_FULL
     
     # Start the card and enable trigger, but don't send a force trigger yet
@@ -88,12 +97,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     print("Card started and triggered")
     print("Streaming... stop by pressing Ctrl+C")
 
+    # Keep filling the command list
     try:
         while True: # infinitely long streaming
             dds.write()
             if dds.status() & spcm.SPCM_DDS_STAT_QUEUE_UNDERRUN:
                 break
+            print("Fill size {}%".format(card.get_i(spcm.SPC_FILLSIZEPROMILLE)/10), end="\r")
 
-        print("ERROR: Buffer underrun")
+        print("\nERROR: Buffer underrun")
     except KeyboardInterrupt:
-        print("Ctrl+C pressed: streaming stopped by user")
+        print("\nCtrl+C pressed: streaming stopped by user")
