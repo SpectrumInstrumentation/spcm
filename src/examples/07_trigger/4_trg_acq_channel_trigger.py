@@ -39,10 +39,6 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     channel0.amp(1000 * units.mV)
 
     ### Trigger setup section ###
-    trigger = spcm.Trigger(card, clock=clock)
-    trigger.or_mask(spcm.SPC_TMASK_NONE)
-    trigger.ch_or_mask0(channel0.ch_mask())
-    
     trigger_modes = {
         1: [spcm.SPC_TM_POS, 0.1 * units.V, None, None], # trigger on positive edge of channel signal
         2: [spcm.SPC_TM_NEG, 0.1 * units.V, None, None], # trigger on negative edge of channel signal
@@ -113,11 +109,14 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
         print(f"Trigger mode {tm} is not supported by card family {card_family:02x}xx. Stopping execution.")
         exit()
 
-    # Re-arm the trigger when crossing through level1 and then trigger when a signal on the channel input crosses 500 mV from below to above (positive slope)
-    trigger.ch_mode(channel0, trigger_modes[tm][0]) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of channel input through level0
-    trigger.ch_level0(channel0, trigger_modes[tm][1])  # trigger level for channel input
-    if trigger_modes[tm][2] is not None: trigger.ch_level1(channel0, trigger_modes[tm][2])  # re-arm level for channel input
-    if trigger_modes[tm][3] is not None: trigger.ch_pulsewidth(channel0, trigger_modes[tm][3])  # pulse width for the window trigger
+    # trigger setup
+    trigger = spcm.Trigger(card, clock=clock)
+    trigger.or_mask(spcm.SPC_TMASK_NONE)
+    trigger.ch_or_mask0(channel0.ch_mask())
+    trigger.ch_mode(channel0, trigger_modes[tm][0])
+    trigger.ch_level0(channel0, trigger_modes[tm][1])
+    if trigger_modes[tm][2] is not None: trigger.ch_level1(channel0, trigger_modes[tm][2])
+    if trigger_modes[tm][3] is not None: trigger.ch_pulsewidth(channel0, trigger_modes[tm][3])
     #############################
 
     # define the data buffer

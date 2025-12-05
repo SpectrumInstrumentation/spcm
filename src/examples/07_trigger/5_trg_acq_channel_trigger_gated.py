@@ -40,10 +40,6 @@ with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if
     channel0.amp(1000 * units.mV)
 
     ### Trigger setup section ###
-    trigger = spcm.Trigger(card)
-    trigger.or_mask(spcm.SPC_TMASK_NONE)
-    trigger.ch_or_mask0(channel0.ch_mask())
-    
     trigger_modes = {
         1:  [spcm.SPC_TM_HIGH, 0.25 * units.V, None], # gate signal when channel signal is above the trigger level.
         2:  [spcm.SPC_TM_LOW, 0.1 * units.V, None], # gate signal when channel signal is below the trigger level.
@@ -99,10 +95,13 @@ with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if
         print(f"Trigger mode {tm} is not supported by card family {card_family:02x}xx. Stopping execution.")
         exit()
 
-    # Re-arm the trigger when crossing through level1 and then trigger when a signal on the channel input crosses 500 mV from below to above (positive slope)
-    trigger.ch_mode(channel0, trigger_modes[tm][0]) # re-arm the trigger with a positive slope through level1 and trigger on positive edge of channel input through level0
-    trigger.ch_level0(channel0, trigger_modes[tm][1])  # trigger level for channel input
-    if trigger_modes[tm][2] is not None: trigger.ch_level1(channel0, trigger_modes[tm][2])  # re-arm level for channel input
+    # trigger setup
+    trigger = spcm.Trigger(card)
+    trigger.or_mask(spcm.SPC_TMASK_NONE)
+    trigger.ch_or_mask0(channel0.ch_mask())
+    trigger.ch_mode(channel0, trigger_modes[tm][0])
+    trigger.ch_level0(channel0, trigger_modes[tm][1])
+    if trigger_modes[tm][2] is not None: trigger.ch_level1(channel0, trigger_modes[tm][2])
     #############################
 
     num_samples = 16 * units.KiS

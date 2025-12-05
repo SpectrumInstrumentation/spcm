@@ -43,9 +43,6 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     channels.amp(1000 * units.mV)
 
     ### Trigger setup section ###
-    trigger = spcm.Trigger(card, clock=clock)
-    trigger.or_mask(spcm.SPC_TMASK_NONE)
-
     selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \
     "1: Trigger on positive edge of channel signal, while the external trigger signal is high.\n" \
     "2: Trigger on positive edge of either channel signal.\n"
@@ -58,6 +55,8 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
         tm = 1
     if tm == 1:
         # Trigger when a signal on the channel 0 crosses 500 mV while at the same time the external trigger signal is high
+        trigger = spcm.Trigger(card, clock=clock)
+        trigger.or_mask(spcm.SPC_TMASK_NONE)
         trigger.and_mask(spcm.SPC_TMASK_EXT0)
         trigger.ext0_mode(spcm.SPC_TM_HIGH)  # external trigger 0 is high
         trigger.ext0_level0(0.25 * units.V)    # external trigger level for
@@ -66,6 +65,8 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
         trigger.ch_level0(channels[0], 0.25 * units.V)  # trigger level for channel 0
     elif tm == 2:
         # Trigger when a signal on one of the channels crosses 500 mV
+        trigger = spcm.Trigger(card, clock=clock)
+        trigger.or_mask(spcm.SPC_TMASK_NONE)
         trigger.ch_or_mask0(channels[0].ch_mask() | channels[1].ch_mask())
         trigger.ch_mode(channels[0], spcm.SPC_TM_POS)  # trigger on positive edge of channel 0
         trigger.ch_level0(channels[0], 0.25 * units.V)  # trigger level for channel 0
