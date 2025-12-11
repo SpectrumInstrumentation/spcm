@@ -62,7 +62,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # add synchronous digital outputs to the data
     synchronous_io = spcm.SynchronousDigitalIOs(data_transfer, channels, digin2bit=True) # digin2bit is only using for the 44xx family of cards
-    if not (card.family() == 0x22 or card.family() == 0x23 or card.family() == 0x44):
+    if not (card.family() in [0x22, 0x23, 0x44]):
         # for the 22xx, 23xx and 44xx families there is a fixed setup for the digital outputs
         num_buffers = 4
         index = synchronous_io.allocate_buffer(num_buffers=num_buffers)

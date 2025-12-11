@@ -36,7 +36,7 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     
     # setup the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channel 0 and 1
-    if card_family in [0x22, 0x44]:
+    if card_family in [0x22, 0x23, 0x44]:
         channels.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
     if card_family in [0x44, 0x59]:
         channels.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards

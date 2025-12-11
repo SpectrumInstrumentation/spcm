@@ -36,7 +36,7 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
-    if card_family in [0x22, 0x44]:
+    if card_family in [0x22, 0x23, 0x44]:
         channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
     if card_family in [0x44, 0x59]:
         channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
@@ -62,13 +62,13 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
         7: "7: Trigger on leaving a window defined by level0 and level1"
     }
     trigger_modes_families = {
-        1: [0x22, 0x33, 0x44, 0x59],
-        2: [0x22, 0x33, 0x44, 0x59],
-        3: [0x22, 0x33, 0x44, 0x59],
-        4: [0x22, 0x44],
-        5: [0x22, 0x44],
-        6: [0x22, 0x44],
-        7: [0x22, 0x44]
+        1: [0x22, 0x23, 0x33, 0x44, 0x59],
+        2: [0x22, 0x23, 0x33, 0x44, 0x59],
+        3: [0x22, 0x23, 0x33, 0x44, 0x59],
+        4: [0x22, 0x23, 0x44],
+        5: [0x22, 0x23, 0x44],
+        6: [0x22, 0x23, 0x44],
+        7: [0x22, 0x23, 0x44]
     }
 
     question_str = "Please select one of the following trigger modes by entering the corresponding number and press <ENTER>:\n"

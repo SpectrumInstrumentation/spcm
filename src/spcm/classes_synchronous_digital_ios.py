@@ -54,7 +54,7 @@ class SynchronousDigitalIOs(MultiPurposeIOs):
         self.num_xio_lines = self.get_num_xio_lines()
 
         # For the 22xx and 23xx families there are only fixed xio lines possible
-        if self.card.family() == 0x22 or self.card.family() == 0x23 or self.card.family() == 0x44:
+        if self.card.family() in [0x22, 0x23, 0x44]:
             digin2bit &= (self.card.family() == 0x44)
             if digin2bit:
                 self.x_mode(0, SPCM_XMODE_DIGIN2BIT)
@@ -67,7 +67,7 @@ class SynchronousDigitalIOs(MultiPurposeIOs):
             self._allocate_buffer(num_buffers)
             xios  = [0,1,2,0]
             xios2 = [1,2,0,1]
-            if (self.card.family() == 0x22 or self.card.family() == 0x23) and (self.card.card_type() & TYP_CHMASK == 0x3 or self.card.card_type() & TYP_CHMASK == 0x1):
+            if (self.card.family() in [0x22, 0x23]) and (self.card.card_type() & TYP_CHMASK == 0x3 or self.card.card_type() & TYP_CHMASK == 0x1):
                 if self.card.get_i(SPC_SAMPLERATE) > 1.25e9: # There is a bug in the 22xx family with one channel cards, see page 132 in the manual
                     print("Warning: this is the bug in the 22xx family with one channel cards, see page 132 in the manual")
                     self.lowest_used_channel_bit[1] -= 1
@@ -211,7 +211,7 @@ class SynchronousDigitalIOs(MultiPurposeIOs):
             The number of buffers to allocate
         """
 
-        if self.card.family() == 0x22 or self.card.family() == 0x23 or self.card.family() == 0x44:
+        if self.card.family() in [0x22, 0x23, 0x44]:
             print("The 22xx, 23xx and 44xx families only support fixed xio lines, allocate_buffer() is not necessary and doesn't change the system")
         else:
             self._allocate_buffer(num_buffers)
@@ -246,7 +246,7 @@ class SynchronousDigitalIOs(MultiPurposeIOs):
             The xio lines that the buffer is connected to
         """
 
-        if self.card.family() == 0x22 or self.card.family() == 0x23 or self.card.family() == 0x44:
+        if self.card.family() in [0x22, 0x23, 0x44]:
             print("The 22xx, 23xx and 44x family only support fixed xio lines, setup() is not necessary and doesn't change the system")
             return
 
