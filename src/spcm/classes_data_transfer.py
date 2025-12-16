@@ -494,6 +494,13 @@ class DataTransfer(CardFunctionality):
                 self._direction = SPCM_DIR_PCTOCARD
             else:
                 raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
+        else:
+            if direction == Direction.Acquisition:
+                self._direction = SPCM_DIR_CARDTOPC
+            elif direction == Direction.Generation:
+                self._direction = SPCM_DIR_PCTOCARD
+            else:
+                raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
         
         if self._notify_samples != 0 and np.remainder(self.buffer_samples, self._notify_samples) and exception_num_samples:
             raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
