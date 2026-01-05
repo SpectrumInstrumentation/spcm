@@ -300,7 +300,6 @@ class Device():
             cmd |= arg
         self.set_i(SPC_M2CMD, cmd)
     
-    #@Decorators.unitize(units.ms, "timeout", int)
     def timeout(self, timeout : int = None, return_unit = None) -> int:
         """
         Sets the timeout in ms (see register `SPC_TIMEOUT` in the manual)
@@ -405,8 +404,7 @@ class Device():
 
         self._check_closed()
         return_value = int64(0)
-        dwErr = spcm_dwGetParam_i64(self._handle, register, byref(return_value))
-        self._check_error(dwErr)
+        self._check_error(spcm_dwGetParam_i64(self._handle, register, byref(return_value)))
         return return_value.value
     get = get_i
     """Alias of get_i"""
@@ -504,7 +502,7 @@ class Device():
         self._check_error(spcm_dwSetParam_ptr(self._handle, register, reference, size))
 
     # Error handling and exception raising
-    def _check_error(self, dwErr : int):
+    def _check_error(self, dwErr : int, call_stack : int = 4):
         """
         Create an SpcmError object and check for the last error (see the appendix in the user manual of your device for all the possible error codes)
     
@@ -512,6 +510,8 @@ class Device():
         ----------
         dwErr : int
             The error value as returned from a direct driver call
+        call_stack : int
+            The number of stack frames to skip when creating the traceback for the exception
         
         Raises
         ------

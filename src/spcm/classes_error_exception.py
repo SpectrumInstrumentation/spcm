@@ -5,6 +5,8 @@ from spcm_core import uint32, int32,\
     spcm_dwGetErrorInfo_i32,\
     byref
 from spcm_core.constants import *
+import inspect
+import types
 
 class SpcmError():
     """a container class for handling driver level errors
@@ -127,6 +129,21 @@ class SpcmException(Exception):
         register, value and text : int, int, str (optional)
             parameters to define an error that is not raised by a driver error
         """
+        call_stack_depth = 0
+        caller_stack = inspect.stack()
+        for frame_info in caller_stack:
+            frame_module = inspect.getmodule(frame_info.frame)
+            if frame_module and frame_module.__name__.startswith('spcm.'):
+                call_stack_depth += 1
+        # Get the caller’s frame (this __init__ and the library function)
+        caller_frame = inspect.stack()[call_stack_depth].frame
+        # Create a traceback from the caller’s frame
+        self.__traceback__ = types.TracebackType(
+            tb_frame=caller_frame,
+            tb_lasti=caller_frame.f_lasti,
+            tb_lineno=caller_frame.f_lineno,
+            tb_next=None
+        )
         if error: self.error = error
         if register or value or text:
             self.error = SpcmError(register=register, value=value, text=text)
@@ -150,7 +167,20 @@ class SpcmException(Exception):
 
 class SpcmTimeout(Exception):
     """a container class for handling specific timeout exceptions"""
-    pass
+
+    def __init__(self, call_stack : int = 0) -> None:
+        """
+        Constructs an exception object for handling Timeout exceptions
+        """
+        # Get the caller’s frame (this __init__ and the library function)
+        caller_frame = inspect.stack()[call_stack].frame
+        # Create a traceback from the caller’s frame
+        self.__traceback__ = types.TracebackType(
+            tb_frame=caller_frame,
+            tb_lasti=caller_frame.f_lasti,
+            tb_lineno=caller_frame.f_lineno,
+            tb_next=None
+        )
 
 class SpcmDeviceNotFound(SpcmException):
     """a container class for handling specific device not found exceptions"""

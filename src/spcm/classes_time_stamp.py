@@ -90,6 +90,7 @@ class TimeStamp(DataTransfer):
         """
         self._notify_timestamps = notify_timestamps
     
+    # TODO can this be merged with DataTransfer.allocate_buffer?
     def allocate_buffer(self, num_timestamps : int) -> None:
         """
         Allocate the buffer for the timestamp data transfer
@@ -115,6 +116,7 @@ class TimeStamp(DataTransfer):
         self.buffer = databuffer_unaligned[start_pos_samples:start_pos_samples + (self.buffer_size // item_size)]   # byte address but int16 sample: therefore / 2
         self.buffer = self.buffer.reshape((num_timestamps, 2), order='C') # array items per timestamp, because the maximum item size is 8 bytes = 64 bits
     
+    # TODO can this be merged with DataTransfer.start_buffer_transfer?
     def start_buffer_transfer(self, *args, direction=SPCM_DIR_CARDTOPC, notify_timestamps = None, transfer_offset=0, transfer_length=None) -> None:
         """
         Start the transfer of the timestamp data to the card
