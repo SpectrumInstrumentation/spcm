@@ -502,7 +502,7 @@ class Device():
         self._check_error(spcm_dwSetParam_ptr(self._handle, register, reference, size))
 
     # Error handling and exception raising
-    def _check_error(self, dwErr : int, call_stack : int = 4):
+    def _check_error(self, dwErr : int):
         """
         Create an SpcmError object and check for the last error (see the appendix in the user manual of your device for all the possible error codes)
     
@@ -510,8 +510,6 @@ class Device():
         ----------
         dwErr : int
             The error value as returned from a direct driver call
-        call_stack : int
-            The number of stack frames to skip when creating the traceback for the exception
         
         Raises
         ------
