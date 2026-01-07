@@ -450,7 +450,7 @@ class DataTransfer(CardFunctionality):
             buffer = buffer.reshape((num_channels, -1), order='F')# index definition: [channel, sample] 
         return buffer
     
-    def _pre_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=False) -> None:
+    def _pre_buffer_transfer(self, *args, buffer_type=SPCM_BUF_DATA, direction=None, notify_samples=None, transfer_offset=None, transfer_length=None, exception_num_samples=True) -> None:
         """
         Preparation before the transfer definition
         
@@ -469,7 +469,7 @@ class DataTransfer(CardFunctionality):
         transfer_length : int
             the length of the transfer
         exception_num_samples : bool
-            if True, an exception is raised if the number of samples is not a multiple of the notify samples. The automatic buffer handling only works with the number of samples being a multiple of the notify samples.
+            if True, an exception is raised if the number of samples is not a multiple of the notify samples. The automatic buffer handling only works correctly with the number of samples being a multiple of the notify samples.
 
         Raises
         ------
