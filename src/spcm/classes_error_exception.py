@@ -167,20 +167,7 @@ class SpcmException(Exception):
 
 class SpcmTimeout(Exception):
     """a container class for handling specific timeout exceptions"""
-
-    def __init__(self, call_stack : int = 0) -> None:
-        """
-        Constructs an exception object for handling Timeout exceptions
-        """
-        # Get the caller’s frame (this __init__ and the library function)
-        caller_frame = inspect.stack()[call_stack].frame
-        # Create a traceback from the caller’s frame
-        self.__traceback__ = types.TracebackType(
-            tb_frame=caller_frame,
-            tb_lasti=caller_frame.f_lasti,
-            tb_lineno=caller_frame.f_lineno,
-            tb_next=None
-        )
+    pass
 
 class SpcmDeviceNotFound(SpcmException):
     """a container class for handling specific device not found exceptions"""
