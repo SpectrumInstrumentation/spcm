@@ -30,19 +30,20 @@ with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_GATE)
     card.timeout(50 * units.s)                     # timeout 50 s
-
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    sample_rate = clock.sample_rate(max=True, return_unit=units.MHz)
-    print(f"Sample rate set to {sample_rate}.")
     
-    # setup the channels
+    # setup the channels - IMPORTANT: first activate the channels and then setup the clock
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
     if card_family in [0x22, 0x23, 0x44]:
         channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
     if card_family in [0x44, 0x59]:
         channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
     channel0.amp(1000 * units.mV)
+
+    # setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
+    sample_rate = clock.sample_rate(max=True, return_unit=units.MHz)
+    print(f"Sample rate set to {sample_rate}.")
 
     ### Trigger setup section ###
     trigger_modes = {

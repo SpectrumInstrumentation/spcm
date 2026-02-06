@@ -36,12 +36,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:            #
     trigger.or_mask(spcm.SPC_TMASK_NONE)
     trigger.and_mask(spcm.SPC_TMASK_NONE)
 
-    # setup clock engine
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)
-    sampling_rate = clock.sample_rate(max=True, return_unit=units.MHz) # Adjusted sample rate
-    print(f"Sampling rate: {sampling_rate}")
-
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.amp(1 * units.V)
@@ -51,6 +45,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:            #
     trigger.ch_or_mask0(channels[0].ch_mask())
     trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
     trigger.ch_level0(channels[0], 0 * units.mV, return_unit=units.mV)
+
+    # setup clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    sampling_rate = clock.sample_rate(max=True, return_unit=units.MHz)
+    print(f"Sampling rate: {sampling_rate}")
 
     # define the data buffer
     notify_samples = 8 * units.KiS

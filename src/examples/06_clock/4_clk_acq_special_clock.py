@@ -32,6 +32,16 @@ with spcm.Card('/dev/spcm0') as card:
         print(" is not supported.")
         exit()
     
+    # setup the channels - IMPORTANT: first activate the channels and then setup the clock
+    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x23, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
+    channel0.amp(500 * units.mV)  # set channel 0 amplitude to 500 mV
+    channel0.offset(-250 * units.mV)
+    print(f"Adjusted channel 0 conversion factor: {channel0.special_clock_adjust()}")
+    
     ### Do Clock calibration - !!!! WARNING ALL THE SETTINGS BEFORE THE AUTO_ADJUST ARE OVERWRITTEN !!!! ###
     clock = spcm.Clock(card)
     sample_rate = clock.sample_rate(6.71 * units.MHz, special_clock=True, auto_adjust=True, return_unit=units.MHz)
@@ -49,16 +59,6 @@ with spcm.Card('/dev/spcm0') as card:
     print(f"Clock output: {clock.clock_output_frequency(return_unit=units.MHz)}")
     print(f"Oversampling factor: {clock.oversampling_factor()}")
     ###########################
-    
-    # setup the channels
-    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
-    if card_family in [0x22, 0x23, 0x44]:
-        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
-    if card_family in [0x44, 0x59]:
-        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
-    channel0.amp(500 * units.mV)  # set channel 0 amplitude to 500 mV
-    channel0.offset(-250 * units.mV)
-    print(f"Adjusted channel 0 conversion factor: {channel0.special_clock_adjust()}")
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)

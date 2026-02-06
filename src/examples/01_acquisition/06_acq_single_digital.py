@@ -37,7 +37,7 @@ with spcm.Card(card_type=(spcm.SPCM_TYPE_DIO | spcm.SPCM_TYPE_DI)) as card:     
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
 
-    # setup clock engine
+    # setup clock - IMPORTANT: first activate the channels and then setup the clock
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL)
     clock.sample_rate(max=True)

@@ -37,7 +37,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_SOFTWARE)
 
-    # setup channels
+    # setup channels - IMPORTANT: first activate the channels and then setup the clock
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     amplitude = channels[0].amp(1 * units.V, return_unit=units.V)
     max_value = card.max_sample_value()

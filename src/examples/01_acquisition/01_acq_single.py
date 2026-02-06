@@ -34,10 +34,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_NONE)       # trigger set to none #software
     trigger.and_mask(spcm.SPC_TMASK_NONE)      # no AND mask
-
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
     
     # setup the channels
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
@@ -45,6 +41,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channel0.offset(0 * units.mV)
     channel0.termination(1)
     # channels.coupling(spcm.COUPLING_DC)
+
+    # Setup the clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
+    clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
 
     # Channel triggering
     trigger.ch_or_mask0(channel0.ch_mask())

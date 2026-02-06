@@ -33,10 +33,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_NONE)
 
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)  # Internal clock
-    sampling_rate = clock.sample_rate(max=True, return_unit=units.Hz) # Adjusted sample rate
-
     # Enable and configure Channel 0
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)
     channels.amp(1000 * units.mV)  
@@ -46,6 +42,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger.ch_and_mask0(spcm.SPC_TMASK0_CH0)
     trigger.ch_mode(channels[0], spcm.SPC_TM_POS)
     trigger.ch_level0(channels[0], 200 * units.mV, return_unit=units.mV)
+
+    # Setup the clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    sampling_rate = clock.sample_rate(max=True, return_unit=units.Hz)
 
     num_segments = 4
     samples_per_segment = 16 * units.KiS

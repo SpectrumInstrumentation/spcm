@@ -31,13 +31,14 @@ with spcm.Card('/dev/spcm0', verbose=True) as card:                         # if
     card.card_mode(spcm.SPC_REC_STD_GATE)
     card.timeout(5 * units.s)                     # timeout 5 s
     
+    # setup the channels - IMPORTANT: first activate the channels and then setup the clock
+    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    channel0.amp(1000 * units.mV)
+    
+    # setup the clock
     clock = spcm.Clock(card)
     clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
     clock.sample_rate(100 * units.percent)
-    
-    # setup the channels
-    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
-    channel0.amp(1000 * units.mV)
 
     ### Trigger setup section ###
     trigger_modes = {

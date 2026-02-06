@@ -22,13 +22,14 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)
-
-    clock = spcm.Clock(card)
-    clock.sample_rate(20 * units.MHz)
     
-    # setup the channels
+    # setup the channels - IMPORTANT: first activate the channels and then setup the clock
     channels = spcm.Channels(card) # enable all channels
     channels.amp(1 * units.V)
+
+    # setup the clock
+    clock = spcm.Clock(card)
+    clock.sample_rate(20 * units.MHz)
 
     # define the data buffer
     num_samples = 1 * units.KiS

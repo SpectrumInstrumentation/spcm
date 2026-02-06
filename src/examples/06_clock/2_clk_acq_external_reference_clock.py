@@ -32,6 +32,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
+    
+    # setup the channels - IMPORTANT: first activate the channels and then setup the clock
+    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
+    if card_family in [0x22, 0x23, 0x44]:
+        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
+    if card_family in [0x44, 0x59]:
+        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
+    channel0.amp(500 * units.mV)  # set channel 0 amplitude
+    channel0.offset(-250 * units.mV)
 
     ### Clock setup section ###
     clock = spcm.Clock(card)
@@ -44,15 +53,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     print(f"Clock output: {clock.clock_output_frequency(return_unit=units.MHz)}")
     print(f"Oversampling factor: {clock.oversampling_factor()}")
     ###########################
-    
-    # setup the channels
-    channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
-    if card_family in [0x22, 0x23, 0x44]:
-        channel0.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
-    if card_family in [0x44, 0x59]:
-        channel0.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
-    channel0.amp(500 * units.mV)  # set channel 0 amplitude
-    channel0.offset(-250 * units.mV)
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)

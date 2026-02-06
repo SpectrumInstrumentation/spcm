@@ -31,11 +31,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     card.loops(0)
     card.timeout(5 * units.s)
 
-    # setup clock engine
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
-
     # setup trigger engine
     trigger = spcm.Trigger(card)
     trigger.or_mask(spcm.SPC_TMASK_EXT0) # trigger set to external
@@ -47,6 +42,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.amp(1 * units.V)
     channels.termination(1)
+
+    # setup clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
 
     # settings for the FIFO mode buffer handling
     num_samples = 8 * units.KiS

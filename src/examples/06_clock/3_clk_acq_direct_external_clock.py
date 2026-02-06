@@ -40,6 +40,9 @@ with spcm.Card('/dev/spcm0') as card:                         # if you want to o
     card.timeout(5 * units.s)                     # timeout 5 s
     function_type = card.function_type()
 
+    # setup channels - IMPORTANT: first activate the channels and then setup the clock
+    channels = spcm.Channels(card)
+
     ###########################
     ### Clock setup section ###
     clock = spcm.Clock(card)
@@ -64,8 +67,6 @@ with spcm.Card('/dev/spcm0') as card:                         # if you want to o
         clock.edge(spcm.SPCM_EDGE_RISING) # set the clock edge to rising, other options are SPCM_EDGE_FALLING and SPCM_EDGE_BOTH
         print(f"Clock edge settings: currently {clock.edge()}, possible values are {spcm.SPCM_EDGE_RISING} (SPCM_EDGE_RISING), {spcm.SPCM_EDGE_FALLING} (SPCM_EDGE_FALLING) and {spcm.SPCM_EDGES_BOTH} (SPCM_EDGES_BOTH)")
     ###########################
-
-    channels = spcm.Channels(card)
 
     # define the data buffer
     data_transfer = spcm.DataTransfer(card)

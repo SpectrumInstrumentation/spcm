@@ -29,18 +29,19 @@ with spcm.Card('/dev/spcm0') as card: # if you want to open a specific card
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
-
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    clock.sample_rate(10 * units.percent)
     
-    # setup the channels
+    # setup the channels - IMPORTANT: first activate the channels and then setup the clock
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channel 0 and 1
     if card_family in [0x22, 0x23, 0x44]:
         channels.coupling(spcm.COUPLING_DC)  # set channel 0 coupling to DC
     if card_family in [0x44, 0x59]:
         channels.termination(1) # set the termination to 50 Ohm for 44xx or 59xx cards
     channels.amp(1000 * units.mV)
+
+    # setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
+    clock.sample_rate(10 * units.percent)
 
     ### Trigger setup section ###
     selected_trigger_mode = input("There are several trigger modes available. Please select one of the following modes by entering the corresponding number and press <ENTER>:\n" \

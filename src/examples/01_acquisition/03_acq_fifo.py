@@ -36,15 +36,15 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     trigger.or_mask(spcm.SPC_TMASK_NONE)
     trigger.and_mask(spcm.SPC_TMASK_NONE)
 
-    # setup clock engine
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)
-    clock.sample_rate(20 * units.MHz)
-
     # setup channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.amp(1 * units.V)
     channels.termination(1)
+
+    # Setup the clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    clock.sample_rate(20 * units.MHz)
 
     # Channel triggering
     trigger.ch_or_mask0(channels[0].ch_mask())

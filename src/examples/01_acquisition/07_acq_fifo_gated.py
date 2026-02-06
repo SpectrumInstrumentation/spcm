@@ -39,10 +39,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     trigger.ext0_coupling(spcm.COUPLING_DC)  # trigger coupling
     trigger.ext0_level0(0.25 * units.V)
     trigger.termination(1)
-
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)            # clock mode internal PLL
-    clock.sample_rate(10 * units.percent)
     
     # setup the channels
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1) # enable channels 0 and 1
@@ -50,6 +46,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=True) as card:            # 
     channels.offset(0 * units.mV)
     channels.termination(1)
     channels.coupling(spcm.COUPLING_DC)
+
+    # Setup the clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    clock.sample_rate(10 * units.percent)
 
     num_samples = 512 * units.KiS
     num_gates = 0 # 0 is infinite; the number of gates to be acquired

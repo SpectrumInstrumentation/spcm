@@ -39,7 +39,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI, verbose=False) as card:
     trigger.ext0_coupling(spcm.COUPLING_DC)
     trigger.termination(0)
 
-    # setup channels
+    # setup channels - IMPORTANT: first activate the channels and then setup the clock
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0 | spcm.CHANNEL1)  # enable channel 0
     num_channels = len(channels)
     channels.amp(0.5 * units.V)

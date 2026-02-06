@@ -31,11 +31,6 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     card.loops(0)
     card.timeout(5 * units.s)
 
-    # setup clock engine
-    clock = spcm.Clock(card)
-    clock.mode(spcm.SPC_CM_INTPLL)
-    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
-
     # setup trigger engine
     trigger = spcm.Trigger(card)
     trigger.ext0_mode(spcm.SPC_TM_POS)   # set trigger mode
@@ -47,6 +42,11 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
     channels = spcm.Channels(card, card_enable=spcm.CHANNEL0)
     channels.amp(1 * units.V)
     channels.termination(1)
+
+    # setup clock - IMPORTANT: first activate the channels and then setup the clock
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL)
+    sample_rate = clock.sample_rate(20 * units.MHz, return_unit=units.MHz)
 
     # settings for the FIFO mode buffer handling
     total_samples = 96 * units.KiS # set this to zero to record forever
