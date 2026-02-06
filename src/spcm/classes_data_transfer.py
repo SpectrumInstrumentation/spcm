@@ -460,7 +460,7 @@ class DataTransfer(CardFunctionality):
             list of additional arguments that are added as flags to the start dma command
         buffer_type : int
             the type of buffer that is used for the transfer
-        direction : int
+        direction : spcm.Direction
             the direction of the transfer
         notify_samples : int
             the number of samples to notify the user about
@@ -493,14 +493,14 @@ class DataTransfer(CardFunctionality):
             elif self.direction == Direction.Generation:
                 self._direction = SPCM_DIR_PCTOCARD
             else:
-                raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
+                raise SpcmException(text="Please define a direction for transfer (Direction.Acquisition or Direction.Generation)")
         else:
             if direction == Direction.Acquisition:
                 self._direction = SPCM_DIR_CARDTOPC
             elif direction == Direction.Generation:
                 self._direction = SPCM_DIR_PCTOCARD
             else:
-                raise SpcmException(text="Please define a direction for transfer (SPCM_DIR_CARDTOPC or SPCM_DIR_PCTOCARD)")
+                raise SpcmException(text="Please define a direction for transfer (Direction.Acquisition or Direction.Generation)")
         
         if self._notify_samples != 0 and np.remainder(self.buffer_samples, self._notify_samples) and exception_num_samples:
             raise SpcmException("The number of samples needs to be a multiple of the notify samples.")
