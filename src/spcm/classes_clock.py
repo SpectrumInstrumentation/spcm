@@ -98,7 +98,7 @@ class Clock(CardFunctionality):
     
     def max_sample_rate(self, return_unit = None) -> int:
         """
-        Returns the maximum sample rate of the active card (see register `SPC_MIINST_MAXADCLOCK` in the manual)
+        Returns the maximum sample rate of the active card.
     
         Returns
         -------
