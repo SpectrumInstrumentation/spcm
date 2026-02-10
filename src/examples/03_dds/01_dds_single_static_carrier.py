@@ -49,7 +49,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.exec_at_trg()
     dds.write_to_card()
 
-    # Start command including enable of trigger engine
+    # Start command including enable of trigger engine and force trigger to start the DDS output immediately
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
 
     input("Press Enter to Exit")

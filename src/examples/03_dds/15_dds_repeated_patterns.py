@@ -60,7 +60,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.exec_at_trg()
     dds.write_to_card()
 
-    # Start the card and the DDS firmware using the card's trigger engine
+    # Start the card, enable trigger and send a force trigger to start the DDS output immediately
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
 
     # Create a loop to run through 10 different patterns

@@ -81,7 +81,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:            # if you want to
     # Start streaming
     dds.mode = dds.WRITE_MODE.WAIT_IF_FULL
 
-    # Start the card and enable trigger and send a trigger
+    # Start the card and enable trigger and force trigger to start the DDS output immediately
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
     print("Card started and triggered")
     print("Streaming... stop by pressing Ctrl+C")

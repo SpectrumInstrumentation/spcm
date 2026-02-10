@@ -132,7 +132,7 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:             # if you want t
     dds.exec_at_trg()
     dds.write_to_card()
 
-    # Start the card
+    # Start the card and enable trigger and send a force trigger to start the DDS output immediately
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_FORCETRIGGER)
 
     # Start the test
