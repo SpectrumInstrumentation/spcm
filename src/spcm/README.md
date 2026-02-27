@@ -54,15 +54,20 @@ Functionality classes handle specific functionality that is available to the car
 | `Multi`             | `DataTransfer`      | special class for handling multiple recording and replay mode functionality                   |
 | `Gated`             | `DataTransfer`      | special class for handling gated recording and replay functionality                           |
 | `Sequence`          | `DataTransfer`      | special class for handling sequence mode functionality                                        |
+| `Step`              | (none)              | special class for handling steps in the sequence mode                                         |
+| `Segment`           | (none)              | special class for handling segements in the sequence mode                                     |
 | `TimeStamp`         | `DataTransfer`      | special class for handling time stamped data                                                  |
-| `SCAPPTransfer`     | `DataTransfer`      | special class for handling direct card to GPU class using the SCAPP option                    |
+| `SCAPPShared`       | (none)              | special class for handling direct card to GPU class using the SCAPP option                    |
+| `SCAPPTransfer`     | `SCAPShared`, `DataTransfer` | special class for handling single transfers with SCAPP                               |
+| `SCAPPMulti`        | `SCAPShared`, `Multi` | special class for handling multiple recording transfers with SCAPP                          |
 | `Boxcar`            | `Multi`             | special class for handling boxcar averaging                                                   |
 | `BlockAverage`      | `Multi`             | special class for handling block averaging functionality                                      |
 | `BlockStatistics`   | `Multi`             | special class for handling block statistics functionality                                     |
 | `PulseGenerators`   | `CardFunctionality` | class for handling the pulse generator functionality                                          |
 | `PulseGenerator`    | (none)              | class for handling a single pulse generator a list of these objects resides inside `PulseGenerators` |
 | `DDS`               | `CardFunctionality` | class for handling DDS functionality                                                          |
-| `DDSCore`           | (none)              | class for handling a DDS core, a list of these objects resides inside a `DDS` object |
+| `DDSBareCore`       | (none)              | class for handling a DDS core, without units                                                  |
+| `DDSCore`           | `DDSBareCore`       | class for handling a DDS core, with units, a list of these objects resides inside a `DDS` object |
 | `DDSCommandList`    | `DDS`               | class for handling streaming DDS commands in blocks |
 | `DDSCommandQueue`   | `DDS`               | class for handling streaming DDS commands in queues, where commands are added to the queue and automatically written to the card |
 
@@ -79,6 +84,7 @@ classDiagram
   class SynchronousIOs
   class DataTransfer
   class DDS
+  class DDSBareCore
   class DDSCore
   class DDSCommandList
   class DDSCommandQueue
@@ -102,6 +108,9 @@ classDiagram
   DataTransfer <|-- TimeStamp
   DataTransfer <|-- Sequence
   DataTransfer <|-- SCAPPTransfer
+  SCAPPShared <|-- SCAPPTransfer
+  SCAPPShared  <|-- SCAPPMulti
+  Multi <|-- SCAPPMulti
   Multi <|-- Boxcar
   Multi <|-- BlockAverage
   Multi <|-- BlockStatistics
@@ -109,7 +118,8 @@ classDiagram
   MultiPurposeIOs *-- MultiPurposeIO
   MultiPurposeIOs <|-- SynchronousIOs
   PulseGenerators *-- PulseGenerator
-  DDS *-- DDSCore
+  DDS *-- DDSBareCore
+  DDSBareCore <|-- DDSCore
   DDS <|-- DDSCommandList
   DDSCommandList <|-- DDSCommandQueue
 ```
@@ -130,6 +140,7 @@ When an error in the driver occures, the user is notified with an exception that
 classDiagram
   class SpcmTimeout
   class SpcmException
+  class SpcmDeviceNotFound
   SpcmException <|-- SpcmTimeout
   SpcmException <|-- SpcmDeviceNotFound
 
