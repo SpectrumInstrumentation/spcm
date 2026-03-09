@@ -31,7 +31,13 @@ with spcm.Card('/dev/spcm0') as card:
     else:
         print(" is not supported.")
         exit()
-    
+
+    ### Do Clock calibration - !!!! WARNING ALL THE SETTINGS BEFORE THE AUTO_ADJUST ARE OVERWRITTEN !!!! ###
+    clock = spcm.Clock(card)
+    clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
+    sample_rate = clock.sample_rate(6.71 * units.MHz, special_clock=True, auto_adjust=True, return_unit=units.MHz)
+    clock.output(True)
+
     # setup the channels - IMPORTANT: first activate the channels and then setup the clock
     channel0, = spcm.Channels(card, card_enable=spcm.CHANNEL0) # enable channel 0
     if card_family in [0x22, 0x23, 0x44]:
@@ -41,18 +47,9 @@ with spcm.Card('/dev/spcm0') as card:
     channel0.amp(500 * units.mV)  # set channel 0 amplitude to 500 mV
     channel0.offset(-250 * units.mV)
     print(f"Adjusted channel 0 conversion factor: {channel0.special_clock_adjust()}")
-    
-    ### Do Clock calibration - !!!! WARNING ALL THE SETTINGS BEFORE THE AUTO_ADJUST ARE OVERWRITTEN !!!! ###
-    clock = spcm.Clock(card)
-    sample_rate = clock.sample_rate(6.71 * units.MHz, special_clock=True, auto_adjust=True, return_unit=units.MHz)
-
     # do a simple standard setup
     card.card_mode(spcm.SPC_REC_STD_SINGLE)     # single trigger standard mode
     card.timeout(5 * units.s)                     # timeout 5 s
-
-    ### Clock setup section ###
-    clock.mode(spcm.SPC_CM_INTPLL) # clock mode internal PLL
-    clock.output(True)  # enable the clock output
 
     print("Special clock mode: ")
     print(f"Sampling rate: {sample_rate}")

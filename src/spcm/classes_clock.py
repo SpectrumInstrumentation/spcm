@@ -49,6 +49,7 @@ class Clock(CardFunctionality):
             self.card.set_i(SPC_CLOCKMODE, mode)
         return self.card.get_i(SPC_CLOCKMODE)
     
+    _special_clock : int = None
     def special_clock(self, special_clock : int = None) -> int:
         """
         Set the special clock mode of the card (see register `SPC_SPECIALCLOCK` in the manual)
@@ -66,7 +67,8 @@ class Clock(CardFunctionality):
         
         if special_clock is not None:
             self.card.set_i(SPC_SPECIALCLOCK, special_clock)
-        return self.card.get_i(SPC_SPECIALCLOCK)
+        self._special_clock = self.card.get_i(SPC_SPECIALCLOCK)
+        return self._special_clock
 
     def auto_adjust(self):
         """

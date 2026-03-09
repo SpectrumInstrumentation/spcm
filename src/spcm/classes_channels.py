@@ -42,7 +42,10 @@ class Channel:
         self.card = card
         self.index = index
         self.data_index = data_index
-        self._conversion_clock = self.special_clock_adjust(special_clock)
+        self.special_clock = special_clock
+        self._conversion_clock = 1.0
+        if special_clock:
+            self._conversion_clock = self.special_clock_adjust()
         if card.function_type() == SPCM_TYPE_AI or card.function_type() == SPCM_TYPE_AO:
             self._conversion_amp = self.amp(return_unit=units.V)
             self._conversion_offset = self.offset(return_unit=units.V)
@@ -221,7 +224,7 @@ class Channel:
         self._conversion_offset = UnitConversion.force_unit(return_value, card_unit)
         return return_quantity
     
-    def special_clock_adjust(self, special_clock : bool = False) -> float:
+    def special_clock_adjust(self) -> float:
         """
         Gets the special clock adjust value of the channel (see register `SPC_SPECIALCLOCK_ADJUST0` in the manual)
         
@@ -231,10 +234,8 @@ class Channel:
             The special clock adjust value of the channel
         """
 
-        adjust = 1.0
-        if special_clock:
-            # If the card is in special clock mode, we need to adjust the conversion factor
-            adjust = self.card.get_d(SPC_SPECIALCLOCK_ADJUST0 + (SPC_SPECIALCLOCK_ADJUST1 - SPC_SPECIALCLOCK_ADJUST0) * self.index)
+        # If the card is in special clock mode, we need to adjust the conversion factor
+        adjust = self.card.get_d(SPC_SPECIALCLOCK_ADJUST0 + (SPC_SPECIALCLOCK_ADJUST1 - SPC_SPECIALCLOCK_ADJUST0) * self.index)
         return adjust
     
     def convert_data(self, data : npt.NDArray, return_unit : pint.Unit = units.mV, averages : int = 1) -> npt.NDArray:
