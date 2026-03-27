@@ -63,12 +63,18 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AI) as card:            # if you want to
 
     # add synchronous digital outputs to the data
     synchronous_io = spcm.SynchronousDigitalIOs(data_transfer, channels, digin2bit=True) # digin2bit is only using for the 44xx family of cards
-    if not (card.family() in [0x22, 0x23, 0x44]):
+    if not (card.family() in [0x22, 0x23, 0x44, 0x59]):
         # for the 22xx, 23xx and 44xx families there is a fixed setup for the digital outputs
         num_buffers = 4
-        index = synchronous_io.allocate_buffer(num_buffers=num_buffers)
+        synchronous_io.allocate_buffer(num_buffers=num_buffers)
         for index in range(num_buffers):
             synchronous_io.setup(buffer_index=index, channel=channels[index % len(channels)], xios=[index % synchronous_io.num_xio_lines])
+    elif card.family() == 0x59:
+        # for the 59xx family the digital outputs can be freely configured
+        num_buffers = 3
+        synchronous_io.allocate_buffer(num_buffers=num_buffers)
+        for index in range(num_buffers):
+            synchronous_io.setup(buffer_index=index, channel=channels[index % len(channels)], xios=[1 + (index % 3)]) # connect the digital inputs x1, x2 and x3 to the data stream of channel 0
     
     # start card and wait until recording is finished
     card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
