@@ -140,6 +140,25 @@ class Channel:
             self.card.set_i(SPC_READAIPATH, value)
         return self.card.get_i(SPC_PATH0 + (SPC_PATH1 - SPC_PATH0) * self.index)
     
+    def diff(self, value : bool = None) -> bool:
+        """
+        Sets the channel of the card to be a differential input or single-ended input (see register `SPC_DIFF0` in the manual)
+
+        Parameters
+        ----------
+        value : bool
+            Set the channel to be a differential input (True) or single-ended input (False)
+        
+        Returns
+        -------
+        bool
+            The channel is set to be a differential input (True) or single-ended input (False)
+        """
+        
+        if value is not None:
+            self.card.set_i(SPC_DIFF0 + (SPC_DIFF1 - SPC_DIFF0) * self.index, int(value))
+        return bool(self.card.get_i(SPC_DIFF0 + (SPC_DIFF1 - SPC_DIFF0) * self.index))
+    
     def amp(self, value : int = None, return_unit = None) -> int:
         """
         Sets the output/input range (amplitude) of the analog front-end of the channel of the card in mV (see register `SPC_AMP` in the manual)
@@ -716,6 +735,19 @@ class Channels:
 
         for channel in self.channels:
             channel.path(value)
+    
+    def diff(self, value : bool) -> None:
+        """
+        Sets the channels of the card to be a differential input or single-ended input (see register `SPC_DIFF` in the manual)
+
+        Parameters
+        ----------
+        value : bool
+            Set the channels to be a differential input (True) or single-ended input (False)
+        """
+
+        for channel in self.channels:
+            channel.diff(value)
     
     def amp(self, value : int) -> None:
         """
