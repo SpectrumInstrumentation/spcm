@@ -54,16 +54,21 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
     data_transfer.memory_size(num_samples) # size of memory on the card
     data_transfer.allocate_buffer(num_samples) # size of buffer in pc RAM
 
+    # generate output data (or alternatively load data from file)
+    # simple ramp for analog output cards
+    data_transfer.buffer[:] = np.arange(-num_samples_magnitude//2, num_samples_magnitude//2).astype(np.int16) # saw-tooth signal
+
     # add synchronous digital outputs to the data
+    # the xios lines can be used for synchronous digital output; in this example we use x0, x1 and x2
+    # as digital outputs for the sign of the analog signal. The lines x0 and x1 output the same signal.
     synchronous_io = spcm.SynchronousDigitalIOs(data_transfer, channels)
     buffer = synchronous_io.allocate_buffer(num_buffers=2)
     synchronous_io.setup(buffer_index=0, channel=channels[0], xios=[0, 1])
     synchronous_io.setup(buffer_index=1, channel=channels[0], xios=2)
 
-    # generate output data (or alternatively load data from file)
-    # simple ramp for analog output cards
-    data_transfer.buffer[:] = np.arange(-num_samples_magnitude//2, num_samples_magnitude//2).astype(np.int16) # saw-tooth signal
-
+    # create a digital signal for the xios lines; in this example we use the first 1/40 of the samples 
+    # for the low state and the rest for the high state for x0 and x1, and the first half of the samples
+    # for the low state and the second half for the high state for x2
     buffer[0, :num_samples_magnitude//40] = 0 # digital signal for sign
     buffer[0, num_samples_magnitude//40:] = 1 # digital signal for sign
     buffer[1, :num_samples_magnitude//2] = 0 # digital signal for sign
