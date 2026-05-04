@@ -70,8 +70,6 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     # start all pulse generators that wait for a software command
     pulse_generators.force()
 
-    card.start()
-
     # wait until user presses a key
     input("Press a key to stop the pulse generator(s) ")
 

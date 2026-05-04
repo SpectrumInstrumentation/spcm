@@ -69,6 +69,8 @@ with spcm.Card('/dev/spcm0') as card:                           # if you want to
     # wait until user presses a key
     input("Press a key to stop the pulse generator(s) ")
 
+    card.stop()
+
     # stop the pulse generators
     pulse_generators.enable(False)
     pulse_generators.force()
