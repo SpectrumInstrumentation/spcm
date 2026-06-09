@@ -1,13 +1,20 @@
 """
 Spectrum Instrumentation GmbH (c)
 
-1_gen_single.py
+10_gen_single_large_memory.py
 
-Shows a simple standard mode example using only the few necessary commands.
-- There will be a saw-tooth signal generated on channel 0.
-- This signal will have an amplitude of 1 V.
+Shows how to fill a large on-card memory (1 GiSample) with waveform data using
+chunked DMA transfers, then replay it continuously.
 
-Example for analog replay cards (AWG) for the the M2p, M4i, M4x and M5i card-families.
+- A sine wave at 1 MHz is generated on channel 0 with an amplitude of 1 V.
+- The card memory (8 GiS) is larger than the PC-side buffer (16 MiS), so the
+  data is transferred in notification-based chunks of 16 MiS each.
+- After the full memory has been written, the card is started and replays the
+  waveform endlessly in standard continuous mode.
+- A software trigger is used and a 100 s timeout stops the card if no other
+  stop condition occurs.
+
+Example for analog replay cards (AWG) for the M2p, M4i, M4x and M5i card-families.
 
 See the README file in the parent folder of this examples directory for information about how to use this example.
 
@@ -38,11 +45,12 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
 
     # setup the clock
     clock = spcm.Clock(card)
-    clock.sample_rate(max=True) # 10% of the maximum sample rate
+    sample_rate = clock.sample_rate(max=True) # 10% of the maximum sample rate
     clock.clock_output(False)
 
-    num_samples    = 512 * units.MiS # samples per channel
-    notify_samples =   1 * units.MiS # chunk size for transfer
+    mem_samples    =   8 * units.GiS # samples per channel
+    notify_samples =  16 * units.MiS # chunk size for transfer
+    RAM_samples    =  notify_samples # size of buffer in pc RAM
 
     # setup the trigger mode
     trigger = spcm.Trigger(card)
@@ -51,30 +59,35 @@ with spcm.Card(card_type=spcm.SPCM_TYPE_AO) as card:          # if you want to o
     # setup data transfer
     data_transfer = spcm.DataTransfer(card)
     if data_transfer.bytes_per_sample != 2: raise spcm.SpcmException(text="Non 16-bit DA not supported")
-    data_transfer.memory_size(num_samples) # size of memory on the card^
+    data_transfer.memory_size(mem_samples) # size of memory on the card^
     data_transfer.notify_samples(notify_samples) # size of chunk for transfer
-    data_transfer.allocate_buffer(num_samples) # size of buffer in pc RAM
-    data_transfer.to_transfer_samples(num_samples) # total number of samples to transfer
+    data_transfer.allocate_buffer(RAM_samples) # size of buffer in pc RAM
+    data_transfer.to_transfer_samples(mem_samples) # total number of samples to transfer
 
     # generate output data (or alternatively load data from file)
-    samples = num_samples.to_base_units().magnitude
-    # Preload data: simple ramp for analog output cards
-    data_transfer.buffer[:] = np.arange(-samples//2, samples//2).astype(np.int16) # saw-tooth signal
+    num_RAM_samples = RAM_samples.to_base_units().magnitude
+    num_notify_samples = notify_samples.to_base_units().magnitude
 
     data_transfer.start_buffer_transfer(spcm.M2CMD_DATA_STARTDMA) # Wait until the writing to buffer has been done
 
     # Do the transfer in chunks of "notify_samples" and wait for the card to be ready after each chunk
+    block_num = 0
+    data_range = np.arange(num_notify_samples, dtype=np.float64)
+    frequency = (1 * units.MHz).to_base_units().magnitude
     for data_block in data_transfer:
+        sin_phase = (2 * np.pi * frequency / sample_rate * (data_range + block_num * num_notify_samples))
+        data_block[:] = np.sin(sin_phase) * (2**15 - 1) # sine signal; full scale amplitude for 16-bit DA
         # All the data is pre-calculated and the loading is done here
-        print(f"Transferred {notify_samples} to the card")
+        print(f"Transferred {block_num*notify_samples} to the card", end="\r")
+        block_num += 1
 
     # We'll start and wait until the card has finished or until a timeout occurs
-    card.timeout(10 * units.s) # 10 s; 0 = disable timeout functionality
+    card.timeout(100 * units.s) # 100 s; 0 = disable timeout functionality
     print("Starting the card and waiting for ready interrupt\n(continuous and single restart will have timeout)")
     try:
         card.start(spcm.M2CMD_CARD_ENABLETRIGGER, spcm.M2CMD_CARD_WAITREADY)
     except spcm.SpcmTimeout as timeout:
-        print("-> The 10 seconds timeout have passed and the card is stopped")
+        print("-> The 100 seconds timeout have passed and the card is stopped")
 
     # Without the above "spcm.M2CMD_CARD_WAITREADY" flag you can do things here in parallel
     # and later stop the replaying with "card.stop()"
