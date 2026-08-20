@@ -95,6 +95,7 @@ class MultiPurposeIOs(CardFunctionality):
 
     xio_lines : list[MultiPurposeIO] = []
     num_xio_lines : int = None
+    _xio_iterator_index : int = -1
 
     def __init__(self, card : Card, *args, **kwargs) -> None:
         """
@@ -109,6 +110,7 @@ class MultiPurposeIOs(CardFunctionality):
         super().__init__(card, *args, **kwargs)
         
         self.xio_lines = []
+        self._xio_iterator_index = -1
         self.num_xio_lines = self.get_num_xio_lines()
         self.load()
     
@@ -127,6 +129,7 @@ class MultiPurposeIOs(CardFunctionality):
     __repr__ = __str__
     def __iter__(self) -> "MultiPurposeIOs":
         """Define this class as an iterator"""
+        self._xio_iterator_index = -1
         return self
     
     def __getitem__(self, index : int) -> MultiPurposeIO:
@@ -146,7 +149,6 @@ class MultiPurposeIOs(CardFunctionality):
 
         return self.xio_lines[index]
     
-    _xio_iterator_index = -1
     def __next__(self) -> MultiPurposeIO:
         """
         This method is called when the next element is requested from the iterator

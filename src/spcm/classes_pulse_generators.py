@@ -593,7 +593,8 @@ class PulseGenerators(CardFunctionality):
     """
     
     generators : list[PulseGenerator]
-    num_generators = 4
+    num_generators : int = 4
+    _generator_iterator_index : int = -1
 
     def __init__(self, card : Card, enable : int = 0, *args, **kwargs) -> None:
         """
@@ -612,6 +613,7 @@ class PulseGenerators(CardFunctionality):
         """
 
         super().__init__(card, *args, **kwargs)
+        self._generator_iterator_index = -1
         # Check for the pulse generator option on the card
         features = self.card.get_i(SPC_PCIEXTFEATURES)
         if features & SPCM_FEAT_EXTFW_PULSEGEN:
@@ -656,6 +658,7 @@ class PulseGenerators(CardFunctionality):
 
     def __iter__(self) -> "PulseGenerators":
         """Define this class as an iterator"""
+        self._generator_iterator_index = -1
         return self
     
     def __getitem__(self, index : int) -> PulseGenerator:
@@ -675,7 +678,7 @@ class PulseGenerators(CardFunctionality):
 
         return self.generators[index]
     
-    _generator_iterator_index = -1
+    
     def __next__(self) -> PulseGenerator:
         """
         This method is called when the next element is requested from the iterator

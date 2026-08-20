@@ -514,6 +514,7 @@ class DDS(CardFunctionality):
         -------
         self
         """
+        self._current_core = -1
         return self
     
     def __next__(self):

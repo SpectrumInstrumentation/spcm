@@ -547,6 +547,7 @@ class Channels:
     channels : list[Channel] = []
     num_channels : list[int] = []
     _special_clock : list[bool] = []
+    _channel_iterator_index : int = -1
 
     def __init__(self, card : Card = None, card_enable : int = None, stack : CardStack = None, stack_enable : list[int] = None) -> None:
         """
@@ -573,6 +574,7 @@ class Channels:
         self.channels = []
         self.num_channels = []
         self._special_clock = []
+        self._channel_iterator_index = -1
         if card is not None:
             self.cards.append(card)
             if card_enable is not None:
@@ -604,6 +606,7 @@ class Channels:
 
     def __iter__(self) -> "Channels":
         """Define this class as an iterator"""
+        self._channel_iterator_index = -1
         return self
     
     def __getitem__(self, index : int) -> Channel:
@@ -625,7 +628,6 @@ class Channels:
             raise IndexError(repr(index))
         return self.channels[index]
     
-    _channel_iterator_index = -1
     def __next__(self) -> Channel:
         """
         This method is called when the next element is requested from the iterator
