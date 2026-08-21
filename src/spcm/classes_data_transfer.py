@@ -597,14 +597,15 @@ class DataTransfer(CardFunctionality):
         self.memory_size(num_samples)
         self.allocate_buffer(num_samples)
         if pre_trigger_duration is not None:
+            raise NotImplementedError("Setting the pre trigger duration is not implemented yet. Please set the pre trigger samples directly.")
             pre_min = self.card.get_i(SPC_AVAILPRETRIGGER_MIN)
             pre_max = self.card.get_i(SPC_AVAILPRETRIGGER_MAX)
             pre_stp = self.card.get_i(SPC_AVAILPRETRIGGER_STEP)
             pre_samples = (pre_trigger_duration * self._sample_rate()).to_base_units().magnitude
             pre_samples = np.ceil(pre_samples / pre_stp) * pre_stp
             pre_samples = np.clip(pre_samples, pre_min, pre_max)
-            pre_samples = int(post_samples)
-            self.post_trigger(post_samples)
+            pre_samples = int(pre_samples)
+            self.pre_trigger(pre_samples)
         if post_trigger_duration is not None:
             post_min = self.card.get_i(SPC_AVAILPOSTTRIGGER_MIN)
             post_max = self.card.get_i(SPC_AVAILPOSTTRIGGER_MAX)
