@@ -715,7 +715,7 @@ class DataTransfer(CardFunctionality):
         return_data = data.reshape([-1, 1])
         num_bits = return_data.dtype.itemsize * 8
         mask = 2**np.arange(num_bits, dtype=return_data.dtype).reshape([1, num_bits])
-        self.bit_buffer = (return_data & mask).astype(np.bool).astype(np.uint8).reshape(dshape + [num_bits])
+        self.bit_buffer = (return_data & mask).astype(np.bool_).astype(np.uint8).reshape(dshape + [num_bits])
         return self.bit_buffer
     
     def packbits(self) -> None:
