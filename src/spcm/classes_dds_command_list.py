@@ -131,18 +131,20 @@ class DDSCommandList(DDS):
         """
 
         if self.mode == self.WRITE_MODE.EXCEPTION_IF_FULL:
+            # TODO: better would be to use a timeout
             if self.buffer_full():
                 raise SpcmException(text="Buffer is full")
-        elif self.mode == self.WRITE_MODE.WAIT_IF_FULL:
-            timer = 0
-            if self.data_transfer_mode == SPCM_DDS_DTM_SINGLE:
-                while self.avail_user_len() < (self.current_index):
-                    self.card._print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
-                    timer = (timer + 1) % 400
-            elif self.data_transfer_mode == SPCM_DDS_DTM_DMA:
-                while self.buffer_full():
-                    self.card._print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
-                    timer = (timer + 1) % 400
+        # NOTE: WAIT_IF_FULL, is the standard behaviour of the driver and the set_ptr function will do the waiting
+        # elif self.mode == self.WRITE_MODE.WAIT_IF_FULL:
+        #     timer = 0
+        #     if self.data_transfer_mode == SPCM_DDS_DTM_SINGLE:
+        #         while self.avail_user_len() < (self.current_index):
+        #             self.card._print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
+        #             timer = (timer + 1) % 400
+        #     elif self.data_transfer_mode == SPCM_DDS_DTM_DMA:
+        #         while self.buffer_full():
+        #             self.card._print("Waiting for buffer to empty {}".format("."*(timer//100)), end="\r")
+        #             timer = (timer + 1) % 400
         self.card.set_ptr(SPC_REGISTER_LIST, self.command_list, (self.current_index) * ctypes.sizeof(ST_LIST_PARAM))
     
     def avail_user_len(self) -> int:
@@ -153,8 +155,7 @@ class DDSCommandList(DDS):
         if self._dtm == SPCM_DDS_DTM_SINGLE:
             return self.buffer_size - self.card.get_i(SPC_DDS_QUEUE_CMD_COUNT)
         elif self._dtm == SPCM_DDS_DTM_DMA:
-            # Not supported for DMA mode
-            return False
+            return self.card.get_i(SPC_DATA_AVAIL_USER_LEN) // 8 # 8 bytes per command
         else:
             raise SpcmException(text="Data transfer mode not supported.")
 
