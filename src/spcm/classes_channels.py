@@ -307,11 +307,11 @@ class Channel:
 
     def termination(self, value : int = None) -> int:
         """
-        Sets the termination of the analog front-end of the channel of the card (see register `SPC_50OHM0` in the manual)
+        Sets and gets the termination of the analog front-end of the channel of the card (see register `SPC_50OHM0` in the manual)
     
         Parameters
         ----------
-        value : int | bool
+        value : int | bool = None
             The termination of the specific channel
 
         Returns
