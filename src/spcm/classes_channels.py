@@ -305,17 +305,24 @@ class Channel:
             return_data = int(((data + self._conversion_offset) / (self._conversion_amp * self._conversion_clock)) * self.card.max_sample_value())
         return return_data
 
-    def termination(self, value : int) -> None:
+    def termination(self, value : int = None) -> int:
         """
-        Sets the termination of the analog front-end of the channel of the card (see register `SPC_50OHM0` in the manual)
+        Sets and gets the termination of the analog front-end of the channel of the card (see register `SPC_50OHM0` in the manual)
     
         Parameters
         ----------
-        value : int | bool
+        value : int | bool = None
+            The termination of the specific channel
+
+        Returns
+        -------
+        int
             The termination of the specific channel
         """
 
-        self.card.set_i(SPC_50OHM0 + (SPC_50OHM1 - SPC_50OHM0) * self.index, int(value))
+        if value is not None:
+            self.card.set_i(SPC_50OHM0 + (SPC_50OHM1 - SPC_50OHM0) * self.index, int(value))
+        return self.get_termination()
 
     def get_termination(self) -> int:
         """
